@@ -267,19 +267,19 @@ your phone.
 ## Privacy
 
 > [!IMPORTANT]
->Streak has **no analytics, no advertising SDK and no network backend**. The
->app never sends your data anywhere; it stays on your device. The only
->outbound actions are links you choose to open yourself.
+>Streak **never connects to the internet**, and that is a core rule, not a
+>setting. On Android it does not even ask for the internet permission. There
+>are no analytics, no ads, no accounts and no servers: your data never leaves
+>your device. If you want a copy somewhere else, such as a cloud drive, you
+>export it and put it there yourself. Links you tap open in your browser.
 
 ---
 
 ## Translations
 
-Streak speaks **English, Spanish, French, Portuguese, Russian, Ukrainian and
-Chinese** in full, with **German, Polish, Hebrew, Indonesian and Persian** on
-their way, and more languages are very welcome.
 Translations are managed on [**Weblate**](https://hosted.weblate.org/engage/streak/):
-no coding needed, just short phrases you translate in your browser.
+no coding needed, just short phrases you translate in your browser. New
+languages are welcome.
 
 [![Translation status per language](https://hosted.weblate.org/widget/streak/app-strings/multi-auto.svg)](https://hosted.weblate.org/engage/streak/)
 

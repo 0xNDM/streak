@@ -252,17 +252,17 @@ Linux 版本刚刚发布，可能还有一些问题。提醒只在 Streak 打开
 ## 隐私
 
 > [!IMPORTANT]
->Streak **没有分析统计、没有广告 SDK、没有网络后端**。应用绝不会把你的数据
->发送到任何地方，它们只留在你的设备上。唯一的对外动作是你自己选择打开的链接。
+>Streak **从不连接互联网**，这是基本原则，而不是一个设置。在 Android 上它甚至
+>不申请网络权限。没有分析统计、没有广告、没有账号、没有服务器：你的数据永远不会
+>离开你的设备。如果你想在别处保存一份，比如云盘，就自己导出后上传。你点击的链接
+>会在浏览器中打开。
 
 ---
 
 ## 翻译
 
-Streak 已完整支持**英语、西班牙语、法语、葡萄牙语、俄语、乌克兰语和中文**，
-**德语、波兰语、希伯来语、印尼语和波斯语**也在路上，非常欢迎更多语言。翻译工作在
-[**Weblate**](https://hosted.weblate.org/engage/streak/) 上进行：无需编程，
-只是一些在浏览器里就能翻译的短句。
+翻译工作在 [**Weblate**](https://hosted.weblate.org/engage/streak/) 上进行：
+无需编程，只是一些在浏览器里就能翻译的短句。欢迎添加新的语言。
 
 [![各语言翻译状态](https://hosted.weblate.org/widget/streak/app-strings/multi-auto.svg)](https://hosted.weblate.org/engage/streak/)
 
