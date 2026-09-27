@@ -46,6 +46,7 @@ class SettingsController extends ChangeNotifier {
   void _load() {
     _themeMode = ThemeMode.values[LocalStore.setting('themeMode', 0)];
     _weekStart = LocalStore.setting('weekStart', 1);
+    Habit.weekStart = _weekStart;
     _onboardingDone = LocalStore.setting('onboardingDone', false);
     _localeCode = LocalStore.setting('locale', '');
     _appBackground = LocalStore.setting('appBackground', 2);
@@ -64,6 +65,8 @@ class SettingsController extends ChangeNotifier {
     _heatmapRolling = LocalStore.setting('heatmapRolling', false);
     _startView = LocalStore.setting('startView', 0);
     _planningEnabled = LocalStore.setting('planningEnabled', true);
+    _planTodos = LocalStore.setting('planTodos', false);
+    _swipeCards = LocalStore.setting('swipeCards', false);
     _cardActivity = LocalStore.setting('cardActivity', true);
     _viewSwitcher = LocalStore.setting('viewSwitcher', true);
     _compactCards = LocalStore.setting('compactCards', false);
@@ -91,7 +94,7 @@ class SettingsController extends ChangeNotifier {
     _focusRepeatOne = LocalStore.setting('focusRepeatOne', false);
     _focusMinutes = LocalStore.setting('focusMinutes', 25);
     _focusBreakMinutes = LocalStore.setting('focusBreakMinutes', 0);
-    _focusTrack = LocalStore.setting('focusTrack', '');
+    _focusTrack = builtInTrackId(LocalStore.setting('focusTrack', ''));
     _focusDailyGoal = LocalStore.setting('focusDailyGoal', 0);
     _focusKeepAwake = LocalStore.setting('focusKeepAwake', true);
     _focusLeadIn = LocalStore.setting('focusLeadIn', true);
@@ -102,7 +105,9 @@ class SettingsController extends ChangeNotifier {
     _hiddenScenes =
         List<int>.from(LocalStore.setting('hiddenScenes', const <int>[]));
     _hiddenTracks =
-        List<String>.from(LocalStore.setting('hiddenTracks', const <String>[]));
+        List<String>.from(LocalStore.setting('hiddenTracks', const <String>[]))
+            .map(builtInTrackId)
+            .toList();
     _appStyle = LocalStore.setting(
       'appStyle',
       LocalStore.setting('homeLayout', 0),
@@ -142,6 +147,8 @@ class SettingsController extends ChangeNotifier {
   late bool _heatmapRolling;
   late int _startView;
   late bool _planningEnabled;
+  late bool _planTodos;
+  late bool _swipeCards;
   late bool _cardActivity;
   late bool _viewSwitcher;
   late bool _compactCards;
@@ -273,6 +280,22 @@ class SettingsController extends ChangeNotifier {
   Future<void> setPlanningEnabled(bool value) async {
     _planningEnabled = value;
     await LocalStore.writeSetting('planningEnabled', value);
+    notifyListeners();
+  }
+
+  bool get planTodos => _planTodos;
+
+  Future<void> setPlanTodos(bool value) async {
+    _planTodos = value;
+    await LocalStore.writeSetting('planTodos', value);
+    notifyListeners();
+  }
+
+  bool get swipeCards => _swipeCards;
+
+  Future<void> setSwipeCards(bool value) async {
+    _swipeCards = value;
+    await LocalStore.writeSetting('swipeCards', value);
     notifyListeners();
   }
 
@@ -516,8 +539,19 @@ class SettingsController extends ChangeNotifier {
     notifyListeners();
   }
 
+  bool _backingUp = false;
+
   Future<bool> runAutoBackup({bool force = false}) async {
-    if (_autoBackup == 0) return false;
+    if (_autoBackup == 0 || _backingUp) return false;
+    _backingUp = true;
+    try {
+      return await _backUp(force);
+    } finally {
+      _backingUp = false;
+    }
+  }
+
+  Future<bool> _backUp(bool force) async {
     final last = autoBackupAt;
     if (!force && last != null) {
       final due = _autoBackup == 1
@@ -707,6 +741,7 @@ class SettingsController extends ChangeNotifier {
 
   Future<void> setWeekStart(int weekday) async {
     _weekStart = weekday;
+    Habit.weekStart = weekday;
     await LocalStore.writeSetting('weekStart', weekday);
     notifyListeners();
   }

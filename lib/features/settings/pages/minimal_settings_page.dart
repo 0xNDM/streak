@@ -373,7 +373,8 @@ class _PreferencesPage extends StatelessWidget {
                   context.l10n.sun,
                 ],
                 index: weekIndex,
-                onSelected: (i) => settings.setWeekStart(
+                onSelected: (i) => SettingsActions.setWeekStart(
+                context,
                   switch (i) { 1 => 6, 2 => 7, _ => 1 },
                 ),
               ),
@@ -534,6 +535,25 @@ class _PreferencesPage extends StatelessWidget {
               trailing: _SoftSwitch(
                 value: settings.planningEnabled,
                 onChanged: settings.setPlanningEnabled,
+              ),
+            ),
+            if (settings.planningEnabled && settings.todosEnabled)
+              SoftRow(
+                icon: LucideIcons.listTodo,
+                title: context.l10n.plan_todos,
+                subtitle: context.l10n.plan_todos_sub,
+                trailing: _SoftSwitch(
+                  value: settings.planTodos,
+                  onChanged: settings.setPlanTodos,
+                ),
+              ),
+            SoftRow(
+              icon: LucideIcons.moveHorizontal,
+              title: context.l10n.swipe_cards,
+              subtitle: context.l10n.swipe_cards_sub,
+              trailing: _SoftSwitch(
+                value: settings.swipeCards,
+                onChanged: settings.setSwipeCards,
               ),
             ),
             SoftRow(

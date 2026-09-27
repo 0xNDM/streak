@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
+import 'package:streak/core/extensions/date_extensions.dart';
+import 'package:streak/core/widgets/keep_built.dart';
 import 'package:streak/app/theme/app_tokens.dart';
 import 'package:streak/core/extensions/inset_extensions.dart';
 import 'package:streak/core/widgets/pane_mark.dart';
@@ -11,6 +13,7 @@ import 'package:streak/features/habits/widgets/habit_card.dart';
 import 'package:streak/features/habits/widgets/habit_heatmap.dart';
 import 'package:streak/features/habits/widgets/habit_entrance.dart';
 import 'package:streak/features/habits/widgets/slot_transition.dart';
+import 'package:streak/features/habits/widgets/swipe_check.dart';
 
 class ClassicHabitList extends StatelessWidget {
   const ClassicHabitList({
@@ -24,6 +27,7 @@ class ClassicHabitList extends StatelessWidget {
     required this.onToggleToday,
     required this.onToggleDay,
     required this.onLongPress,
+    this.onSwipe,
     this.leaving = const {},
   });
 
@@ -37,6 +41,7 @@ class ClassicHabitList extends StatelessWidget {
   final ValueChanged<Habit> onToggleToday;
   final void Function(Habit habit, DateTime date) onToggleDay;
   final ValueChanged<Habit> onLongPress;
+  final ValueChanged<Habit>? onSwipe;
 
   @override
   Widget build(BuildContext context) {
@@ -96,16 +101,27 @@ class ClassicHabitList extends StatelessWidget {
                 corners: compact
                     ? stackedCorners(index, habits.length)
                     : BorderRadius.circular(24),
-                child: HabitCard(
-                  habit: habit,
-                  mode: mode,
+                child: SwipeCheck(
+                  done: habit.isCompletedOn(AppClock.today()),
+                  tint: habit.color,
                   corners: compact
                       ? stackedCorners(index, habits.length)
-                      : null,
-                  onOpen: () => onOpen(habit),
-                  onToggleToday: () => onToggleToday(habit),
-                  onToggleDay: (date) => onToggleDay(habit, date),
-                  onLongPress: () => onLongPress(habit),
+                      : BorderRadius.circular(24),
+                  onSwipe: onSwipe == null ? null : () => onSwipe!(habit),
+                  child: KeepBuilt(
+                  keys: [habit, mode, compact, index, habits.length, AppClock.today()],
+                  build: () => HabitCard(
+                    habit: habit,
+                    mode: mode,
+                    corners: compact
+                        ? stackedCorners(index, habits.length)
+                        : null,
+                    onOpen: () => onOpen(habit),
+                    onToggleToday: () => onToggleToday(habit),
+                    onToggleDay: (date) => onToggleDay(habit, date),
+                    onLongPress: () => onLongPress(habit),
+                  ),
+                  ),
                 ),
               ),
             ),

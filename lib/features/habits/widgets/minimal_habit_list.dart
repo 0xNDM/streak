@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:streak/core/extensions/date_extensions.dart';
+import 'package:streak/core/widgets/keep_built.dart';
 import 'package:streak/core/extensions/inset_extensions.dart';
 import 'package:streak/core/widgets/pane_mark.dart';
 import 'package:streak/features/habits/data/habit.dart';
@@ -6,6 +8,7 @@ import 'package:streak/features/habits/widgets/grid_habit_cards.dart';
 import 'package:streak/features/habits/widgets/habit_entrance.dart';
 import 'package:streak/features/habits/widgets/habit_heatmap.dart';
 import 'package:streak/features/habits/widgets/slot_transition.dart';
+import 'package:streak/features/habits/widgets/swipe_check.dart';
 
 class MinimalHabitList extends StatelessWidget {
   const MinimalHabitList({
@@ -17,6 +20,7 @@ class MinimalHabitList extends StatelessWidget {
     required this.onToggleToday,
     required this.onToggleDay,
     required this.onLongPress,
+    this.onSwipe,
     this.leaving = const {},
   });
 
@@ -30,6 +34,7 @@ class MinimalHabitList extends StatelessWidget {
   final ValueChanged<Habit> onToggleToday;
   final void Function(Habit habit, DateTime date) onToggleDay;
   final ValueChanged<Habit> onLongPress;
+  final ValueChanged<Habit>? onSwipe;
   final Set<String> leaving;
 
   @override
@@ -53,7 +58,14 @@ class MinimalHabitList extends StatelessWidget {
                 id: habit.id,
                 tint: habit.color,
                 corners: BorderRadius.circular(20),
-                child: mode == HeatmapMode.week
+                child: SwipeCheck(
+                  done: habit.isCompletedOn(AppClock.today()),
+                  tint: habit.color,
+                  corners: BorderRadius.circular(20),
+                  onSwipe: onSwipe == null ? null : () => onSwipe!(habit),
+                  child: KeepBuilt(
+                  keys: [habit, mode, AppClock.today()],
+                  build: () => mode == HeatmapMode.week
                     ? GridWeekCard(
                         habit: habit,
                         onOpen: () => onOpen(habit),
@@ -67,6 +79,8 @@ class MinimalHabitList extends StatelessWidget {
                         onToggleDay: (d) => onToggleDay(habit, d),
                         onLongPress: () => onLongPress(habit),
                       ),
+                  ),
+                ),
               ),
             ),
           ),
@@ -112,12 +126,21 @@ class MinimalHabitList extends StatelessWidget {
       id: habit.id,
       tint: habit.color,
       corners: BorderRadius.circular(30),
-      child: GridMonthCard(
-        habit: habit,
-        onOpen: () => onOpen(habit),
-        onToggleToday: () => onToggleToday(habit),
-        onToggleDay: (d) => onToggleDay(habit, d),
-        onLongPress: () => onLongPress(habit),
+      child: SwipeCheck(
+        done: habit.isCompletedOn(AppClock.today()),
+        tint: habit.color,
+        corners: BorderRadius.circular(30),
+        onSwipe: onSwipe == null ? null : () => onSwipe!(habit),
+        child: KeepBuilt(
+        keys: [habit, AppClock.today()],
+        build: () => GridMonthCard(
+          habit: habit,
+          onOpen: () => onOpen(habit),
+          onToggleToday: () => onToggleToday(habit),
+          onToggleDay: (d) => onToggleDay(habit, d),
+          onLongPress: () => onLongPress(habit),
+        ),
+        ),
       ),
     );
   }

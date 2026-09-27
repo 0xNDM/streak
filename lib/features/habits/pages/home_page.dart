@@ -282,7 +282,7 @@ class _HomePageState extends State<HomePage> {
     final sortCompletedLast = settings.sortCompletedLast;
     final minimal = settings.isMinimalStyle;
     final express = settings.isExpressStyle;
-    final wide = isWideLayout(context);
+    final wide = hasSideRail(context);
     final railed = minimal && wide;
     final bigText = MediaQuery.textScalerOf(context).scale(14) > 20;
     return Scaffold(
@@ -495,6 +495,9 @@ class _HomePageState extends State<HomePage> {
                       ],
                     );
 
+              final ValueChanged<Habit>? swipe = settings.swipeCards
+                  ? (habit) => _toggle(habit, today)
+                  : null;
               return RefreshIndicator(
                 color: minimal
                     ? context.colors.onSurface
@@ -524,6 +527,7 @@ class _HomePageState extends State<HomePage> {
                         onToggleDay: _toggle,
                         onLongPress: (habit) =>
                             _showHabitActions(controller, habit),
+                        onSwipe: swipe,
                         leaving: _leaving,
                       )
                     : minimal && !_reordering
@@ -536,6 +540,7 @@ class _HomePageState extends State<HomePage> {
                         onToggleDay: _toggle,
                         onLongPress: (habit) =>
                             _showHabitActions(controller, habit),
+                        onSwipe: swipe,
                         leaving: _leaving,
                       )
                     : ClassicHabitList(
@@ -550,6 +555,7 @@ class _HomePageState extends State<HomePage> {
                         onToggleDay: _toggle,
                         onLongPress: (habit) =>
                             _showHabitActions(controller, habit),
+                        onSwipe: swipe,
                         leaving: _leaving,
                       ),
               );

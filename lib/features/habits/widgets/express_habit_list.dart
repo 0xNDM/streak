@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:streak/core/extensions/date_extensions.dart';
+import 'package:streak/core/widgets/keep_built.dart';
 import 'package:streak/app/theme/app_tokens.dart';
 import 'package:streak/core/express/express_motion.dart';
 import 'package:streak/core/express/express_surface.dart';
@@ -10,6 +12,7 @@ import 'package:streak/features/habits/widgets/express_habit_card.dart';
 import 'package:streak/features/habits/widgets/habit_entrance.dart';
 import 'package:streak/features/habits/widgets/habit_heatmap.dart';
 import 'package:streak/features/habits/widgets/slot_transition.dart';
+import 'package:streak/features/habits/widgets/swipe_check.dart';
 
 class ExpressHabitList extends StatelessWidget {
   const ExpressHabitList({
@@ -23,6 +26,7 @@ class ExpressHabitList extends StatelessWidget {
     required this.onToggleToday,
     required this.onToggleDay,
     required this.onLongPress,
+    this.onSwipe,
     this.leaving = const {},
   });
 
@@ -35,6 +39,7 @@ class ExpressHabitList extends StatelessWidget {
   final ValueChanged<Habit> onToggleToday;
   final void Function(Habit habit, DateTime date) onToggleDay;
   final ValueChanged<Habit> onLongPress;
+  final ValueChanged<Habit>? onSwipe;
   final Set<String> leaving;
 
   @override
@@ -99,14 +104,23 @@ class ExpressHabitList extends StatelessWidget {
                 id: habit.id,
                 tint: habit.color,
                 corners: radius,
-                child: ExpressHabitCard(
-                  habit: habit,
-                  mode: mode,
-                  radius: radius,
-                  onOpen: () => onOpen(habit),
-                  onToggleToday: () => onToggleToday(habit),
-                  onToggleDay: (date) => onToggleDay(habit, date),
-                  onLongPress: () => onLongPress(habit),
+                child: SwipeCheck(
+                  done: habit.isCompletedOn(AppClock.today()),
+                  tint: habit.color,
+                  corners: radius,
+                  onSwipe: onSwipe == null ? null : () => onSwipe!(habit),
+                  child: KeepBuilt(
+                  keys: [habit, mode, index, habits.length, AppClock.today()],
+                  build: () => ExpressHabitCard(
+                    habit: habit,
+                    mode: mode,
+                    radius: radius,
+                    onOpen: () => onOpen(habit),
+                    onToggleToday: () => onToggleToday(habit),
+                    onToggleDay: (date) => onToggleDay(habit, date),
+                    onLongPress: () => onLongPress(habit),
+                  ),
+                  ),
                 ),
               ),
             ),

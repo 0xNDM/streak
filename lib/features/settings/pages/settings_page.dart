@@ -279,7 +279,8 @@ class _ClassicPreferencesPage extends StatelessWidget {
                         7 => 2,
                         _ => 0,
                       },
-                      onChanged: (i) => settings.setWeekStart(
+                      onChanged: (i) => SettingsActions.setWeekStart(
+                context,
                         switch (i) {
                           1 => 6,
                           2 => 7,
@@ -521,6 +522,30 @@ class _ClassicPreferencesPage extends StatelessWidget {
                       options: [context.l10n.off, context.l10n.on],
                       index: settings.planningEnabled ? 1 : 0,
                       onChanged: (i) => settings.setPlanningEnabled(i == 1),
+                    ),
+                  ),
+                  if (settings.planningEnabled && settings.todosEnabled) ...[
+                    settingsDivider(context),
+                    SettingRow(
+                      icon: LucideIcons.listTodo,
+                      title: context.l10n.plan_todos,
+                      subtitle: context.l10n.plan_todos_sub,
+                      trailing: Segmented(
+                        options: [context.l10n.off, context.l10n.on],
+                        index: settings.planTodos ? 1 : 0,
+                        onChanged: (i) => settings.setPlanTodos(i == 1),
+                      ),
+                    ),
+                  ],
+                  settingsDivider(context),
+                  SettingRow(
+                    icon: LucideIcons.moveHorizontal,
+                    title: context.l10n.swipe_cards,
+                    subtitle: context.l10n.swipe_cards_sub,
+                    trailing: Segmented(
+                      options: [context.l10n.off, context.l10n.on],
+                      index: settings.swipeCards ? 1 : 0,
+                      onChanged: (i) => settings.setSwipeCards(i == 1),
                     ),
                   ),
                   settingsDivider(context),
