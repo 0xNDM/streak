@@ -16,6 +16,7 @@ import 'package:streak/core/minimal/minimal_nav.dart';
 import 'package:streak/core/minimal/minimal_type.dart';
 import 'package:streak/core/routing/app_navigator.dart';
 import 'package:streak/core/database/local_store.dart';
+import 'package:streak/core/extensions/date_extensions.dart';
 import 'package:streak/core/routing/back_handlers.dart';
 import 'package:streak/core/utils/responsive.dart';
 import 'package:streak/core/widgets/page_motion.dart';
@@ -51,6 +52,7 @@ class _HomeShellState extends State<HomeShell>
   final _visited = <_Tab>{_Tab.today};
 
   late final AnimationController _swap;
+  Timer? _nextDay;
 
   @override
   void initState() {
@@ -66,10 +68,25 @@ class _HomeShellState extends State<HomeShell>
     final habits = context.read<HabitsController>();
     focus.onRoundSaved =
         (session) => unawaited(countFocusTime(habits, focus, session));
+    _waitForNextDay();
+  }
+
+  void _waitForNextDay() {
+    _nextDay?.cancel();
+    final end = AppClock.today()
+        .addDays(1)
+        .add(Duration(hours: AppClock.cutoffHour, seconds: 1));
+    _nextDay = Timer(end.difference(DateTime.now()), () {
+      if (!mounted) return;
+      context.read<HabitsController>().refresh();
+      context.read<TodosController>().reload();
+      _waitForNextDay();
+    });
   }
 
   @override
   void dispose() {
+    _nextDay?.cancel();
     _swap.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -94,6 +111,7 @@ class _HomeShellState extends State<HomeShell>
     int style,
   ) {
     final index = tabs.indexOf(current);
+    final compact = isCompactRail(context);
     if (style == 2) {
       return ExpressNavRail(
         items: [
@@ -102,7 +120,8 @@ class _HomeShellState extends State<HomeShell>
         ],
         index: index,
         onSelect: (i) => _select(tabs, tabs[i]),
-        brand: const _RailBrand(),
+        brand: _RailBrand(compact: compact),
+        compact: compact,
       );
     }
     if (style == 1) {
@@ -113,12 +132,14 @@ class _HomeShellState extends State<HomeShell>
         ],
         index: index,
         onSelect: (i) => _select(tabs, tabs[i]),
-        brand: const _RailBrand(),
+        brand: _RailBrand(compact: compact),
+        compact: compact,
       );
     }
     return _NavRail(
       tabs: tabs,
       current: current,
+      compact: compact,
       onSelect: (tab) => _select(tabs, tab),
     );
   }
@@ -145,10 +166,12 @@ class _HomeShellState extends State<HomeShell>
     if (state == AppLifecycleState.resumed) {
       final habits = context.read<HabitsController>();
       if (Platform.isIOS) _applyWidgetActions(habits);
-      habits.reload().then((_) => HomeWidgetService.sync(habits.asMap));
+      habits.refresh().then((_) => HomeWidgetService.sync(habits.asMap));
       context.read<TodosController>().reload();
       TodayIntro.replay();
       drainFocusActions();
+      context.read<SettingsController>().runAutoBackup();
+      _waitForNextDay();
     }
   }
 
@@ -165,15 +188,19 @@ class _HomeShellState extends State<HomeShell>
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      _StableMedia(child: Builder(builder: _layout));
+
+  Widget _layout(BuildContext context) {
     final settings = context.watch<SettingsController>();
     final wide = isWideLayout(context);
+    final railed = hasSideRail(context);
     final minimal = settings.isMinimalStyle;
-    if (minimal && !wide) {
+    if (minimal && !railed) {
       return _guard(
         const [_Tab.today],
         _Tab.today,
-        const Scaffold(body: HomePage()),
+        const Scaffold(resizeToAvoidBottomInset: false, body: HomePage()),
       );
     }
     final scheme = Theme.of(context).colorScheme;
@@ -187,12 +214,13 @@ class _HomeShellState extends State<HomeShell>
     ];
     final current = tabs.contains(_tab) ? _tab : _Tab.today;
 
-    if (wide) {
+    if (railed) {
       return _guard(
         tabs,
         current,
         _SplitScaffold(
         full: current == _Tab.stats,
+        single: !wide,
         rail: _rail(context, tabs, current, settings.appStyle),
         page: FadeThrough(
           animation: _swap,
@@ -217,6 +245,7 @@ class _HomeShellState extends State<HomeShell>
       tabs,
       current,
       Scaffold(
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           FadeThrough(
@@ -237,7 +266,7 @@ class _HomeShellState extends State<HomeShell>
           Positioned(
             left: 0,
             right: 0,
-            bottom: MediaQuery.paddingOf(context).bottom + 12,
+            bottom: MediaQuery.viewPaddingOf(context).bottom + 12,
             child: Center(
               child: express
                   ? ExpressNavBar(
@@ -402,12 +431,40 @@ class _NavItem extends StatelessWidget {
   }
 }
 
+class _StableMedia extends StatefulWidget {
+  const _StableMedia({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_StableMedia> createState() => _StableMediaState();
+}
+
+class _StableMediaState extends State<_StableMedia> {
+  MediaQueryData? _kept;
+
+  @override
+  Widget build(BuildContext context) {
+    final live = MediaQuery.of(context);
+    final current = ModalRoute.isCurrentOf(context) ?? true;
+    final kept = _kept;
+    if (current || kept == null || kept.size != live.size) _kept = live;
+    return MediaQuery(data: _kept!, child: widget.child);
+  }
+}
+
 class _SplitScaffold extends StatefulWidget {
-  const _SplitScaffold({this.rail, required this.page, this.full = false});
+  const _SplitScaffold({
+    this.rail,
+    required this.page,
+    this.full = false,
+    this.single = false,
+  });
 
   final Widget? rail;
   final Widget page;
   final bool full;
+  final bool single;
 
   @override
   State<_SplitScaffold> createState() => _SplitScaffoldState();
@@ -455,10 +512,22 @@ class _SplitScaffoldState extends State<_SplitScaffold> {
                 : ColoredBox(color: tint, child: widget.rail!),
             const _Line(),
           ],
-          if (widget.full)
+          if (widget.single)
+            Expanded(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: railPageWidth),
+                  child: widget.page,
+                ),
+              ),
+            )
+          else if (widget.full)
             Expanded(child: widget.page)
           else ...[
-            SizedBox(width: paneWidth, child: widget.page),
+            SizedBox(
+              width: isCompactRail(context) ? compactPaneWidth : paneWidth,
+              child: widget.page,
+            ),
             const _Line(),
             Expanded(
               child: Center(
@@ -590,6 +659,7 @@ class _NavRail extends StatelessWidget {
   const _NavRail({
     required this.tabs,
     required this.current,
+    required this.compact,
     required this.onSelect,
   });
 
@@ -597,20 +667,21 @@ class _NavRail extends StatelessWidget {
 
   final List<_Tab> tabs;
   final _Tab current;
+  final bool compact;
   final void Function(_Tab tab) onSelect;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: _width,
+      width: compact ? 76 : _width,
       child: SafeArea(
         right: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 22, 14, 18),
+          padding: EdgeInsets.fromLTRB(compact ? 12 : 14, 22, compact ? 12 : 14, 18),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const _RailBrand(),
+              _RailBrand(compact: compact),
               const SizedBox(height: 26),
               for (final tab in tabs)
                 Padding(
@@ -619,6 +690,7 @@ class _NavRail extends StatelessWidget {
                     icon: _iconOf(tab),
                     label: _labelOf(context, tab),
                     selected: tab == current,
+                    compact: compact,
                     onTap: () => onSelect(tab),
                   ),
                 ),
@@ -631,15 +703,19 @@ class _NavRail extends StatelessWidget {
 }
 
 class _RailBrand extends StatelessWidget {
-  const _RailBrand();
+  const _RailBrand({this.compact = false});
+
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsController>();
     final scheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.only(left: 6),
+      padding: EdgeInsets.only(left: compact ? 0 : 6),
       child: Row(
+        mainAxisAlignment:
+            compact ? MainAxisAlignment.center : MainAxisAlignment.start,
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(9),
@@ -650,6 +726,7 @@ class _RailBrand extends StatelessWidget {
               filterQuality: FilterQuality.medium,
             ),
           ),
+          if (!compact) ...[
           const SizedBox(width: 10),
           Text(
             'Streak',
@@ -667,6 +744,7 @@ class _RailBrand extends StatelessWidget {
                     color: scheme.onSurface,
                   ),
           ),
+          ],
         ],
       ),
     );
@@ -678,12 +756,14 @@ class _RailItem extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.selected,
+    required this.compact,
     required this.onTap,
   });
 
   final IconData icon;
   final String label;
   final bool selected;
+  final bool compact;
   final VoidCallback onTap;
 
   @override
@@ -710,7 +790,12 @@ class _RailItem extends StatelessWidget {
               color: scheme.primary.withValues(alpha: selected ? 0.14 : 0),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Row(
+            child: compact
+                ? Tooltip(
+                    message: label,
+                    child: Icon(icon, size: 19, color: tint),
+                  )
+                : Row(
               children: [
                 Icon(icon, size: 19, color: tint),
                 const SizedBox(width: 11),

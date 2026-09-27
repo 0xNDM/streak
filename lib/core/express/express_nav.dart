@@ -143,6 +143,7 @@ class ExpressNavRail extends StatelessWidget {
     required this.index,
     required this.onSelect,
     required this.brand,
+    this.compact = false,
   });
 
   static const width = 224.0;
@@ -151,15 +152,16 @@ class ExpressNavRail extends StatelessWidget {
   final int index;
   final ValueChanged<int> onSelect;
   final Widget brand;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: width,
+      width: compact ? 80 : width,
       child: SafeArea(
         right: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 24, 16, 18),
+          padding: EdgeInsets.fromLTRB(compact ? 12 : 16, 24, compact ? 12 : 16, 18),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -171,6 +173,7 @@ class ExpressNavRail extends StatelessWidget {
                   child: _RailPill(
                     item: items[i],
                     selected: i == index,
+                    compact: compact,
                     onTap: () => onSelect(i),
                   ),
                 ),
@@ -186,11 +189,13 @@ class _RailPill extends StatefulWidget {
   const _RailPill({
     required this.item,
     required this.selected,
+    required this.compact,
     required this.onTap,
   });
 
   final ExpressNavItem item;
   final bool selected;
+  final bool compact;
   final VoidCallback onTap;
 
   @override
@@ -224,14 +229,17 @@ class _RailPillState extends State<_RailPill> {
         child: AnimatedContainer(
           duration: Express.normal,
           curve: Express.bouncy,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          padding: EdgeInsets.all(widget.compact ? 8 : 12),
           decoration: BoxDecoration(
             color: selected
                 ? scheme.primary
                 : scheme.primary.withValues(alpha: _hover ? 0.16 : 0.06),
             borderRadius: BorderRadius.circular(selected ? 24 : 14),
           ),
-          child: Row(
+          child: Tooltip(
+            message: widget.compact ? item.label : '',
+            child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               AnimatedContainer(
                 duration: Express.normal,
@@ -250,16 +258,19 @@ class _RailPillState extends State<_RailPill> {
                 ),
                 child: Icon(item.icon, size: 17, color: tint),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  item.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: ExpressType.headline.at(14, weight: 800, color: tint),
+              if (!widget.compact) ...[
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    item.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: ExpressType.headline.at(14, weight: 800, color: tint),
+                  ),
                 ),
-              ),
+              ],
             ],
+          ),
           ),
         ),
         ),

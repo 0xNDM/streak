@@ -8,7 +8,9 @@ import 'package:streak/features/habits/data/habit.dart';
 import 'package:streak/features/habits/data/reminder.dart';
 import 'package:streak/features/habits/data/substep.dart';
 import 'package:streak/features/habits/data/vacation.dart';
+import 'package:streak/services/backup_archive.dart';
 import 'package:streak/services/backup_service.dart';
+import 'package:streak/services/folder_sync.dart';
 import 'package:streak/services/home_widget_service.dart';
 import 'package:streak/services/import_service.dart';
 import 'package:streak/services/notification_service.dart';
@@ -24,6 +26,7 @@ class HabitsController extends ChangeNotifier {
 
   late Map<String, Habit> _habits;
   List<Habit>? _active;
+  int _countedOn = AppClock.today().epochDay;
   bool _disposed = false;
 
   @override
@@ -70,10 +73,23 @@ class HabitsController extends ChangeNotifier {
     if (LocalStore.isWriting) return;
     await LocalStore.reloadHabits();
     _habits = LocalStore.readHabits();
+    _countedOn = AppClock.today().epochDay;
     notifyListeners();
   }
 
+  void recount() {
+    _habits = {for (final entry in _habits.entries) entry.key: entry.value.copyWith()};
+    _countedOn = AppClock.today().epochDay;
+    notifyListeners();
+  }
+
+  Future<void> refresh() async {
+    if (LocalStore.habitsChangedElsewhere) return reload();
+    if (_countedOn != AppClock.today().epochDay) recount();
+  }
+
   Future<void> clearProgress() async {
+    await BackupService.safetyCopy();
     final photos = [
       for (final note in LocalStore.readNotes()) ...note.photos,
     ];
@@ -162,8 +178,6 @@ class HabitsController extends ChangeNotifier {
     HomeWidgetService.syncSoon(() => asMap);
   }
 
-  /// Copies [source] into a new habit that starts from zero: same settings,
-  /// no history and a fresh id. Returns the copy.
   Future<Habit> duplicate(Habit source) async {
     final copy = source
         .copyWith(
@@ -171,14 +185,15 @@ class HabitsController extends ChangeNotifier {
           completions: const {},
           vacations: const [],
           clearArchived: true,
+          createdAt: AppClock.now(),
+          coverPath: await CoverStorage.clone(source.coverPath),
+          bookCoverPath: await CoverStorage.clone(source.bookCoverPath),
         )
         .rebuildId(_uuid.v4(), order: habits.length);
 
     _habits[copy.id] = copy;
     await LocalStore.writeHabit(copy);
     notifyListeners();
-    // The copy is already saved; a notification backend that is unavailable
-    // must not turn a successful duplication into a failure.
     try {
       await _notifications.scheduleFor(copy);
     } catch (e) {
@@ -190,8 +205,6 @@ class HabitsController extends ChangeNotifier {
 
   static final _copySuffix = RegExp(r'^(.*) \((\d+)\)$');
 
-  /// "Run" becomes "Run (2)", and the next free slot after that: "Run (3)",
-  /// "Run (4)"… so duplicating the same habit twice never collides.
   String _duplicateName(String name) {
     final match = _copySuffix.firstMatch(name);
     final base = match?.group(1) ?? name;
@@ -493,33 +506,58 @@ class HabitsController extends ChangeNotifier {
 
   Future<void> _applyBackup(BackupData data, {required bool replace}) async {
     if (replace) {
+      await BackupService.safetyCopy();
       for (final id in _habits.keys.toList()) {
         await _notifications.cancelFor(id);
       }
       await LocalStore.wipeContent();
       _habits.clear();
     }
-    for (final habit in data.habits) {
+    for (final theirs in data.habits) {
+      final ours = _habits[theirs.id];
+      final habit = ours == null
+          ? theirs
+          : ours.copyWith(
+              completions:
+                  FolderSync.mergeCompletions(ours.completions, theirs.completions),
+            );
       _habits[habit.id] = habit;
       await LocalStore.writeHabit(habit);
     }
+    Set<String> known<T>(List<T> items, String Function(T) id) =>
+        replace ? const {} : items.map(id).toSet();
+    final categories = known(LocalStore.readCategories(), (c) => c.id);
+    final notes = known(LocalStore.readNotes(), (n) => n.id);
+    final focus = known(LocalStore.readFocusSessions(), (f) => f.id);
+    final todos = known(LocalStore.readTodos(), (t) => t.id);
+    final tags = known(LocalStore.readTodoTags(), (t) => t.id);
     for (final category in data.categories) {
-      await LocalStore.writeCategory(category);
+      if (!categories.contains(category.id)) await LocalStore.writeCategory(category);
     }
     for (final note in data.notes) {
-      await LocalStore.writeNote(note);
+      if (!notes.contains(note.id)) await LocalStore.writeNote(note);
     }
     for (final session in data.focus) {
-      await LocalStore.writeFocusSession(session);
+      if (!focus.contains(session.id)) await LocalStore.writeFocusSession(session);
     }
     for (final todo in data.todos) {
-      await LocalStore.writeTodo(todo);
+      if (!todos.contains(todo.id)) await LocalStore.writeTodo(todo);
     }
     for (final tag in data.todoTags) {
-      await LocalStore.writeTodoTag(tag);
+      if (!tags.contains(tag.id)) await LocalStore.writeTodoTag(tag);
+    }
+    if (replace) {
+      for (final entry in data.settings.entries) {
+        final value = entry.value;
+        if (value == null || !backupSettingKeys.contains(entry.key)) continue;
+        await LocalStore.writeSetting(entry.key, value);
+      }
     }
     for (final habit in data.habits) {
-      if (habit.reminders.isNotEmpty) await _notifications.scheduleFor(habit);
+      final current = _habits[habit.id];
+      if (current != null && current.reminders.isNotEmpty) {
+        await _notifications.scheduleFor(current);
+      }
     }
   }
 

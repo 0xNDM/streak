@@ -58,13 +58,16 @@ class HabitCard extends StatelessWidget {
     final compact = settings.compactCards;
     final corners = this.corners ?? BorderRadius.circular(24);
 
-    return Card(
+    return _HoverRing(
+      corners: corners,
+      child: Card(
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: corners),
       child: Semantics(
         button: true,
         child: InkWell(
           onTap: onOpen,
+          hoverColor: Colors.transparent,
           onLongPress: onLongPress == null
               ? null
               : () {
@@ -323,6 +326,42 @@ class HabitCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+      ),
+    );
+  }
+}
+
+class _HoverRing extends StatefulWidget {
+  const _HoverRing({required this.corners, required this.child});
+
+  final BorderRadius corners;
+  final Widget child;
+
+  @override
+  State<_HoverRing> createState() => _HoverRingState();
+}
+
+class _HoverRingState extends State<_HoverRing> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: DecoratedBox(
+        position: DecorationPosition.foreground,
+        decoration: BoxDecoration(
+          borderRadius: widget.corners,
+          border: Border.all(
+            color: _hover
+                ? context.colors.onSurface.withValues(alpha: 0.16)
+                : Colors.transparent,
+            width: 1.5,
+          ),
+        ),
+        child: widget.child,
       ),
     );
   }
