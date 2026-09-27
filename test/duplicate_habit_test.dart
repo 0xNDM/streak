@@ -21,33 +21,23 @@ List<String> _names(WidgetTester tester) => [
   for (final habit in _controller(tester).habits) habit.name,
 ];
 
-/// Opens the bottom sheet the way a user does: a long press on the card, then
-/// the "Duplicate habit" action. The tap runs its callback outside the fake
-/// async zone, because duplicating a habit writes to Hive.
 Future<void> _duplicateFirstHabit(WidgetTester tester) async {
   await tester.longPress(find.byType(HabitCard).first);
   await tester.pumpAndSettle();
   await _tapSheetAction(tester, 'Duplicate habit');
 }
 
-/// Taps a bottom sheet action. The sheet is dismissed by the action itself, so
-/// the callback runs after the route is gone and must be awaited outside the
-/// fake async zone. Everything — the write and the snackbar it shows — is
-/// settled here, so no timer is left pending when the test ends.
 Future<void> _tapSheetAction(WidgetTester tester, String label) async {
   final tile = tester.widget<ListTile>(
     find.ancestor(of: find.text(label), matching: find.byType(ListTile)).first,
   );
   await tester.runAsync(() async {
     tile.onTap!();
-    // Give the write enough time to land, including the debounced home-widget
-    // sync the duplicate triggers.
     await Future<void>.delayed(const Duration(milliseconds: 900));
   });
   await tester.pumpAndSettle();
 }
 
-/// Taps the undo action on the snackbar left behind by a duplicate.
 Future<void> _tapUndo(WidgetTester tester) async {
   final action = tester.widget<SnackBarAction>(find.byType(SnackBarAction));
   await tester.runAsync(() async {
@@ -57,9 +47,6 @@ Future<void> _tapUndo(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-/// Clears any snackbar a duplicate left behind, so its dismissal timer never
-/// fires after the test has finished. Two duplicates queue two snackbars, so
-/// the messenger is drained until it runs dry.
 Future<void> _dismissSnackbar(WidgetTester tester) async {
   for (var round = 0; round < 5; round++) {
     final messenger = find.byType(ScaffoldMessenger);
@@ -133,7 +120,6 @@ void main() {
       [for (final step in source.substeps) step.title],
     );
 
-    // A copy starts from nothing, it never inherits the streak.
     expect(copy.completions, isEmpty);
     expect(source.completions.length, 3);
     await _dismissSnackbar(tester);
@@ -159,8 +145,6 @@ void main() {
     await pumpScreen(tester, const HomePage());
 
     await _duplicateFirstHabit(tester);
-    // Clear the first snackbar before duplicating again, otherwise the second
-    // one hides a snackbar whose timer is still running.
     await _dismissSnackbar(tester);
     await _duplicateFirstHabit(tester);
 
@@ -188,7 +172,6 @@ void main() {
 
     await _duplicateFirstHabit(tester);
 
-    // The copy reached the store, not just the in-memory controller.
     final stored = LocalStore.readHabits().values
         .where((habit) => habit.name == 'Run (2)')
         .toList();
