@@ -268,7 +268,7 @@ void main() {
     );
   });
 
-  test('the automatic backup drops the json and the readable copy', () async {
+  test('the automatic backup drops the json, the zip and the readable copy', () async {
     await _seedEverything(5);
     final dir = await Directory.systemTemp.createTemp('streak_auto');
     addTearDown(() => dir.deleteSync(recursive: true));
@@ -278,6 +278,11 @@ void main() {
     expect(path, isNotNull);
     expect(File(path!).existsSync(), isTrue);
     expect(BackupService.parse(File(path).readAsStringSync()).habits, hasLength(5));
+    expect(File(path.replaceFirst('.json', '.zip')).existsSync(), isTrue);
+    expect(
+      dir.listSync().where((f) => f.path.endsWith('.part')),
+      isEmpty,
+    );
 
     final vault = '${dir.path}/$vaultFolder';
     expect(File('$vault/README.md').existsSync(), isTrue);
@@ -285,6 +290,18 @@ void main() {
     expect(File('$vault/tasks.md').existsSync(), isTrue);
     expect(File('$vault/notes.md').existsSync(), isTrue);
     expect(File('$vault/focus.md').existsSync(), isTrue);
+  });
+
+  test('an empty app never writes a backup over the good ones', () async {
+    final dir = await Directory.systemTemp.createTemp('streak_auto');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    for (var i = 0; i < 6; i++) {
+      File('${dir.path}/streak_backup_2026-01-0${i + 1}_00-00-00.json')
+          .writeAsStringSync('{}');
+    }
+
+    expect(await BackupService.runAuto(folder: dir.path), isNull);
+    expect(dir.listSync().whereType<File>(), hasLength(6));
   });
 
   test('a completion keeps its steps, hour and amount through the trip', () {

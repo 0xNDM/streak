@@ -153,7 +153,7 @@ Date,Meditate,Exercise
             _b('Position,Name,Type,Unit,Target Type,Target Value\n'
                 '001,Water,NUMERICAL,glasses,AT_LEAST,8\n')))
         ..addFile(ArchiveFile('Checkmarks.csv', 0, _b('Date,Water\n'
-            '2024-03-01,8\n2024-03-02,3\n')));
+            '2024-03-01,8000\n2024-03-02,3000\n')));
       final zipped = ZipEncoder().encode(archive)!;
       final o = ImportService.parseBytes(zipped, fileName: 'loop.zip');
       final w = _byName(o, 'Water');
@@ -162,6 +162,39 @@ Date,Meditate,Exercise
       expect(w.unitLabel, 'glasses');
       expect(w.isCompletedOn(DateTime(2024, 3, 1)), isTrue);
       expect(w.isCompletedOn(DateTime(2024, 3, 2)), isFalse);
+    });
+
+    test('reads the current export: named values, thousandths and archived',
+        () {
+      final archive = Archive()
+        ..addFile(ArchiveFile(
+            'Habits.csv',
+            0,
+            _b('Position,Name,Type,Question,Description,FrequencyNumerator,'
+                'FrequencyDenominator,Color,Unit,Target Type,Target Value,'
+                'Archived?\n'
+                '001,Read,YES_NO,,,1,1,#1976D2,,,,false\n'
+                '002,Walk,NUMERICAL,,,1,1,#E53935,km,AT_LEAST,2.5,false\n'
+                '003,Old,YES_NO,,,1,1,#43A047,,,,true\n')))
+        ..addFile(ArchiveFile('Checkmarks.csv', 0, _b('Date,Read,Walk,Old,\n'
+            '2024-03-03,YES_MANUAL,2750,UNKNOWN,\n'
+            '2024-03-02,YES_AUTO,1250,YES_MANUAL,\n'
+            '2024-03-01,SKIP,-1,NO,\n')));
+      final zipped = ZipEncoder().encode(archive)!;
+      final o = ImportService.parseBytes(zipped, fileName: 'loop.zip');
+
+      final read = _byName(o, 'Read');
+      expect(read.completions.length, 1);
+      expect(read.isCompletedOn(DateTime(2024, 3, 3)), isTrue);
+
+      final walk = _byName(o, 'Walk');
+      expect(walk.perDayTarget, 2.5);
+      expect(walk.completions[DateTime(2024, 3, 3).dayKey]!.count, 2.75);
+      expect(walk.isCompletedOn(DateTime(2024, 3, 3)), isTrue);
+      expect(walk.isCompletedOn(DateTime(2024, 3, 2)), isFalse);
+
+      expect(_byName(o, 'Old').isArchived, isTrue);
+      expect(read.isArchived, isFalse);
     });
 
     test('prefers the top-level Checkmarks.csv over per-habit ones', () {

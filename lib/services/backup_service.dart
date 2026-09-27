@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:ui';
 
 import 'package:file_picker/file_picker.dart';
@@ -10,6 +11,7 @@ import 'package:streak/core/utils/app_dirs.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:streak/core/database/local_store.dart';
+import 'package:streak/services/backup_archive.dart';
 import 'package:streak/services/import_service.dart';
 import 'package:streak/features/focus/data/focus_session.dart';
 import 'package:streak/features/habits/data/category.dart';
@@ -19,8 +21,10 @@ import 'package:streak/features/todos/data/todo.dart';
 import 'package:streak/features/todos/data/todo_tag.dart';
 import 'package:streak/services/vault_writer.dart';
 
-const _kBackupVersion = 1;
+const _kBackupVersion = 2;
 const _kAutoBackupKeep = 5;
+const _kAutoArchiveKeep = 3;
+const _kSafetyKeep = 3;
 
 class BackupData {
   const BackupData({
@@ -32,6 +36,7 @@ class BackupData {
     required this.categories,
     required this.skipped,
     this.exportedAt,
+    this.settings = const {},
   });
 
   final List<Habit> habits;
@@ -42,6 +47,7 @@ class BackupData {
   final List<Category> categories;
   final int skipped;
   final DateTime? exportedAt;
+  final Map<String, Object?> settings;
 
   bool get isEmpty =>
       habits.isEmpty && notes.isEmpty && focus.isEmpty && todos.isEmpty;
@@ -50,21 +56,47 @@ class BackupData {
 class BackupService {
   const BackupService._();
 
-  static String _payloadFor(List<Habit> habits) {
-    final payload = {
-      'app': 'streak',
-      'version': _kBackupVersion,
-      'exportedAt': DateTime.now().toIso8601String(),
-      'habits': habits.map((h) => h.toMap()).toList(),
-      'notes': LocalStore.readNotes().map((n) => n.toMap()).toList(),
-      'focus':
-          LocalStore.readFocusSessions().map((f) => f.toMap()).toList(),
-      'todos': LocalStore.readTodos().map((t) => t.toMap()).toList(),
-      'todoTags': LocalStore.readTodoTags().map((t) => t.toMap()).toList(),
-      'categories':
-          LocalStore.readCategories().map((c) => c.toMap()).toList(),
-    };
-    return const JsonEncoder.withIndent('  ').convert(payload);
+  static Map<String, Object?> _payload(List<Habit> habits) => {
+        'app': 'streak',
+        'version': _kBackupVersion,
+        'exportedAt': DateTime.now().toIso8601String(),
+        'habits': habits.map((h) => h.toMap()).toList(),
+        'categories':
+            LocalStore.readCategories().map((c) => c.toMap()).toList(),
+        'notes': LocalStore.readNotes().map((n) => n.toMap()).toList(),
+        'focus':
+            LocalStore.readFocusSessions().map((f) => f.toMap()).toList(),
+        'todos': LocalStore.readTodos().map((t) => t.toMap()).toList(),
+        'todoTags': LocalStore.readTodoTags().map((t) => t.toMap()).toList(),
+        'settings': {
+          for (final key in backupSettingKeys)
+            if (LocalStore.setting<Object?>(key, null) case final value?)
+              key: value,
+        },
+      };
+
+  static bool _hasContent(List<Habit> habits) =>
+      habits.isNotEmpty ||
+      LocalStore.readNotes().isNotEmpty ||
+      LocalStore.readTodos().isNotEmpty ||
+      LocalStore.readFocusSessions().isNotEmpty;
+
+  static Future<void> safetyCopy() async {
+    try {
+      final habits = LocalStore.readHabits().values.toList();
+      if (!_hasContent(habits)) return;
+      final dir = await defaultBackupDir();
+      if (dir == null) return;
+      if (!dir.existsSync()) await dir.create(recursive: true);
+      final stamp = DateFormat('yyyy-MM-dd_HH-mm-ss').format(DateTime.now());
+      final target = '${dir.path}/streak_safety_$stamp.zip';
+      await _settle(File('$target.part'), target, (part) async {
+        await BackupArchive.pack(_payload(habits), part.path);
+      });
+      _prune(dir, 'streak_safety_', '.zip', _kSafetyKeep);
+    } catch (e) {
+      debugPrint('Safety copy failed: $e');
+    }
   }
 
   static Future<Directory?> defaultBackupDir() async {
@@ -102,73 +134,101 @@ class BackupService {
     String folder = '',
     bool readable = true,
   }) async {
-    final dir = folder.isEmpty
-        ? await defaultBackupDir()
-        : Directory(folder);
-    if (dir == null) return null;
     try {
+      final habits = LocalStore.readHabits().values.toList();
+      if (!_hasContent(habits)) return null;
+      final dir = folder.isEmpty ? await defaultBackupDir() : Directory(folder);
+      if (dir == null) return null;
       if (!dir.existsSync()) await dir.create(recursive: true);
-    } catch (_) {
+
+      final stamp = DateFormat('yyyy-MM-dd_HH-mm-ss').format(DateTime.now());
+      final base = '${dir.path}/streak_backup_$stamp';
+      final payload = _payload(habits);
+      final json = await Isolate.run(
+        () => const JsonEncoder.withIndent('  ').convert(payload),
+      );
+      await _settle(File('$base.json.part'), '$base.json', (part) async {
+        await part.writeAsString(json, flush: true);
+      });
+      await _settle(File('$base.zip.part'), '$base.zip', (part) async {
+        await BackupArchive.pack(payload, part.path);
+      });
+
+      if (readable) {
+        try {
+          await VaultWriter.write(
+            Directory('${dir.path}/$vaultFolder'),
+            habits: habits,
+            categories: LocalStore.readCategories(),
+            notes: LocalStore.readNotes(),
+            todos: LocalStore.readTodos(),
+            focus: LocalStore.readFocusSessions(),
+          );
+        } catch (e) {
+          debugPrint('Could not write the readable copy: $e');
+        }
+      }
+
+      _prune(dir, 'streak_backup_', '.json', _kAutoBackupKeep);
+      _prune(dir, 'streak_backup_', '.zip', _kAutoArchiveKeep);
+      return '$base.json';
+    } catch (e) {
+      debugPrint('Automatic backup failed: $e');
       return null;
     }
+  }
 
-    final stamp = DateFormat('yyyy-MM-dd_HH-mm-ss').format(DateTime.now());
-    final file = File('${dir.path}/streak_backup_$stamp.json');
-    final habits = LocalStore.readHabits().values.toList();
-    await file.writeAsString(_payloadFor(habits));
-
+  static Future<void> _settle(
+    File part,
+    String target,
+    Future<void> Function(File part) write,
+  ) async {
     try {
-      if (readable) {
-        await VaultWriter.write(
-          Directory('${dir.path}/$vaultFolder'),
-          habits: habits,
-          categories: LocalStore.readCategories(),
-          notes: LocalStore.readNotes(),
-          todos: LocalStore.readTodos(),
-          focus: LocalStore.readFocusSessions(),
-        );
-      }
-    } catch (e) {
-      debugPrint('Could not write the readable copy: $e');
+      await write(part);
+      await part.rename(target);
+    } finally {
+      if (part.existsSync()) part.deleteSync();
     }
+  }
 
+  static void _prune(Directory dir, String prefix, String extension, int keep) {
     final old = dir
         .listSync()
         .whereType<File>()
-        .where((f) => f.path.endsWith('.json'))
+        .where((f) {
+          final name = f.uri.pathSegments.last;
+          return name.startsWith(prefix) && name.endsWith(extension);
+        })
         .toList()
       ..sort((a, b) => b.path.compareTo(a.path));
-    for (final stale in old.skip(_kAutoBackupKeep)) {
+    for (final stale in old.skip(keep)) {
       try {
         stale.deleteSync();
       } catch (_) {}
     }
-    return file.path;
   }
 
   static Future<bool> export(List<Habit> habits, {Rect? origin}) async {
-    final content = _payloadFor(habits);
     final stamp = DateFormat('yyyy-MM-dd_HH-mm-ss').format(DateTime.now());
-    final name = 'streak_backup_$stamp.json';
+    final name = 'streak_backup_$stamp.zip';
+    final dir = await Directory.systemTemp.createTemp('streak_backup');
+    final zip = '${dir.path}/$name';
+    await BackupArchive.pack(_payload(habits), zip);
 
     if (!isMobile) {
       final path = await FilePicker.platform.saveFile(
         dialogTitle: 'Save your Streak backup',
         fileName: name,
         type: FileType.custom,
-        allowedExtensions: const ['json'],
+        allowedExtensions: const ['zip'],
       );
       if (path == null) return false;
-      await File(path).writeAsString(content);
+      await File(zip).copy(path);
       return true;
     }
 
-    final dir = await Directory.systemTemp.createTemp('streak_backup');
-    final file = File('${dir.path}/$name');
-    await file.writeAsString(content);
-
     final result = await Share.shareXFiles(
-      [XFile(file.path, mimeType: 'application/json')],
+      [XFile(zip, mimeType: 'application/zip')],
       subject: 'Streak backup',
       sharePositionOrigin: origin,
     );
@@ -198,6 +258,10 @@ class BackupService {
     }
     if (bytes == null) {
       throw Exception('Could not read the selected file');
+    }
+    if (ImportService.looksLikeZip(bytes)) {
+      final json = await BackupArchive.unpack(bytes, (await appDataDir()).path);
+      if (json != null) return parse(json);
     }
     if (ImportService.looksLikeZip(bytes) ||
         ImportService.looksLikeSqlite(bytes)) {
@@ -258,6 +322,9 @@ class BackupService {
       categories: collect(root['categories'], Category.fromMap),
       skipped: skipped,
       exportedAt: DateTime.tryParse((root['exportedAt'] ?? '') as String),
+      settings: root['settings'] is Map
+          ? Map<String, Object?>.from(root['settings'] as Map)
+          : const {},
     );
 
     if (data.isEmpty) throw Exception('No habits found in that file');

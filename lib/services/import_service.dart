@@ -36,15 +36,17 @@ class _RawHabit {
     this.kind = HabitKind.positive,
     this.target = 1,
     this.unit = '',
+    this.archived = false,
   });
   final String name;
   final int? color;
   final HabitKind kind;
-  final int target;
+  final num target;
   final String unit;
-  final Map<DateTime, int> days = {};
+  final bool archived;
+  final Map<DateTime, num> days = {};
 
-  void mark(DateTime day, int count) {
+  void mark(DateTime day, num count) {
     final d = DateTime(day.year, day.month, day.day);
     final v = count <= 0 ? 0 : count;
     if (v <= 0) return;
@@ -172,10 +174,11 @@ class ImportService {
               : AppPalette.habitColors[i % AppPalette.habitColors.length],
           order: i,
           kind: r.kind,
-          perDayTarget: measurable ? (r.target < 1 ? 1 : r.target).toDouble() : 1,
+          perDayTarget: measurable ? (r.target <= 0 ? 1 : r.target).toDouble() : 1,
           unitLabel: measurable ? r.unit : '',
           completions: completions,
           createdAt: createdAt,
+          archivedAt: r.archived ? DateTime.now() : null,
         ),
       );
     }
@@ -252,6 +255,7 @@ class ImportService {
         final typeIdx = lower.indexOf('type');
         final unitIdx = lower.indexOf('unit');
         final targetIdx = lower.indexOf('target value');
+        final archivedIdx = lower.indexOf('archived?');
         String cell(List<String> row, int idx) =>
             idx >= 0 && row.length > idx ? row[idx].trim() : '';
         for (final row in rows.skip(1)) {
@@ -260,14 +264,15 @@ class ImportService {
           if (name.isEmpty) continue;
           final numerical = cell(row, typeIdx).toUpperCase() == 'NUMERICAL';
           final target = numerical
-              ? (double.tryParse(cell(row, targetIdx))?.round() ?? 1)
+              ? (double.tryParse(cell(row, targetIdx)) ?? 1)
               : 1;
           final h = _RawHabit(
             name,
             color: _parseHexColor(cell(row, colorIdx)),
             kind: numerical ? HabitKind.quantitative : HabitKind.positive,
-            target: target < 1 ? 1 : target,
+            target: target <= 0 ? 1 : target,
             unit: cell(row, unitIdx),
+            archived: cell(row, archivedIdx).toLowerCase() == 'true',
           );
           ordered.add(h);
           byName[name] = h;
@@ -295,8 +300,7 @@ class ImportService {
               ordered.add(n);
               return n;
             });
-            final v = _truthyCount(row[i]);
-            if (v > 0) h.mark(date, v);
+            h.mark(date, _loopValue(row[i], h));
           }
         }
       }
@@ -314,8 +318,7 @@ class ImportService {
         if (row.length < 2) continue;
         final date = _parseDate(row[0]);
         if (date == null) continue;
-        final v = _truthyCount(row[1]);
-        if (v > 0) target.mark(date, v);
+        target.mark(date, _loopValue(row[1], target));
       }
     }
 
@@ -597,6 +600,15 @@ class ImportService {
     return null;
   }
 
+  static num _loopValue(String cell, _RawHabit habit) {
+    final s = cell.trim().toUpperCase();
+    if (s == 'YES_MANUAL') return 1;
+    final n = num.tryParse(s);
+    if (n == null) return 0;
+    if (habit.kind == HabitKind.quantitative) return n > 0 ? n / 1000 : 0;
+    return n == 2 ? 1 : 0;
+  }
+
   static int _truthyCount(String cell) {
     final s = cell.trim().toLowerCase();
     if (s.isEmpty) return 0;
@@ -604,7 +616,7 @@ class ImportService {
     if (n != null) return n > 0 ? n.round() : 0;
     const truthy = {
       'yes', 'y', 'true', 't', 'x', '✓', '✔', 'v', 'done', 'complete',
-      'completed', 'si', 'sí', 'ok',
+      'completed', 'si', 'sí', 'ok', 'yes_manual',
     };
     return truthy.contains(s) ? 1 : 0;
   }
