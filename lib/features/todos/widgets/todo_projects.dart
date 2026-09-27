@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -8,18 +9,22 @@ import 'package:streak/core/i18n/l10n.dart';
 import 'package:streak/core/express/express_type.dart';
 import 'package:streak/core/minimal/minimal_type.dart';
 import 'package:streak/core/routing/back_handlers.dart';
+import 'package:streak/core/widgets/entrance.dart';
+import 'package:streak/core/widgets/hold_menu.dart';
 import 'package:streak/features/habits/data/category.dart';
 import 'package:streak/features/settings/state/settings_controller.dart';
 import 'package:streak/features/todos/data/todo_tag.dart';
 import 'package:streak/features/todos/state/todo_tags_controller.dart';
 import 'package:streak/features/todos/state/todos_controller.dart';
 import 'package:streak/features/todos/widgets/folder_shape.dart';
+import 'package:streak/features/todos/widgets/todo_paper.dart';
 import 'package:streak/features/todos/widgets/todo_tag_sheet.dart';
 
 class TodoProjects extends StatefulWidget {
-  const TodoProjects({super.key, required this.onOpen});
+  const TodoProjects({super.key, required this.onOpen, this.returning});
 
-  final ValueChanged<String?> onOpen;
+  final void Function(String? id, Rect origin) onOpen;
+  final String? returning;
 
   @override
   State<TodoProjects> createState() => _TodoProjectsState();
@@ -36,9 +41,11 @@ class _TodoProjectsState extends State<TodoProjects>
     duration: const Duration(milliseconds: 1300),
   );
 
+  late final String? _returning = widget.returning;
   List<TodoTag> _order = const [];
   String? _dragging;
   bool _arranging = false;
+  final _vanishing = <String>{};
 
   @override
   void initState() {
@@ -80,6 +87,15 @@ class _TodoProjectsState extends State<TodoProjects>
     });
   }
 
+  Future<void> _delete(TodoTag project) async {
+    if (!await confirmDeleteTag(context, project) || !mounted) return;
+    setState(() => _vanishing.add(project.id));
+    await Future<void>.delayed(_Vanish.duration);
+    if (!mounted) return;
+    await removeTag(context, project);
+    if (mounted) setState(() => _vanishing.remove(project.id));
+  }
+
   Future<void> _settle() async {
     final ordered = [..._order];
     setState(() => _dragging = null);
@@ -96,6 +112,14 @@ class _TodoProjectsState extends State<TodoProjects>
         minimal ? context.colors.onSurface : context.colors.primary;
     if (_dragging == null) _order = projects;
     final loose = todos.looseCount;
+    final papers = <String, List<Color>>{};
+    for (final section in todos.sections) {
+      for (final todo in section.todos) {
+        final tint = papers.putIfAbsent(todo.project, () => []);
+        if (tint.length < 3) tint.add(paperColor(todo.paper));
+      }
+    }
+    List<Color> tints(String id) => papers[id] ?? const [];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -118,7 +142,7 @@ class _TodoProjectsState extends State<TodoProjects>
             final total = _order.length + (loose > 0 ? 1 : 0);
             final rows = (total / columns).ceil();
 
-            Widget place(int index, Key key, Widget child) {
+            Widget place(int index, Key key, String id, Widget child) {
               final row = index ~/ columns;
               final column = index % columns;
               return AnimatedPositioned(
@@ -129,7 +153,12 @@ class _TodoProjectsState extends State<TodoProjects>
                 top: row * (cellHeight + _spacing),
                 width: cellWidth,
                 height: cellHeight,
-                child: child,
+                child: _Vanish(
+                  gone: _vanishing.contains(id),
+                  child: _returning == null || _returning == id
+                      ? child
+                      : Entrance(index: index, child: child),
+                ),
               );
             }
 
@@ -139,11 +168,14 @@ class _TodoProjectsState extends State<TodoProjects>
                 place(
                   index,
                   ValueKey(project.id),
+                  project.id,
                   _ProjectSlot(
                     project: project,
                     width: cellWidth,
                     height: cellHeight,
                     count: todos.projectCount(project.id),
+                    tints: tints(project.id),
+                    settling: _returning == project.id,
                     arranging: _arranging,
                     accent: accent,
                     wobble: _wobble,
@@ -152,13 +184,10 @@ class _TodoProjectsState extends State<TodoProjects>
                     onStart: () => setState(() => _dragging = project.id),
                     onEnd: _settle,
                     onHover: (id) => _hover(id, index),
-                    onOpen: () => widget.onOpen(project.id),
+                    onOpen: (origin) => widget.onOpen(project.id, origin),
                     onEdit: () => editTag(context, project),
-                    onMenu: () => editOrDeleteTag(
-                      context,
-                      project,
-                      onArrange: () => _arrange(true),
-                    ),
+                    onArrange: () => _arrange(true),
+                    onDelete: () => _delete(project),
                   ),
                 ),
               );
@@ -168,12 +197,15 @@ class _TodoProjectsState extends State<TodoProjects>
                 place(
                   _order.length,
                   const ValueKey('loose'),
+                  '',
                   _ProjectCell(
                     label: context.l10n.todo_project_none,
                     color: context.tokens.muted,
                     icon: LucideIcons.inbox,
                     count: loose,
-                    onTap: () => widget.onOpen(''),
+                    tints: tints(''),
+                    settling: _returning == '',
+                    onTap: (origin) => widget.onOpen('', origin),
                   ),
                 ),
               );
@@ -192,6 +224,46 @@ class _TodoProjectsState extends State<TodoProjects>
           ),
         ],
       ],
+    );
+  }
+}
+
+class _Vanish extends StatelessWidget {
+  const _Vanish({required this.gone, required this.child});
+
+  static const duration = Duration(milliseconds: 460);
+
+  final bool gone;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(end: gone ? 1 : 0),
+      duration: gone ? duration : Duration.zero,
+      curve: Curves.easeInCubic,
+      child: child,
+      builder: (context, t, child) {
+        if (t == 0) return child!;
+        return IgnorePointer(
+          child: Opacity(
+            opacity: 1 - t,
+            child: Transform.translate(
+              offset: Offset(0, -18 * t),
+              child: Transform.scale(
+                scale: 1 - 0.3 * t,
+                child: ImageFiltered(
+                  imageFilter: ui.ImageFilter.blur(
+                    sigmaX: 10 * t,
+                    sigmaY: 10 * t,
+                  ),
+                  child: child,
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -291,6 +363,8 @@ class _ProjectSlot extends StatelessWidget {
     required this.width,
     required this.height,
     required this.count,
+    required this.tints,
+    required this.settling,
     required this.arranging,
     required this.accent,
     required this.wobble,
@@ -301,13 +375,16 @@ class _ProjectSlot extends StatelessWidget {
     required this.onHover,
     required this.onOpen,
     required this.onEdit,
-    required this.onMenu,
+    required this.onArrange,
+    required this.onDelete,
   });
 
   final TodoTag project;
   final double width;
   final double height;
   final int count;
+  final List<Color> tints;
+  final bool settling;
   final bool arranging;
   final Color accent;
   final Animation<double> wobble;
@@ -316,26 +393,60 @@ class _ProjectSlot extends StatelessWidget {
   final VoidCallback onStart;
   final VoidCallback onEnd;
   final ValueChanged<String> onHover;
-  final VoidCallback onOpen;
+  final ValueChanged<Rect> onOpen;
   final VoidCallback onEdit;
-  final VoidCallback onMenu;
+  final VoidCallback onArrange;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
+    final seed = project.id.codeUnits.fold(0, (sum, unit) => sum + unit);
     final cell = _ProjectCell(
       label: project.name,
       color: project.color,
       icon: CategoryIcons.resolve(project.icon),
       count: count,
+      tints: tints,
+      settling: settling,
       arranging: arranging,
       accent: accent,
-      seed: project.id.codeUnits.fold(0, (sum, unit) => sum + unit),
+      seed: seed,
       onTap: arranging ? null : onOpen,
-      onLongPress: arranging ? null : onMenu,
-      onMenu: arranging ? onEdit : onMenu,
+      onMenu: arranging ? onEdit : null,
     );
 
-    if (!arranging) return cell;
+    if (!arranging) {
+      return HoldMenu(
+        preview: (context, lifted) => _ProjectCell(
+          label: project.name,
+          color: project.color,
+          icon: CategoryIcons.resolve(project.icon),
+          count: count,
+      tints: tints,
+          seed: seed,
+          lifted: lifted,
+        ),
+        actions: [
+          HoldMenuAction(
+            icon: LucideIcons.pencil,
+            label: context.l10n.todo_project_edit,
+            onSelected: onEdit,
+          ),
+          HoldMenuAction(
+            icon: LucideIcons.move,
+            label: context.l10n.todo_project_arrange,
+            onSelected: onArrange,
+          ),
+          HoldMenuAction(
+            icon: LucideIcons.trash2,
+            label: context.l10n.delete,
+            onSelected: onDelete,
+            danger: true,
+          ),
+        ],
+        child: cell,
+      );
+    }
 
     return DragTarget<String>(
       onWillAcceptWithDetails: (details) {
@@ -410,11 +521,13 @@ class _ProjectCell extends StatefulWidget {
     required this.color,
     required this.icon,
     required this.count,
+    this.tints = const [],
     this.arranging = false,
+    this.lifted = false,
+    this.settling = false,
     this.accent,
     this.seed = 0,
     this.onTap,
-    this.onLongPress,
     this.onMenu,
   });
 
@@ -422,11 +535,13 @@ class _ProjectCell extends StatefulWidget {
   final Color color;
   final IconData icon;
   final int count;
+  final List<Color> tints;
   final bool arranging;
+  final bool lifted;
+  final bool settling;
   final Color? accent;
   final int seed;
-  final VoidCallback? onTap;
-  final VoidCallback? onLongPress;
+  final ValueChanged<Rect>? onTap;
   final VoidCallback? onMenu;
 
   @override
@@ -434,12 +549,29 @@ class _ProjectCell extends StatefulWidget {
 }
 
 class _ProjectCellState extends State<_ProjectCell> {
+  final _art = GlobalKey();
+  late bool _landing = widget.settling;
   bool _pressed = false;
   bool _hovered = false;
 
   @override
+  void initState() {
+    super.initState();
+    if (!_landing) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() => _landing = false);
+    });
+  }
+
+  Rect _artRect() {
+    final box = _art.currentContext!.findRenderObject()! as RenderBox;
+    return box.localToGlobal(Offset.zero) & box.size;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final tap = widget.onTap;
+    final menu = widget.onMenu ?? HoldMenu.maybeOf(context)?.open;
     final style = context.watch<SettingsController>().appStyle;
     return Semantics(
       button: true,
@@ -452,13 +584,8 @@ class _ProjectCellState extends State<_ProjectCell> {
         onExit: (_) => setState(() => _hovered = false),
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: tap == null
-              ? null
-              : () {
-                  tap();
-                },
-          onLongPress: widget.onLongPress,
-          onSecondaryTap: widget.onLongPress ?? widget.onMenu,
+          onTap: tap == null ? null : () => tap(_artRect()),
+          onSecondaryTap: widget.onMenu,
           onTapDown: (_) => setState(() => _pressed = true),
           onTapUp: (_) => setState(() => _pressed = false),
           onTapCancel: () => setState(() => _pressed = false),
@@ -474,10 +601,15 @@ class _ProjectCellState extends State<_ProjectCell> {
               children: [
                 Expanded(
                   child: FolderShape(
+                    key: _art,
                     color: widget.color,
                     icon: widget.icon,
                     papers: widget.count,
-                    lifted: _pressed || (_hovered && tap != null),
+                    tints: widget.tints,
+                    lifted: widget.lifted ||
+                        _landing ||
+                        _pressed ||
+                        (_hovered && tap != null),
                     seed: widget.seed,
                   ),
                 ),
@@ -496,12 +628,12 @@ class _ProjectCellState extends State<_ProjectCell> {
                         ),
                       ),
                     ),
-                    if (widget.onMenu != null)
+                    if (menu != null)
                       Semantics(
                         button: true,
                         label: context.l10n.todo_project_edit,
                         child: GestureDetector(
-                          onTap: widget.onMenu,
+                          onTap: menu,
                           behavior: HitTestBehavior.opaque,
                           child: MouseRegion(
                             cursor: SystemMouseCursors.click,

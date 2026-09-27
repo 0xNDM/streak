@@ -72,7 +72,7 @@ void main() {
 
     await tester.tap(find.widgetWithIcon(FilledButton, LucideIcons.plus));
     await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(LucideIcons.calendar));
+    await tester.tap(find.byIcon(LucideIcons.bell));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Pick a date'));
     await tester.pumpAndSettle();
@@ -97,9 +97,9 @@ void main() {
     await tester.tap(find.widgetWithIcon(FilledButton, LucideIcons.plus));
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextField), 'Book the flight');
+    await tester.enterText(find.byType(TextField).first, 'Book the flight');
     await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(LucideIcons.arrowUp));
+    await tester.tap(find.byIcon(LucideIcons.arrowLeft));
     await tester.pumpAndSettle();
     await tester.pump(const Duration(milliseconds: 800));
 
@@ -168,7 +168,7 @@ void main() {
 
     await tester.tap(find.byIcon(LucideIcons.ellipsis).first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Rearrange'));
+    await tester.tap(find.byIcon(LucideIcons.move));
     for (var i = 0; i < 6; i++) {
       await tester.pump(const Duration(milliseconds: 200));
     }

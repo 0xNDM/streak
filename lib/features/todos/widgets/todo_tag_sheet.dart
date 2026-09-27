@@ -87,45 +87,6 @@ Future<void> createProject(BuildContext context) async {
   );
 }
 
-Future<bool?> showTodoOrProjectChoice(BuildContext context) =>
-    showModalBottomSheet<bool>(
-      context: context,
-      showDragHandle: true,
-      builder: (sheet) => SafeArea(
-        child: SizedBox(
-          width: double.infinity,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: Icon(
-                  LucideIcons.squareCheckBig,
-                  color: sheet.colors.onSurface,
-                ),
-                title: Text(
-                  sheet.l10n.todo_new,
-                  style: sheetOptionStyle(sheet),
-                ),
-                onTap: () => Navigator.of(sheet).pop(false),
-              ),
-              ListTile(
-                leading: Icon(
-                  LucideIcons.folderPlus,
-                  color: sheet.colors.onSurface,
-                ),
-                title: Text(
-                  sheet.l10n.todo_project_new,
-                  style: sheetOptionStyle(sheet),
-                ),
-                onTap: () => Navigator.of(sheet).pop(true),
-              ),
-              const SizedBox(height: 8),
-            ],
-          ),
-        ),
-      ),
-    );
-
 Future<void> editTag(BuildContext context, TodoTag tag) async {
   final tags = context.read<TodoTagsController>();
   final result = await showTodoTagEditor(context, initial: tag);
@@ -137,8 +98,6 @@ Future<void> editOrDeleteTag(
   TodoTag tag, {
   VoidCallback? onArrange,
 }) async {
-  final tags = context.read<TodoTagsController>();
-  final todos = context.read<TodosController>();
   final action = await showModalBottomSheet<String>(
     context: context,
     showDragHandle: true,
@@ -195,6 +154,16 @@ Future<void> editOrDeleteTag(
     return;
   }
 
+  await deleteTag(context, tag);
+}
+
+Future<void> deleteTag(BuildContext context, TodoTag tag) async {
+  if (await confirmDeleteTag(context, tag) && context.mounted) {
+    await removeTag(context, tag);
+  }
+}
+
+Future<bool> confirmDeleteTag(BuildContext context, TodoTag tag) async {
   final confirmed = await showAppConfirmDialog(
     context,
     title: tag.name,
@@ -204,7 +173,12 @@ Future<void> editOrDeleteTag(
     confirmLabel: context.l10n.delete,
     icon: LucideIcons.trash2,
   );
-  if (confirmed != true) return;
+  return confirmed == true;
+}
+
+Future<void> removeTag(BuildContext context, TodoTag tag) async {
+  final tags = context.read<TodoTagsController>();
+  final todos = context.read<TodosController>();
   if (tag.isProject) {
     await todos.forgetProject(tag.id);
   } else {

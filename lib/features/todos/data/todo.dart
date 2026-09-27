@@ -17,6 +17,9 @@ class Todo {
     this.tags = const [],
     this.project = '',
     this.steps = const [],
+    this.paper = -1,
+    this.cover = '',
+    this.pinned = false,
     this.doneAt,
   });
 
@@ -30,17 +33,23 @@ class Todo {
   final List<String> tags;
   final String project;
   final List<TodoStep> steps;
+  final int paper;
+  final String cover;
+  final bool pinned;
   final DateTime createdAt;
   final DateTime? doneAt;
 
-  String get title => text.trim().split('\n').first;
+  static final _derived = Expando<_Derived>();
 
-  String get body {
-    final lines = text.trim().split('\n');
-    return lines.length > 1 ? lines.sublist(1).join('\n').trim() : '';
-  }
+  _Derived get _parts => _derived[this] ??= _Derived.of(this);
 
-  DateTime? get due => date.isEmpty ? null : parseDayKey(date);
+  String get title => _parts.title;
+
+  String get body => _parts.body;
+
+  String get searchText => _parts.lower;
+
+  DateTime? get due => _parts.due;
 
   TimeOfDay? get time => minutes == null
       ? null
@@ -62,6 +71,9 @@ class Todo {
     List<String>? tags,
     String? project,
     List<TodoStep>? steps,
+    int? paper,
+    String? cover,
+    bool? pinned,
     DateTime? doneAt,
     bool clearDoneAt = false,
     bool clearMinutes = false,
@@ -77,6 +89,9 @@ class Todo {
         tags: tags ?? this.tags,
         project: project ?? this.project,
         steps: steps ?? this.steps,
+        paper: paper ?? this.paper,
+        cover: cover ?? this.cover,
+        pinned: pinned ?? this.pinned,
         createdAt: createdAt,
         doneAt: clearDoneAt ? null : (doneAt ?? this.doneAt),
       );
@@ -92,6 +107,9 @@ class Todo {
         'tags': tags,
         'project': project,
         'steps': [for (final step in steps) step.toMap()],
+        'paper': paper,
+        'cover': cover,
+        'pinned': pinned,
         'createdAt': createdAt.toIso8601String(),
         'doneAt': doneAt?.toIso8601String(),
       };
@@ -114,6 +132,9 @@ class Todo {
                 ?.map((s) => TodoStep.fromMap(Map<String, dynamic>.from(s as Map)))
                 .toList() ??
             const [],
+        paper: ((map['paper'] ?? -1) as num).toInt(),
+        cover: (map['cover'] ?? '') as String,
+        pinned: (map['pinned'] ?? false) as bool,
         createdAt: DateTime.tryParse((map['createdAt'] ?? '') as String) ??
             DateTime.now(),
         doneAt: DateTime.tryParse((map['doneAt'] ?? '') as String),
@@ -146,3 +167,22 @@ Color todoPriorityColor(BuildContext context, TodoPriority priority) =>
       TodoPriority.medium => context.tokens.warning,
       TodoPriority.high => context.tokens.danger,
     };
+
+class _Derived {
+  const _Derived(this.title, this.body, this.lower, this.due);
+
+  factory _Derived.of(Todo todo) {
+    final lines = todo.text.trim().split('\n');
+    return _Derived(
+      lines.first,
+      lines.length > 1 ? lines.sublist(1).join('\n').trim() : '',
+      todo.text.toLowerCase(),
+      todo.date.isEmpty ? null : parseDayKey(todo.date),
+    );
+  }
+
+  final String title;
+  final String body;
+  final String lower;
+  final DateTime? due;
+}

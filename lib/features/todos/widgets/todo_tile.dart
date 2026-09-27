@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:streak/app/theme/app_tokens.dart';
-import 'package:streak/core/i18n/l10n.dart';
 import 'package:streak/core/widgets/photo_deck.dart';
-import 'package:streak/features/settings/state/settings_controller.dart';
 import 'package:streak/features/habits/data/category.dart';
 import 'package:streak/features/todos/data/todo.dart';
 import 'package:streak/features/todos/data/todo_tag.dart';
 import 'package:streak/features/todos/state/todo_tags_controller.dart';
+import 'package:streak/features/todos/widgets/todo_check.dart';
+import 'package:streak/features/todos/widgets/todo_deal.dart';
 import 'package:streak/features/todos/widgets/todo_labels.dart';
+import 'package:streak/features/todos/widgets/todo_sticker.dart';
 
 class TodoTile extends StatelessWidget {
   const TodoTile({
@@ -20,6 +21,7 @@ class TodoTile extends StatelessWidget {
     required this.overdue,
     this.corners,
     this.showProject = false,
+    this.checking = false,
   });
 
   final Todo todo;
@@ -28,6 +30,7 @@ class TodoTile extends StatelessWidget {
   final bool overdue;
   final BorderRadius? corners;
   final bool showProject;
+  final bool checking;
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +38,7 @@ class TodoTile extends StatelessWidget {
     final muted = context.tokens.muted;
     final accent = todoPriorityColor(context, todo.priority);
     final due = todo.due;
+    final done = todo.done || checking;
     final project = showProject && todo.project.isNotEmpty
         ? context.watch<TodoTagsController>().byId(todo.project)
         : null;
@@ -43,31 +47,45 @@ class TodoTile extends StatelessWidget {
       onTap: onEdit,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
         decoration: BoxDecoration(
           color: scheme.surfaceContainerHighest
               .withValues(alpha: todo.done ? 0.3 : 0.55),
           borderRadius: corners ?? BorderRadius.circular(18),
-          border: todo.priority == TodoPriority.none || todo.done
-              ? null
-              : Border(left: BorderSide(color: accent, width: 3)),
+          border: Border.all(color: scheme.onSurface.withValues(alpha: 0.05)),
         ),
-        child: Row(
+        child: TodoWrite(child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            TodoCheck(
+              title: todo.title,
+              done: done,
+              ring: todo.priority == TodoPriority.none
+                  ? muted.withValues(alpha: 0.8)
+                  : accent,
+              onToggle: onToggle,
+            ),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    todo.title,
-                    style: TextStyle(
-                      fontSize: 15.5,
-                      fontWeight: FontWeight.w600,
-                      height: 1.3,
-                      color: todo.done ? muted : scheme.onSurface,
-                      decoration: todo.done ? TextDecoration.lineThrough : null,
-                      decorationColor: muted,
+                  const SizedBox(height: 3),
+                  TweenAnimationBuilder<double>(
+                    tween: Tween(end: done ? 1 : 0),
+                    duration: const Duration(milliseconds: 280),
+                    builder: (context, fade, _) => Text(
+                      todo.title.isNotEmpty
+                          ? todo.title
+                          : (todo.steps.firstOrNull?.text ?? ''),
+                      style: TextStyle(
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.w600,
+                        height: 1.3,
+                        color: Color.lerp(scheme.onSurface, muted, fade),
+                        decoration: fade > 0 ? TextDecoration.lineThrough : null,
+                        decorationColor: muted.withValues(alpha: fade),
+                      ),
                     ),
                   ),
                   if (todo.body.isNotEmpty) ...[
@@ -83,18 +101,19 @@ class TodoTile extends StatelessWidget {
                       ),
                     ),
                   ],
-                  if (!todo.done &&
-                      (due != null ||
+                  if (todo.pinned ||
+                          due != null ||
                           project != null ||
                           todo.tags.isNotEmpty ||
                           todo.steps.isNotEmpty ||
-                          todo.priority != TodoPriority.none)) ...[
+                          todo.priority != TodoPriority.none) ...[
                     const SizedBox(height: 7),
                     Wrap(
                       spacing: 12,
                       runSpacing: 4,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
+                        if (todo.pinned) const TodoPin(scale: 0.8),
                         if (project != null) _ProjectMark(project: project),
                         if (due != null)
                           _MetaLabel(
@@ -105,17 +124,16 @@ class TodoTile extends StatelessWidget {
                             color: overdue ? context.tokens.danger : muted,
                           ),
                         if (todo.priority != TodoPriority.none)
-                          _MetaLabel(
-                            icon: LucideIcons.flag,
-                            label:
-                                todoPriorityLabels(context)[todo.priority.index],
-                            color: accent,
+                          TodoSticker(
+                            priority: todo.priority,
+                            turn: TodoSticker.turnFor(todo.id),
+                            scale: 0.9,
                           ),
                         if (todo.steps.isNotEmpty)
                           _MetaLabel(
                             icon: LucideIcons.listChecks,
                             label:
-                                '${todo.steps.where((s) => s.done).length}/${todo.steps.length}',
+                                '${todo.done ? todo.steps.length : todo.steps.where((s) => s.done).length}/${todo.steps.length}',
                             color: muted,
                           ),
                         for (final tag in context
@@ -140,10 +158,8 @@ class TodoTile extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 10),
-            _CheckButton(todo: todo, onToggle: onToggle),
           ],
-        ),
+        )),
       ),
     );
   }
@@ -215,52 +231,3 @@ class _MetaLabel extends StatelessWidget {
     );
   }
 }
-
-class _CheckButton extends StatelessWidget {
-  const _CheckButton({required this.todo, required this.onToggle});
-
-  final Todo todo;
-  final VoidCallback onToggle;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colors;
-    final circle = context.watch<SettingsController>().isCircleCheck;
-    final radius = BorderRadius.circular(circle ? 13 : 8);
-
-    return Semantics(
-      container: true,
-      button: true,
-      checked: todo.done,
-      label: todo.done
-          ? context.l10n.a11y_mark_not_done(todo.title)
-          : context.l10n.a11y_mark_done(todo.title),
-      excludeSemantics: true,
-      child: GestureDetector(
-        onTap: () {
-          onToggle();
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
-          width: 26,
-          height: 26,
-          decoration: BoxDecoration(
-            color: todo.done ? scheme.primary : Colors.transparent,
-            borderRadius: radius,
-            border: Border.all(
-              color: todo.done
-                  ? scheme.primary
-                  : context.tokens.muted.withValues(alpha: 0.5),
-              width: 1.6,
-            ),
-          ),
-          child: todo.done
-              ? Icon(LucideIcons.check, size: 15, color: scheme.onPrimary)
-              : null,
-        ),
-      ),
-    );
-  }
-}
-

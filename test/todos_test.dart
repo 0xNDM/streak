@@ -109,6 +109,24 @@ void main() {
     expect(_todo('loose').dueAt, isNull);
   });
 
+  test('low priority first flips the order and leaves the rest last', () {
+    final todos = [
+      _todo('plain'),
+      _todo('high', priority: TodoPriority.high),
+      _todo('low', priority: TodoPriority.low),
+      _todo('medium', priority: TodoPriority.medium),
+    ];
+
+    expect(
+      groupPending(todos, today).single.todos.map((t) => t.id),
+      ['high', 'medium', 'low', 'plain'],
+    );
+    expect(
+      groupPending(todos, today, lowFirst: true).single.todos.map((t) => t.id),
+      ['low', 'medium', 'high', 'plain'],
+    );
+  });
+
   test('undated to-dos keep the newest on top', () {
     final sections = groupPending([
       _todo('old', createdMinutesAgo: 120),

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -11,26 +12,29 @@ import 'package:streak/core/routing/back_handlers.dart';
 import 'package:streak/core/widgets/app_confirm_dialog.dart';
 import 'package:streak/core/widgets/app_empty_state.dart';
 import 'package:streak/core/widgets/app_text_field.dart';
-import 'package:streak/core/widgets/delete_sheet.dart';
-import 'package:streak/core/widgets/entrance.dart';
-import 'package:streak/core/widgets/section_label.dart';
-import 'package:streak/core/widgets/stacked_corners.dart';
 import 'package:streak/features/settings/state/settings_controller.dart';
+import 'package:streak/features/settings/widgets/minimal_settings_widgets.dart';
 import 'package:streak/core/express/express_button.dart';
-import 'package:streak/core/minimal/minimal_kit.dart';
 import 'package:streak/core/express/express_surface.dart';
 import 'package:streak/features/habits/data/category.dart';
 import 'package:streak/features/todos/data/todo.dart';
 import 'package:streak/features/todos/data/todo_groups.dart';
-import 'package:streak/features/todos/data/todo_tag.dart';
 import 'package:streak/features/todos/state/todo_tags_controller.dart';
 import 'package:streak/features/todos/state/todos_controller.dart';
-import 'package:streak/features/todos/widgets/todo_composer.dart';
+import 'package:streak/features/todos/pages/todo_editor_page.dart';
+import 'package:streak/features/todos/widgets/folder_shape.dart';
+import 'package:streak/features/todos/widgets/todo_add_menu.dart';
+import 'package:streak/features/todos/widgets/todo_deal.dart';
+import 'package:streak/features/todos/widgets/todo_empty_folder.dart';
+import 'package:streak/features/todos/widgets/todo_select_bar.dart';
+import 'package:streak/features/todos/widgets/todo_trash.dart';
+import 'package:streak/core/widgets/hold_menu.dart';
+import 'package:streak/features/todos/widgets/todo_paper.dart';
 import 'package:streak/features/todos/widgets/todo_labels.dart';
-import 'package:streak/features/todos/widgets/todo_preview.dart';
 import 'package:streak/features/todos/widgets/todo_projects.dart';
 import 'package:streak/features/todos/widgets/todo_tag_sheet.dart';
 import 'package:streak/features/todos/widgets/todo_tile.dart';
+import 'package:streak/features/todos/widgets/todos_page_parts.dart';
 
 class TodosPage extends StatefulWidget {
   const TodosPage({super.key});
@@ -39,13 +43,30 @@ class TodosPage extends StatefulWidget {
   State<TodosPage> createState() => _TodosPageState();
 }
 
-class _TodosPageState extends State<TodosPage> {
+class _TodosPageState extends State<TodosPage>
+    with SingleTickerProviderStateMixin {
   bool _showCompleted = false;
   bool _searching = false;
   late bool _folders = context.read<TodoTagsController>().projects.isNotEmpty;
   String _query = '';
   String? _tagFilter;
   String? _projectFilter;
+  Rect? _home;
+  bool _dealing = false;
+  bool _closing = false;
+  bool _ghosted = false;
+  String? _returning;
+  Timer? _dealTimer;
+  final _completing = <String>{};
+  final _body = GlobalKey();
+  final _fab = GlobalKey();
+  final _cards = <String, GlobalKey>{};
+  final _trashing = <String>{};
+  final _selected = <String>{};
+  final _shown = <String>{};
+  final _spots = <String, Offset>{};
+  bool _collapsing = false;
+  late final AnimationController _ghost;
 
   void _toggleSearch() {
     setState(() {
@@ -55,7 +76,7 @@ class _TodosPageState extends State<TodosPage> {
   }
 
   bool _matches(Todo todo) {
-    if (_query.isNotEmpty && !todo.text.toLowerCase().contains(_query)) {
+    if (_query.isNotEmpty && !todo.searchText.contains(_query)) {
       return false;
     }
     if (_projectFilter case final project?) {
@@ -72,37 +93,506 @@ class _TodosPageState extends State<TodosPage> {
   @override
   void initState() {
     super.initState();
+    _ghost = AnimationController(vsync: this);
     BackHandlers.add(_backOut);
   }
 
   @override
   void dispose() {
     BackHandlers.remove(_backOut);
+    _dealTimer?.cancel();
+    _ghost.dispose();
     super.dispose();
   }
 
-  bool get _holdsBack => _searching || (!_folders && _projectFilter != null);
+  bool get _holdsBack =>
+      _selected.isNotEmpty ||
+      _searching ||
+      (!_folders && _projectFilter != null);
 
   bool _backOut() {
     if (!_holdsBack || !BackHandlers.isVisible(context)) return false;
-    _searching ? _toggleSearch() : _closeFolder();
+    if (_selected.isNotEmpty) {
+      setState(_selected.clear);
+    } else {
+      _searching ? _toggleSearch() : _closeFolder();
+    }
     return true;
   }
 
-  void _openFolder(String? projectId) => setState(() {
-        _projectFilter = projectId;
-        _tagFilter = null;
-        _folders = false;
-      });
+  void _openFolder(String? projectId, Rect origin) {
+    if (_closing) return;
+    _dealTimer?.cancel();
+    _dealTimer = Timer(
+      const Duration(milliseconds: 1100),
+      () => setState(() => _dealing = false),
+    );
+    final todos = context.read<TodosController>();
+    final pending = projectId == null || projectId.isEmpty
+        ? todos.looseCount
+        : todos.projectCount(projectId);
+    _ghosted = pending > 0;
+    _ghost.value = 1;
+    _ghost.animateTo(
+      0,
+      duration: const Duration(milliseconds: 460),
+      curve: const Interval(0.25, 1, curve: Curves.easeInOutCubic),
+    );
+    _shown.clear();
+    _spots.clear();
+    setState(() {
+      _projectFilter = projectId;
+      _tagFilter = null;
+      _folders = false;
+      _home = origin;
+      _dealing = true;
+      _returning = null;
+    });
+  }
 
-  void _closeFolder() => setState(() {
-        _projectFilter = null;
-        _tagFilter = null;
-        _folders = true;
+  Future<void> _toggle(Todo todo) async {
+    final todos = context.read<TodosController>();
+    if (todo.done) return todos.toggle(todo.id);
+    if (!_completing.add(todo.id)) return;
+    setState(() {});
+    await Future<void>.delayed(const Duration(milliseconds: 380));
+    if (!mounted) return;
+    await todos.toggle(todo.id);
+    if (mounted) setState(() => _completing.remove(todo.id));
+  }
+
+  Future<void> _closeFolder() async {
+    if (_closing) return;
+    if (_home != null) {
+      _dealTimer?.cancel();
+      setState(() {
+        _closing = true;
+        _dealing = false;
       });
+      _ghost.animateTo(
+        1,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+      );
+      await Future<void>.delayed(todoDealBack);
+      if (!mounted) return;
+    }
+    _ghost.value = 0;
+    setState(() {
+      _returning = _home == null ? null : _projectFilter;
+      _projectFilter = null;
+      _tagFilter = null;
+      _searching = false;
+      _query = '';
+      _folders = true;
+      _closing = false;
+      _home = null;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _returning = null);
+  }
+
+  Rect? _rectOf(BuildContext? context) {
+    if (context == null || !context.mounted) return null;
+    final box = context.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize || !box.attached) return null;
+    return box.localToGlobal(Offset.zero) & box.size;
+  }
+
+  Widget _ghostLayer(TodoTagsController tags, FolderLayer layer) {
+    final home = _home;
+    final box = _body.currentContext?.findRenderObject() as RenderBox?;
+    if (home == null || !_ghosted || box == null || !box.hasSize) {
+      return const SizedBox.shrink();
+    }
+    final at = box.globalToLocal(home.topLeft);
+    final project = tags.byId(_projectFilter ?? '');
+    return Positioned(
+      left: at.dx,
+      top: at.dy,
+      width: home.width,
+      height: home.height,
+      child: IgnorePointer(
+        child: FadeTransition(
+          opacity: _ghost,
+          child: SlideTransition(
+            position: Tween(
+              begin: const Offset(0, 0.12),
+              end: Offset.zero,
+            ).animate(_ghost),
+            child: ScaleTransition(
+            scale: Tween(begin: 0.86, end: 1.0).animate(_ghost),
+            child: FolderShape(
+              color: project?.color ?? context.tokens.muted,
+              icon: project == null
+                  ? LucideIcons.inbox
+                  : CategoryIcons.resolve(project.icon),
+              papers: 0,
+              seed: project == null
+                  ? 0
+                  : project.id.codeUnits.fold(0, (sum, unit) => sum + unit),
+              layer: layer,
+            ),
+          ),
+          ),
+        ),
+      ),
+    );
+  }
 
   bool get _filtering =>
       _query.isNotEmpty || _tagFilter != null || _projectFilter != null;
+
+  GlobalKey _card(String id) => _cards.putIfAbsent(id, GlobalKey.new);
+
+  bool _hidden(String id) => _trashing.contains(id);
+
+  Widget _held(Todo todo, {required bool paper, required Widget child}) =>
+      HoldMenu(
+        preview: (context, lifted) => _preview(todo.id, paper),
+        actions: [
+          HoldMenuAction(
+            icon: LucideIcons.pencil,
+            label: context.l10n.edit,
+            onSelected: () => _open(todo),
+          ),
+          HoldMenuAction(
+            icon: todo.pinned ? LucideIcons.pinOff : LucideIcons.pin,
+            label: todo.pinned ? context.l10n.todo_unpin : context.l10n.todo_pin,
+            onSelected: () => _pin([todo]),
+          ),
+          HoldMenuAction(
+            icon: todo.done ? LucideIcons.undo2 : LucideIcons.checkCheck,
+            label: todo.done
+                ? context.l10n.todo_mark_open
+                : context.l10n.todo_mark_done,
+            onSelected: () => _toggle(todo),
+          ),
+          HoldMenuAction(
+            icon: LucideIcons.squareCheck,
+            label: context.l10n.todo_select,
+            onSelected: () => setState(() => _selected.add(todo.id)),
+          ),
+          HoldMenuAction(
+            icon: LucideIcons.trash2,
+            label: context.l10n.delete,
+            danger: true,
+            onSelected: () => _trash([todo]),
+          ),
+        ],
+        child: RepaintBoundary(
+          child: TodoSelectable(
+            selecting: _selected.isNotEmpty,
+            selected: _selected.contains(todo.id),
+            radius: paper ? 8 : 18,
+            child: child,
+          ),
+        ),
+      );
+
+  void _tap(Todo todo) {
+    if (_selected.isEmpty) {
+      _open(todo);
+      return;
+    }
+    setState(() {
+      if (!_selected.remove(todo.id)) _selected.add(todo.id);
+    });
+  }
+
+  List<Todo> get _picked {
+    final todos = context.read<TodosController>().all;
+    return [for (final todo in todos) if (_selected.contains(todo.id)) todo];
+  }
+
+  Future<void> _pin(List<Todo> todos) async {
+    final controller = context.read<TodosController>();
+    final pin = !todos.every((todo) => todo.pinned);
+    setState(_selected.clear);
+    for (final todo in todos) {
+      await controller.update(todo.copyWith(pinned: pin));
+    }
+  }
+
+  Future<void> _finish(List<Todo> todos) async {
+    final controller = context.read<TodosController>();
+    setState(_selected.clear);
+    for (final todo in todos.where((todo) => !todo.done)) {
+      await controller.toggle(todo.id);
+    }
+  }
+
+  void _toggleCompleted() {
+    if (!_showCompleted) {
+      setState(() => _showCompleted = true);
+      return;
+    }
+    final done = context.read<TodosController>().completed;
+    setState(() => _collapsing = true);
+    final wait = 320 + 40 * (done.length - 1).clamp(0, 5);
+    Future<void>.delayed(Duration(milliseconds: wait), () {
+      if (!mounted) return;
+      for (final todo in done) {
+        _shown.remove(todo.id);
+        _spots.remove(todo.id);
+      }
+      setState(() {
+        _showCompleted = false;
+        _collapsing = false;
+      });
+    });
+  }
+
+  Future<void> _trash(List<Todo> todos) async {
+    final paper = _projectFilter != null;
+    final cards = <TrashCard>[
+      for (final todo in todos)
+        if (_rectOf(_card(todo.id).currentContext) case final rect?)
+          (from: rect, card: _preview(todo.id, paper)),
+    ];
+    final ids = {for (final todo in todos) todo.id};
+    setState(_selected.clear);
+    if (cards.isEmpty) return discardTodos(context, todos);
+    setState(() => _trashing.addAll(ids));
+    await throwInTrash(
+      context,
+      cards: cards,
+      onThrown: () {
+        if (mounted) discardTodos(context, todos);
+      },
+    );
+    if (mounted) setState(() => _trashing.removeAll(ids));
+  }
+
+  Widget _paper(Todo todo, bool overdue, int index, {bool done = false}) =>
+      TodoShift(
+        key: ValueKey(todo.id),
+        id: todo.id,
+        spots: _spots,
+        child: TodoDeal(
+        home: _home,
+        dealing: _dealing && !done,
+        closing: _closing && !done,
+        index: index,
+        fresh: _shown.add(todo.id),
+        leaving: done && _collapsing,
+        child: Opacity(
+          opacity: _hidden(todo.id) ? 0 : 1,
+          child: Builder(
+            key: _card(todo.id),
+            builder: (_) => _held(
+              todo,
+              paper: true,
+              child: TodoPaper(
+                todo: todo,
+                overdue: overdue,
+                checking: _completing.contains(todo.id),
+                onToggle: () => _toggle(todo),
+                onEdit: () => _tap(todo),
+              ),
+            ),
+          ),
+        ),
+      ),
+      );
+
+  Widget _papers(List<TodoSection> sections, List<Todo> completed) {
+    final minimal = context.read<SettingsController>().isMinimalStyle;
+    final open = <(Todo, bool)>[
+      for (final pinned in [true, false])
+        for (final section in sections)
+          for (final todo in section.todos)
+            if (todo.pinned == pinned)
+              (todo, section.group == TodoGroup.overdue),
+    ];
+    final showDone = _showCompleted || _query.isNotEmpty;
+
+    return CustomScrollView(
+      key: const ValueKey('papers'),
+      clipBehavior: _dealing || _closing ? Clip.none : Clip.hardEdge,
+      slivers: [
+        SliverPadding(
+          padding: context.pagePadding(
+            minimal ? 22 : 16,
+            4,
+            minimal ? 22 : 16,
+            minimal ? 96 : 148,
+          ),
+          sliver: SliverMainAxisGroup(
+            slivers: [
+              PaperLanes(
+                notes: [
+                  for (final (index, entry) in open.indexed)
+                    (
+                      todo: entry.$1,
+                      build: () => _paper(entry.$1, entry.$2, index),
+                    ),
+                ],
+              ),
+              if (completed.isNotEmpty)
+                SliverAnimatedOpacity(
+                  opacity: _closing ? 0 : 1,
+                  duration: const Duration(milliseconds: 180),
+                  sliver: SliverMainAxisGroup(
+                    slivers: [
+                      SliverToBoxAdapter(
+                        child: TodoCompletedHeader(
+                          count: completed.length,
+                          expanded: showDone,
+                          onTap: _toggleCompleted,
+                        ),
+                      ),
+                      if (showDone)
+                          PaperLanes(
+                          notes: [
+                            for (final (index, todo) in completed.indexed)
+                              (
+                                todo: todo,
+                                build: () => _paper(
+                                  todo,
+                                  false,
+                                  index,
+                                  done: true,
+                                ),
+                              ),
+                          ],
+                        ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _tile(Todo todo, int index, int length, bool express, {bool overdue = false}) {
+    final corners = todoCorners(express, index, length);
+    return TodoSwipeable(
+      todo: todo,
+      corners: corners,
+      onDelete: () => _delete(todo),
+      child: Opacity(
+        opacity: _hidden(todo.id) ? 0 : 1,
+        child: Builder(
+          key: _card(todo.id),
+          builder: (_) => _held(
+            todo,
+            paper: false,
+            child: TodoTile(
+              todo: todo,
+              overdue: overdue,
+              corners: corners,
+              showProject: _projectFilter == null,
+              checking: _completing.contains(todo.id),
+              onToggle: () => _toggle(todo),
+              onEdit: () => _tap(todo),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _list(
+    TodosController todos,
+    List<TodoSection> sections,
+    List<Todo> completed,
+    bool minimal,
+    bool express,
+  ) {
+    final showDone = _showCompleted || _query.isNotEmpty;
+    final rows = <({Key? key, Widget Function() build})>[
+      if (minimal)
+        (
+          key: null,
+          build: () => MinimalTitle(
+                title: context.l10n.todos,
+                subtitle: context.l10n.todo_left(todos.pendingCount),
+              ),
+        ),
+      if (express)
+        (
+          key: null,
+          build: () => Padding(
+                padding: const EdgeInsets.only(bottom: 18),
+                child: ExpressHeadline(
+                  title: context.l10n.todos,
+                  subtitle: context.l10n.todo_left(todos.pendingCount),
+                ),
+              ),
+        ),
+      for (final section in sections) ...[
+        (
+          key: null,
+          build: () => TodoSectionHeader(
+                label: todoGroupLabel(context, section.group),
+                count: section.todos.length,
+                danger: section.group == TodoGroup.overdue,
+              ),
+        ),
+        for (final (index, todo) in section.todos.indexed)
+          (
+            key: ValueKey(todo.id),
+            build: () => TodoDeal(
+                  key: ValueKey(todo.id),
+                  home: null,
+                  index: index,
+                  child: _tile(
+                    todo,
+                    index,
+                    section.todos.length,
+                    express,
+                    overdue: section.group == TodoGroup.overdue,
+                  ),
+                ),
+          ),
+        (key: null, build: () => const SizedBox(height: 10)),
+      ],
+      if (completed.isNotEmpty)
+        (
+          key: null,
+          build: () => TodoCompletedHeader(
+                count: completed.length,
+                expanded: showDone,
+                onTap: _toggleCompleted,
+              ),
+        ),
+      if (showDone)
+        for (final (index, todo) in completed.indexed)
+          (
+            key: ValueKey('done-${todo.id}'),
+            build: () => AnimatedOpacity(
+                  key: ValueKey('done-${todo.id}'),
+                  opacity: _collapsing ? 0 : 1,
+                  duration: const Duration(milliseconds: 200),
+                  child: AnimatedSlide(
+                    offset: Offset(0, _collapsing ? 0.15 : 0),
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeInCubic,
+                    child: _tile(todo, index, completed.length, express),
+                  ),
+                ),
+          ),
+    ];
+    final places = <Key, int>{
+      for (final (index, row) in rows.indexed)
+        if (row.key case final key?) key: index,
+    };
+
+    return ListView.builder(
+      key: const ValueKey('list'),
+      padding: context.pagePadding(
+        minimal ? 22 : 16,
+        minimal || express ? 0 : 8,
+        minimal ? 22 : 16,
+        minimal ? 96 : 148,
+      ),
+      itemCount: rows.length,
+      findChildIndexCallback: (key) => places[key],
+      itemBuilder: (context, index) => rows[index].build(),
+    );
+  }
 
   List<TodoSection> _visibleSections(List<TodoSection> sections) {
     if (!_filtering) return sections;
@@ -117,35 +607,55 @@ class _TodosPageState extends State<TodosPage> {
   }
 
   Future<void> _open(Todo todo) async {
-    final action = await showTodoPreview(context, todo);
-    if (!mounted || action == null) return;
-    final todos = context.read<TodosController>();
-    final fresh = todos.all.where((t) => t.id == todo.id).firstOrNull ?? todo;
-    if (action == 'edit') {
-      await showTodoComposer(context, todo: fresh);
-    } else {
-      await _delete(fresh);
-    }
+    final deleted = await openTodoEditor(context, todo: todo);
+    if (deleted != true || !mounted) return;
+    await Future<void>.delayed(const Duration(milliseconds: 260));
+    if (!mounted) return;
+    final fresh = context.read<TodosController>().byId(todo.id) ?? todo;
+    await _trash([fresh]);
+  }
+
+  Widget _preview(String id, bool paper) {
+    final todo = context.read<TodosController>().byId(id);
+    if (todo == null) return const SizedBox.shrink();
+    return paper
+        ? TodoPaper(todo: todo, overdue: false, onToggle: () {}, onEdit: () {})
+        : TodoTile(todo: todo, overdue: false, onToggle: () {}, onEdit: () {});
   }
 
   Future<void> _compose() =>
-      showTodoComposer(context, project: _projectFilter ?? '');
+      openTodoEditor(context, project: _projectFilter ?? '');
+
+  Future<void> _pickOrder(TodosController todos) => showOptionSheet(
+        context,
+        title: context.l10n.todo_sort,
+        options: [
+          context.l10n.todo_sort_high_first,
+          context.l10n.todo_sort_low_first,
+        ],
+        index: todos.lowFirst ? 1 : 0,
+        onSelected: (index) => todos.setLowFirst(index == 1),
+      );
 
   Future<void> _add() async {
     if (!_folders && _projectFilter != null) return _compose();
-    final project = await showTodoOrProjectChoice(context);
-    if (!mounted || project == null) return;
-    if (!project) return _compose();
+    final anchor = _rectOf(_fab.currentContext);
+    if (anchor == null) return;
+    final picked = await showTodoAddMenu(
+      context,
+      anchor: anchor,
+      options: [
+        (icon: LucideIcons.folderPlus, label: context.l10n.todo_project_new),
+        (icon: LucideIcons.stickyNote, label: context.l10n.todo_new),
+      ],
+    );
+    if (!mounted || picked == null) return;
+    if (picked == 1) return _compose();
     await createProject(context);
     if (mounted) setState(() => _folders = true);
   }
 
-  Future<void> _delete(Todo todo) async {
-    final confirmed = await showDeleteSheet(context);
-    if (confirmed && mounted) {
-      await context.read<TodosController>().remove(todo.id);
-    }
-  }
+  Future<void> _delete(Todo todo) => _trash([todo]);
 
   Future<void> _clearCompleted(int count) async {
     final confirmed = await showAppConfirmDialog(
@@ -210,7 +720,9 @@ class _TodosPageState extends State<TodosPage> {
             tooltip: context.l10n.todo_tags,
             icon: Icon(_folders ? LucideIcons.list : LucideIcons.folder,
                 size: 20),
-            onPressed: () => setState(() {
+            onPressed: () => !_folders && _projectFilter != null
+                ? _closeFolder()
+                : setState(() {
               _folders = !_folders;
               if (_folders) {
                 _tagFilter = null;
@@ -220,6 +732,12 @@ class _TodosPageState extends State<TodosPage> {
               }
             }),
           ),
+          if (searchable && !_folders)
+            IconButton(
+              tooltip: context.l10n.todo_sort,
+              icon: const Icon(LucideIcons.arrowDownUp, size: 20),
+              onPressed: () => _pickOrder(todos),
+            ),
           if (searchable && !_folders)
             IconButton(
               tooltip: context.l10n.todo_search,
@@ -237,7 +755,9 @@ class _TodosPageState extends State<TodosPage> {
         ],
       ),
       body: Stack(
+        key: _body,
         children: [
+          _ghostLayer(tags, FolderLayer.back),
           Column(
             children: [
               if (_searching && !_folders)
@@ -252,13 +772,18 @@ class _TodosPageState extends State<TodosPage> {
                   ),
                 ),
               if (!_folders && _projectFilter != null)
-                _ProjectBar(
+                FadeTransition(
+                  opacity: ReverseAnimation(_ghost),
+                  child: TodoProjectBar(
                   project: openProject,
                   minimal: minimal,
                   onClear: _closeFolder,
                 ),
+                ),
               if (!_folders && labels.isNotEmpty)
-                _TagBar(
+                FadeTransition(
+                  opacity: ReverseAnimation(_ghost),
+                  child: TodoTagBar(
                   tags: labels,
                   selected: _tagFilter,
                   untagged: todos.untaggedCount(project: _projectFilter),
@@ -266,530 +791,118 @@ class _TodosPageState extends State<TodosPage> {
                   minimal: minimal,
                   onSelected: (id) => setState(() => _tagFilter = id),
                 ),
+                ),
               Expanded(
-                child: _folders
+                child: IgnorePointer(
+                  ignoring: _closing,
+                  child: AnimatedSwitcher(
+                  duration: _returning == null && _home == null
+                      ? const Duration(milliseconds: 240)
+                      : Duration.zero,
+                  reverseDuration: _returning == null && _home == null
+                      ? const Duration(milliseconds: 90)
+                      : Duration.zero,
+                  layoutBuilder: (current, previous) => Stack(
+                    alignment: Alignment.topCenter,
+                    children: [...previous, ?current],
+                  ),
+                  child: _folders
                     ? SingleChildScrollView(
+                        key: const PageStorageKey('folders'),
                         padding: context.pagePadding(
                           minimal ? 22 : 16,
                           4,
                           minimal ? 22 : 16,
                           minimal ? 96 : 148,
                         ),
-                        child: TodoProjects(onOpen: _openFolder),
+                        child: TodoProjects(
+                          onOpen: _openFolder,
+                          returning: _returning,
+                        ),
+                      )
+                    : sections.isEmpty &&
+                        completed.isEmpty &&
+                        _projectFilter != null &&
+                        _query.isEmpty &&
+                        _tagFilter == null
+                    ? TodoEmptyFolder(
+                        key: const ValueKey('empty-folder'),
+                        project: openProject,
+                        home: _home,
+                        closing: _closing,
+                        onAdd: _compose,
                       )
                     : sections.isEmpty && completed.isEmpty
                     ? (!_filtering
-                        ? _EmptyState(onAdd: _compose)
+                        ? TodoEmptyState(onAdd: _compose)
                         : AppEmptyState(
                             icon: _query.isEmpty
                                 ? LucideIcons.tag
                                 : LucideIcons.search,
                             title: context.l10n.todo_search_empty,
                           ))
-                    : ListView(
-              padding: context.pagePadding(
-                minimal ? 22 : 16,
-                minimal || express ? 0 : 8,
-                minimal ? 22 : 16,
-                minimal ? 96 : 148,
-              ),
-              children: [
-                if (minimal)
-                  MinimalTitle(
-                    title: context.l10n.todos,
-                    subtitle: context.l10n.todo_left(todos.pendingCount),
-                  ),
-                if (express) ...[
-                  ExpressHeadline(
-                    title: context.l10n.todos,
-                    subtitle: context.l10n.todo_left(todos.pendingCount),
-                  ),
-                  const SizedBox(height: 18),
-                ],
-                for (final section in sections) ...[
-                  _SectionHeader(
-                    label: todoGroupLabel(context, section.group),
-                    count: section.todos.length,
-                    danger: section.group == TodoGroup.overdue,
-                  ),
-                  for (final (index, todo) in section.todos.indexed)
-                    Entrance(
-                      key: ValueKey(todo.id),
-                      index: index,
-                      child: _Swipeable(
-                        todo: todo,
-                        corners: _corners(express, index, section.todos.length),
-                        onDelete: () => _delete(todo),
-                        child: TodoTile(
-                          todo: todo,
-                          overdue: section.group == TodoGroup.overdue,
-                          corners:
-                              _corners(express, index, section.todos.length),
-                          showProject: _projectFilter == null,
-                          onToggle: () => todos.toggle(todo.id),
-                          onEdit: () => _open(todo),
-                        ),
-                      ),
-                    ),
-                  const SizedBox(height: 10),
-                ],
-                if (completed.isNotEmpty) ...[
-                  _CompletedHeader(
-                    count: completed.length,
-                    expanded: _showCompleted || _query.isNotEmpty,
-                    onTap: () =>
-                        setState(() => _showCompleted = !_showCompleted),
-                  ),
-                  if (_showCompleted || _query.isNotEmpty)
-                    for (final (index, todo) in completed.indexed)
-                      _Swipeable(
-                        todo: todo,
-                        corners: _corners(express, index, completed.length),
-                        onDelete: () => _delete(todo),
-                        child: TodoTile(
-                          todo: todo,
-                          overdue: false,
-                          corners: _corners(express, index, completed.length),
-                          showProject: _projectFilter == null,
-                          onToggle: () => todos.toggle(todo.id),
-                          onEdit: () => _open(todo),
-                        ),
-                      ),
-                ],
-              ],
-            ),
+                    : _projectFilter != null
+                    ? _papers(sections, completed)
+                    : _list(todos, sections, completed, minimal, express)),
+                ),
               ),
             ],
           ),
+          _ghostLayer(tags, FolderLayer.front),
           Positioned(
             right: (minimal ? 20 : 16) + context.safeInsets.right,
             bottom: (minimal ? 20 : 78) + context.bottomInset,
-            child: express
+            child: AnimatedScale(
+              scale: _selected.isEmpty ? 1 : 0,
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutBack,
+              child: KeyedSubtree(
+              key: _fab,
+              child: express
                 ? ExpressFab(
                     icon: LucideIcons.plus,
                     label: context.l10n.todo_new,
                     onPressed: _add,
                   )
-                : _AddButton(onTap: _add),
+                : TodoAddButton(onTap: _add),
+            ),
+            ),
+          ),
+          Positioned(
+            left: 12,
+            right: 12,
+            bottom: (minimal ? 20 : 78) + context.bottomInset,
+            child: Center(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 260),
+                switchInCurve: Curves.easeOutBack,
+                switchOutCurve: Curves.easeInCubic,
+                transitionBuilder: (child, animation) => FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: Tween(
+                      begin: const Offset(0, 0.6),
+                      end: Offset.zero,
+                    ).animate(animation),
+                    child: child,
+                  ),
+                ),
+                child: _selected.isEmpty
+                    ? const SizedBox.shrink()
+                    : TodoSelectBar(
+                        count: _selected.length,
+                        pinned: _picked.every((todo) => todo.pinned),
+                        onClose: () => setState(_selected.clear),
+                        onPin: () => _pin(_picked),
+                        onDone: () => _finish(_picked),
+                        onDelete: () => _trash(_picked),
+                      ),
+              ),
+            ),
           ),
         ],
       ),
     ),
-    );
-  }
-}
-
-BorderRadius _corners(bool express, int index, int length) => express
-    ? expressSlotRadius(index, length)
-    : stackedCorners(index, length);
-
-class _TagBar extends StatelessWidget {
-  const _TagBar({
-    required this.tags,
-    required this.selected,
-    required this.untagged,
-    required this.project,
-    required this.minimal,
-    required this.onSelected,
-  });
-
-  final List<TodoTag> tags;
-  final String? selected;
-  final int untagged;
-  final String? project;
-  final bool minimal;
-  final ValueChanged<String?> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final todos = context.watch<TodosController>();
-    final edge = minimal ? 22.0 : 16.0;
-    return SizedBox(
-      height: 54,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.fromLTRB(edge, 0, edge, 10),
-        children: [
-          _AllChip(
-            selected: selected == null,
-            onTap: () => onSelected(null),
-          ),
-          for (final tag in tags) ...[
-            const SizedBox(width: 8),
-            TodoTagChip(
-              tag: tag,
-              selected: selected == tag.id,
-              trailing: '${todos.countFor(tag.id, project: project)}',
-              onTap: () => onSelected(selected == tag.id ? null : tag.id),
-              onLongPress: () => editOrDeleteTag(context, tag),
-            ),
-          ],
-          if (untagged > 0) ...[
-            const SizedBox(width: 8),
-            _UntaggedChip(
-              count: untagged,
-              selected: selected == '',
-              onTap: () => onSelected(selected == '' ? null : ''),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _AllChip extends StatelessWidget {
-  const _AllChip({required this.selected, required this.onTap});
-
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return _PlainChip(
-      label: context.l10n.todo_tag_all,
-      icon: LucideIcons.layers,
-      color: context.colors.primary,
-      selected: selected,
-      onTap: onTap,
-    );
-  }
-}
-
-class _UntaggedChip extends StatelessWidget {
-  const _UntaggedChip({
-    required this.count,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final int count;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return _PlainChip(
-      label: '${context.l10n.todo_tag_none}  $count',
-      icon: LucideIcons.inbox,
-      color: context.tokens.muted,
-      selected: selected,
-      onTap: onTap,
-    );
-  }
-}
-
-class _PlainChip extends StatelessWidget {
-  const _PlainChip({
-    required this.label,
-    required this.icon,
-    required this.color,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final IconData icon;
-  final Color color;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      selected: selected,
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 140),
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: selected ? color : context.colors.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 14, color: selected ? Colors.white : color),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13,
-                  color: selected ? Colors.white : context.tokens.muted,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Swipeable extends StatelessWidget {
-  const _Swipeable({
-    required this.todo,
-    required this.corners,
-    required this.onDelete,
-    required this.child,
-  });
-
-  final Todo todo;
-  final BorderRadius corners;
-  final Future<void> Function() onDelete;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 3),
-      child: Dismissible(
-        key: ValueKey('swipe-${todo.id}'),
-        direction: DismissDirection.endToStart,
-        background: Container(
-          alignment: Alignment.centerRight,
-          padding: const EdgeInsets.only(right: 20),
-          decoration: BoxDecoration(
-            color: context.tokens.danger.withValues(alpha: 0.16),
-            borderRadius: corners,
-          ),
-          child: Icon(LucideIcons.trash2, size: 20, color: context.tokens.danger),
-        ),
-        confirmDismiss: (_) async {
-          await onDelete();
-          return false;
-        },
-        child: child,
-      ),
-    );
-  }
-}
-
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({
-    required this.label,
-    required this.count,
-    required this.danger,
-  });
-
-  final String label;
-  final int count;
-  final bool danger;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 6, bottom: 2),
-      child: SectionLabel(
-        label,
-        trailing: Text(
-          '$count',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: danger ? context.tokens.danger : context.tokens.muted,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CompletedHeader extends StatelessWidget {
-  const _CompletedHeader({
-    required this.count,
-    required this.expanded,
-    required this.onTap,
-  });
-
-  final int count;
-  final bool expanded;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final muted = context.tokens.muted;
-    return Semantics(
-      button: true,
-      expanded: expanded,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Row(
-            children: [
-              AnimatedRotation(
-                turns: expanded ? 0.25 : 0,
-                duration: const Duration(milliseconds: 200),
-                child: Icon(LucideIcons.chevronRight, size: 16, color: muted),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                context.l10n.todo_completed_count(count),
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.1,
-                  color: muted,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _AddButton extends StatelessWidget {
-  const _AddButton({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colors;
-    final minimal = context.watch<SettingsController>().isMinimalStyle;
-    return Semantics(
-      button: true,
-      label: context.l10n.todo_new,
-      child: GestureDetector(
-        onTap: () {
-          onTap();
-        },
-        child: Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: minimal ? scheme.onSurface : scheme.primary,
-            shape: minimal ? BoxShape.rectangle : BoxShape.circle,
-            borderRadius: minimal ? BorderRadius.circular(19) : null,
-            boxShadow: minimal
-                ? null
-                : [
-                    BoxShadow(
-                      color: scheme.primary.withValues(alpha: 0.34),
-                      blurRadius: 18,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-          ),
-          child: Icon(
-            LucideIcons.plus,
-            size: 24,
-            color: minimal ? scheme.surface : scheme.onPrimary,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.onAdd});
-
-  final VoidCallback onAdd;
-
-  @override
-  Widget build(BuildContext context) {
-    return AppEmptyState(
-      icon: LucideIcons.listChecks,
-      title: context.l10n.todo_empty_title,
-      message: context.l10n.todo_empty_body,
-      action: context.watch<SettingsController>().isMinimalStyle
-          ? MinimalButton(
-              icon: LucideIcons.plus,
-              label: context.l10n.todo_new,
-              height: 48,
-              onPressed: onAdd,
-            )
-          : FilledButton.icon(
-              onPressed: onAdd,
-              icon: const Icon(LucideIcons.plus, size: 18),
-              label: Text(context.l10n.todo_new),
-              style: FilledButton.styleFrom(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-            ),
-    );
-  }
-}
-
-class _ProjectBar extends StatelessWidget {
-  const _ProjectBar({
-    required this.project,
-    required this.minimal,
-    required this.onClear,
-  });
-
-  final TodoTag? project;
-  final bool minimal;
-  final VoidCallback onClear;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = project?.color ?? context.tokens.muted;
-    final edge = minimal ? 22.0 : 16.0;
-    return Padding(
-      padding: EdgeInsets.fromLTRB(edge, 0, edge, 10),
-      child: Row(
-        children: [
-          Icon(
-            project == null
-                ? LucideIcons.inbox
-                : CategoryIcons.resolve(project!.icon),
-            size: 16,
-            color: color,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              project?.name ?? context.l10n.todo_project_none,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
-                color: context.colors.onSurface,
-              ),
-            ),
-          ),
-          if (project != null)
-            Semantics(
-              button: true,
-              label: context.l10n.todo_project_edit,
-              child: GestureDetector(
-                onTap: () => editOrDeleteTag(context, project!),
-                behavior: HitTestBehavior.opaque,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 4, 4, 4),
-                  child: Icon(
-                    LucideIcons.ellipsis,
-                    size: 16,
-                    color: context.tokens.muted,
-                  ),
-                ),
-              ),
-            ),
-          GestureDetector(
-            onTap: onClear,
-            behavior: HitTestBehavior.opaque,
-            child: Padding(
-              padding: const EdgeInsets.all(4),
-              child: Icon(LucideIcons.x, size: 16, color: context.tokens.muted),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:streak/core/utils/app_dirs.dart';
@@ -28,6 +30,7 @@ class LocalStore {
   static late Box _todoTags;
 
   static int _writing = 0;
+  static String _habitsStamp = '';
 
   static bool get isWriting => _writing > 0;
 
@@ -47,6 +50,7 @@ class LocalStore {
       Hive.init((await appDataDir()).path);
     }
     _habits = await Hive.openBox(_habitsBox);
+    _habitsStamp = _stampOf(_habits);
     _settings = await Hive.openBox(_settingsBox);
     _categories = await Hive.openBox(_categoriesBox);
     _notes = await Hive.openBox(_notesBox);
@@ -69,13 +73,12 @@ class LocalStore {
 
   static Future<void> writeTodo(Todo todo) => _todos.put(todo.id, todo.toMap());
 
+  static Future<void> writeTodos(Iterable<Todo> todos) =>
+      _todos.putAll({for (final todo in todos) todo.id: todo.toMap()});
+
   static Future<void> removeTodo(String id) => _todos.delete(id);
 
-  static Future<void> removeTodos(Iterable<String> ids) async {
-    for (final id in ids) {
-      await _todos.delete(id);
-    }
-  }
+  static Future<void> removeTodos(Iterable<String> ids) => _todos.deleteAll(ids);
 
   static List<TodoTag> readTodoTags() {
     final result = <TodoTag>[];
@@ -157,8 +160,35 @@ class LocalStore {
     return result;
   }
 
-  static Future<void> writeHabit(Habit habit) =>
-      _habits.put(habit.id, habit.toJson());
+  static String? habitName(String id) {
+    try {
+      final raw = _habits.get(id);
+      return raw is String ? Habit.fromJson(raw).name : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<void> writeHabit(Habit habit) async {
+    await _habits.put(habit.id, habit.toJson());
+    _habitsStamp = _stampOf(_habits);
+  }
+
+  static String _stampOf(Box box) {
+    final path = box.path;
+    if (path == null) return '';
+    try {
+      final stat = File(path).statSync();
+      return '${stat.size}:${stat.modified.microsecondsSinceEpoch}';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  static bool get habitsChangedElsewhere {
+    final stamp = _stampOf(_habits);
+    return stamp.isEmpty || stamp != _habitsStamp;
+  }
 
   static Future<void> removeHabit(String id) => _habits.delete(id);
 
@@ -166,6 +196,7 @@ class LocalStore {
     if (_writing > 0) return;
     if (_habits.isOpen) await _habits.close();
     _habits = await Hive.openBox(_habitsBox);
+    _habitsStamp = _stampOf(_habits);
   }
 
   static List<Category> readCategories() {

@@ -11,6 +11,31 @@ const _sheets = [
   (left: 0.65, top: 0.14, width: 0.24, turn: 0.09, lines: 4),
 ];
 
+enum FolderLayer { whole, back, front }
+
+const _lift = 0.08;
+
+Rect folderSheetRect(Rect folder, int index) {
+  if (index >= _sheets.length) {
+    return Rect.fromCenter(
+      center: folder.center,
+      width: folder.width * 0.3,
+      height: folder.height * 0.5,
+    );
+  }
+  final sheet = _sheets[index];
+  return Rect.fromLTWH(
+    folder.left + folder.width * sheet.left,
+    folder.top + folder.height * (sheet.top - _lift),
+    folder.width * sheet.width,
+    folder.height * (0.86 - sheet.top),
+  );
+}
+
+double folderSheetTurn(int index) => index < _sheets.length
+    ? _sheets[index].turn
+    : (index.isEven ? 0.06 : -0.06);
+
 class FolderShape extends StatelessWidget {
   const FolderShape({
     super.key,
@@ -19,6 +44,8 @@ class FolderShape extends StatelessWidget {
     this.papers = 3,
     this.lifted = false,
     this.seed = 0,
+    this.layer = FolderLayer.whole,
+    this.tints = const [],
   });
 
   final Color color;
@@ -26,12 +53,16 @@ class FolderShape extends StatelessWidget {
   final int papers;
   final bool lifted;
   final int seed;
+  final FolderLayer layer;
+  final List<Color> tints;
 
   @override
   Widget build(BuildContext context) {
+    final withBack = layer != FolderLayer.front;
+    final withFront = layer != FolderLayer.back;
     final style = context.watch<SettingsController>().appStyle;
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final back = dark
+    final panel = dark
         ? const [Color(0xFF3C3C41), Color(0xFF28282C)]
         : const [Color(0xFF303033), Color(0xFF1C1C1E)];
     final sheets = _sheets.take(papers.clamp(0, _sheets.length)).toList();
@@ -50,6 +81,7 @@ class FolderShape extends StatelessWidget {
         return Stack(
           clipBehavior: Clip.none,
           children: [
+            if (withBack) ...[
             Positioned(
               left: width * 0.1,
               right: width * 0.1,
@@ -80,24 +112,29 @@ class FolderShape extends StatelessWidget {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: back,
+                    colors: panel,
                   ),
                 ),
               ),
             ),
-            for (final sheet in sheets.reversed)
+            for (final (index, sheet) in sheets.indexed.toList().reversed)
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 280),
                 curve: Curves.easeOutBack,
                 left: width * sheet.left,
-                top: height * (sheet.top - (lifted ? 0.08 : 0)),
+                top: height * (sheet.top - (lifted ? _lift : 0)),
                 width: width * sheet.width,
                 height: height * (0.86 - sheet.top),
                 child: Transform.rotate(
                   angle: sheet.turn,
-                  child: _Paper(lines: sheet.lines),
+                  child: _Paper(
+                    lines: sheet.lines,
+                    color: index < tints.length ? tints[index] : Colors.white,
+                  ),
                 ),
               ),
+            ],
+            if (withFront)
             Positioned.fill(
               child: ClipPath(
                 clipper: ShapeBorderClipper(shape: outline),
@@ -167,9 +204,10 @@ class FolderShape extends StatelessWidget {
 }
 
 class _Paper extends StatelessWidget {
-  const _Paper({required this.lines});
+  const _Paper({required this.lines, required this.color});
 
   final int lines;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -180,7 +218,7 @@ class _Paper extends StatelessWidget {
         const ink = Color(0xFFCFCFD4);
         return DecoratedBox(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: color,
             borderRadius: BorderRadius.circular(width * 0.08),
             boxShadow: [
               BoxShadow(

@@ -46,7 +46,15 @@ class AppSnackbar {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Row(
+          dismissDirection: DismissDirection.horizontal,
+          content: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onVerticalDragEnd: (details) {
+              if ((details.primaryVelocity ?? 0) > 120) {
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              }
+            },
+            child: Row(
             children: [
               Icon(icon, color: Colors.white, size: 20),
               const SizedBox(width: 12),
@@ -61,13 +69,15 @@ class AppSnackbar {
               ),
             ],
           ),
+          ),
           backgroundColor: color,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
           margin: const EdgeInsets.all(16),
-          duration: Duration(seconds: label == null ? 3 : 5),
+          duration: Duration(milliseconds: label == null ? 3000 : 2500),
+          persist: false,
           action: label == null
               ? null
               : SnackBarAction(

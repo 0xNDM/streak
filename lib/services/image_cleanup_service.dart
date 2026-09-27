@@ -16,6 +16,7 @@ class ImageCleanupService {
     }
     for (final todo in LocalStore.readTodos()) {
       used.addAll(todo.photos);
+      if (todo.cover.isNotEmpty) used.add(todo.cover);
     }
     used.addAll(
       List<String>.from(LocalStore.setting('focusImages', const <String>[])),

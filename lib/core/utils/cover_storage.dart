@@ -49,6 +49,24 @@ class CoverStorage {
     }
   }
 
+  static Future<String> clone(String path) async {
+    if (path.isEmpty) return path;
+    final clean = path.split('?').first;
+    try {
+      final dir = await appDataDir();
+      final source = File(clean);
+      if (!_isOurs(clean, dir.path) || !source.existsSync()) return path;
+      final dot = clean.lastIndexOf('.');
+      final dest =
+          '${clean.substring(0, dot)}_${DateTime.now().millisecondsSinceEpoch}${clean.substring(dot)}';
+      await source.copy(dest);
+      return dest;
+    } catch (e) {
+      debugPrint('Could not copy $clean: $e');
+      return path;
+    }
+  }
+
   static Future<void> forgetAll(Iterable<String> paths) async {
     for (final path in paths) {
       await forget(path);

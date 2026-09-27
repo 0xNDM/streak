@@ -10,14 +10,18 @@ class TodoSection {
   final List<Todo> todos;
 }
 
-List<TodoSection> groupPending(List<Todo> todos, DateTime today) {
+List<TodoSection> groupPending(
+  List<Todo> todos,
+  DateTime today, {
+  bool lowFirst = false,
+}) {
   final buckets = <TodoGroup, List<Todo>>{};
   for (final todo in todos) {
     if (todo.done) continue;
     buckets.putIfAbsent(_groupOf(todo, today), () => []).add(todo);
   }
   for (final bucket in buckets.values) {
-    bucket.sort(_byUrgency);
+    bucket.sort((a, b) => _byUrgency(a, b, lowFirst));
   }
   return [
     for (final group in TodoGroup.values)
@@ -42,7 +46,8 @@ TodoGroup _groupOf(Todo todo, DateTime today) {
   return TodoGroup.upcoming;
 }
 
-int _byUrgency(Todo a, Todo b) {
+int _byUrgency(Todo a, Todo b, bool lowFirst) {
+  if (a.pinned != b.pinned) return a.pinned ? -1 : 1;
   final first = a.due;
   final second = b.due;
   if (first != null && second != null && !first.isSameDay(second)) {
@@ -55,7 +60,12 @@ int _byUrgency(Todo a, Todo b) {
     return a.minutes!.compareTo(b.minutes!);
   }
   if (a.priority != b.priority) {
-    return b.priority.index.compareTo(a.priority.index);
+    return lowFirst
+        ? _rank(a.priority).compareTo(_rank(b.priority))
+        : b.priority.index.compareTo(a.priority.index);
   }
   return b.createdAt.compareTo(a.createdAt);
 }
+
+int _rank(TodoPriority priority) =>
+    priority == TodoPriority.none ? TodoPriority.values.length : priority.index;
