@@ -232,6 +232,23 @@ class _AboutPageState extends State<AboutPage> {
               ),
             ),
           ),
+          const SizedBox(height: 14),
+          Entrance(
+            index: 7,
+            delay: _base,
+            child: GestureDetector(
+              onTap: () => _open('$_kGitHubUrl/blob/main/LICENSE'),
+              child: Text(
+                context.l10n.about_legal,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 11.5,
+                  height: 1.45,
+                  color: muted.withValues(alpha: 0.7),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );

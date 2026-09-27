@@ -129,7 +129,7 @@ Everything stays on your device. No account, no ads, nothing to sync.
 - A timer for the habits that need one, free or tied to a habit and its goal
 - **Pomodoro rounds** with short breaks, or one long stretch
 - Three clock styles: **Circle**, **Flip** and **Dots**
-- Built-in sounds (rain, brown noise, warm pad) or your own tracks, in order
+- Built-in sounds (rain, brown noise, fire) or your own tracks, in order
   or shuffled
 - Calm scenes as a background, or a photo of your own
 - Tick off subtasks without leaving the timer, and keep the screen awake
@@ -316,6 +316,10 @@ The island you build in the gamification tab is drawn with
 boona13, an MIT licensed set of isometric voxel art. Thank you for putting it
 out there for anyone to use.
 
+The streak flame on the home screen widgets is the fire from
+**[Fluent Emoji](https://github.com/microsoft/fluentui-emoji)** by Microsoft,
+released under the MIT license.
+
 </details>
 
 ---
@@ -366,6 +370,6 @@ help as much as a coffee does.
 <br/>
 <br/>
 
-Released under the <a href="LICENSE"><b>GNU GPLv3</b></a>.
+Released under the <a href="LICENSE"><b>GNU GPLv3</b></a>, with the <a href="ADDITIONAL_TERMS.md">attribution term</a> of its section 7(b).
 
 </div>

@@ -136,7 +136,7 @@ exigir.
   su meta
 - **Rondas pomodoro** con descansos cortos, o una sola sesión larga
 - Tres estilos de reloj: **Círculo**, **Flip** y **Puntos**
-- Sonidos incluidos (lluvia, ruido marrón, pad cálido) o tus propias pistas,
+- Sonidos incluidos (lluvia, ruido marrón, fuego) o tus propias pistas,
   en orden o aleatorias
 - Escenas tranquilas de fondo, o una foto tuya
 - Marca subtareas sin salir del temporizador, y deja la pantalla encendida
@@ -380,6 +380,6 @@ ayudan tanto como un café.
 <br/>
 <br/>
 
-Publicado bajo la <a href="../LICENSE"><b>Licencia GNU GPLv3</b></a>.
+Publicado bajo la <a href="../LICENSE"><b>Licencia GNU GPLv3</b></a>, con el <a href="../ADDITIONAL_TERMS.md">término de atribución</a> de su sección 7(b).
 
 </div>
