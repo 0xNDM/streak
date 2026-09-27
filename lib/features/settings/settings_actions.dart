@@ -56,6 +56,12 @@ class SettingsActions {
         : AppSnackbar.warning(context, context.l10n.export_cancelled);
   }
 
+  static Future<void> setWeekStart(BuildContext context, int weekday) async {
+    final habits = context.read<HabitsController>();
+    await context.read<SettingsController>().setWeekStart(weekday);
+    habits.recount();
+  }
+
   static Future<void> importBackup(BuildContext context) async {
     final controller = context.read<HabitsController>();
     final replace = await _askImportMode(context);
@@ -63,6 +69,8 @@ class SettingsActions {
     final error = await controller.importBackup(replace: replace);
     if (!context.mounted) return;
     if (error == null) {
+      if (replace) await context.read<SettingsController>().reloadFromStore();
+      if (!context.mounted) return;
       context.read<NotesController>().reload();
       context.read<FocusController>().reload();
       context.read<TodosController>().reload();
@@ -300,6 +308,7 @@ class SettingsActions {
     );
     if (again != true || !context.mounted) return;
 
+    await BackupService.safetyCopy();
     await NotificationService().cancelAll();
     await LocalStore.wipeEverything();
     if (!context.mounted) return;
@@ -541,14 +550,6 @@ class SettingsActions {
         4 => context.l10n.custom,
         _ => context.l10n.bg_solid,
       };
-
-  static const shippedLanguages = {
-    'de', 'en', 'es', 'fr', 'ko', 'pt', 'ru', 'uk', 'zh',
-  };
-
-  static List<Locale> get shippedLocales => AppLocalizations.supportedLocales
-      .where((l) => shippedLanguages.contains(l.languageCode))
-      .toList();
 
   static String languageLabel(BuildContext context, String code) =>
       code.isEmpty ? context.l10n.system : languageName(localeFromCode(code));

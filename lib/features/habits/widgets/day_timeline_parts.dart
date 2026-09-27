@@ -7,6 +7,10 @@ import 'package:streak/core/i18n/l10n.dart';
 import 'package:streak/core/icons/habit_glyph.dart';
 import 'package:streak/features/habits/data/day_plan.dart';
 import 'package:streak/features/habits/data/habit.dart';
+import 'package:streak/features/habits/data/habit_note.dart';
+import 'package:streak/features/habits/pages/note_editor_page.dart';
+import 'package:streak/core/routing/app_navigator.dart';
+import 'package:streak/features/habits/state/notes_controller.dart';
 import 'package:streak/features/habits/data/quant_progress.dart';
 import 'package:streak/features/settings/state/settings_controller.dart';
 
@@ -23,6 +27,7 @@ class TimelineBlock extends StatelessWidget {
     required this.done,
     required this.onOpen,
     required this.onCheck,
+    required this.onAddNote,
   });
 
   final Habit habit;
@@ -30,6 +35,7 @@ class TimelineBlock extends StatelessWidget {
   final bool done;
   final VoidCallback onOpen;
   final VoidCallback onCheck;
+  final VoidCallback onAddNote;
 
   double get _tileHeight {
     if (habit.durationMinutes <= 0) return _tile;
@@ -90,6 +96,7 @@ class TimelineBlock extends StatelessWidget {
             button: true,
             child: GestureDetector(
               onTap: onOpen,
+              onLongPress: onAddNote,
               child: Container(
                 padding: const EdgeInsets.all(_cardPadding),
                 decoration: BoxDecoration(
@@ -98,7 +105,10 @@ class TimelineBlock extends StatelessWidget {
                   ),
                   borderRadius: BorderRadius.circular(18),
                 ),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                Row(
                   children: [
                     Container(
                       width: _tile,
@@ -169,11 +179,147 @@ class TimelineBlock extends StatelessWidget {
                     ),
                   ],
                 ),
+                TimelineNotes(habit: habit, date: date),
+                  ],
+                ),
               ),
             ),
           ),
         ),
       ],
+    );
+  }
+}
+
+class TimelineNotes extends StatelessWidget {
+  const TimelineNotes({super.key, required this.habit, required this.date});
+
+  final Habit habit;
+  final DateTime date;
+
+  static const _shown = 3;
+
+  @override
+  Widget build(BuildContext context) {
+    final notes = context.select<NotesController, List<HabitNote>>(
+      (controller) => controller.forDay(habit.id, date.dayKey),
+    );
+    if (notes.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final note in notes.take(_shown))
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: _NoteLine(habit: habit, note: note),
+            ),
+          if (notes.length > _shown)
+            Padding(
+              padding: const EdgeInsets.only(left: 12),
+              child: Text(
+                '+${notes.length - _shown}',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: context.tokens.muted,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NoteLine extends StatelessWidget {
+  const _NoteLine({required this.habit, required this.note});
+
+  final Habit habit;
+  final HabitNote note;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colors;
+    final muted = context.tokens.muted;
+    final text = note.text.trim();
+    final minutes = note.minutes;
+
+    return Semantics(
+      button: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => AppNavigator.push(
+          NoteEditorPage(
+            habitId: habit.id,
+            dayKey: note.date,
+            accent: habit.color,
+            note: note,
+          ),
+        ),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+          decoration: BoxDecoration(
+            color: scheme.surface.withValues(alpha: 0.8),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 6,
+                height: 6,
+                margin: const EdgeInsets.only(top: 6, right: 8),
+                decoration: BoxDecoration(
+                  color: noteTypeColor(context, note.type),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              if (minutes != null) ...[
+                Text(
+                  minuteLabel(minutes),
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w800,
+                    height: 1.35,
+                    color: habit.color,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              Expanded(
+                child: Text(
+                  text.isEmpty ? context.l10n.note_photos : text,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    height: 1.35,
+                    color: text.isEmpty ? muted : scheme.onSurface,
+                  ),
+                ),
+              ),
+              if (note.photos.isNotEmpty) ...[
+                const SizedBox(width: 8),
+                Icon(LucideIcons.image, size: 14, color: muted),
+                if (note.photos.length > 1)
+                  Text(
+                    ' ${note.photos.length}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: muted,
+                    ),
+                  ),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

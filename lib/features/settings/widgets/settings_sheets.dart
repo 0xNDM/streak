@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
+import 'package:streak/core/i18n/app_locale.dart';
 import 'package:streak/app/theme/app_tokens.dart';
 import 'package:streak/core/i18n/l10n.dart';
 import 'package:streak/core/widgets/sheet_type.dart';
@@ -93,7 +94,7 @@ Future<void> showBackgroundSheet(BuildContext context) {
 }
 
 Future<void> showLanguageSheet(BuildContext context) {
-  final locales = SettingsActions.shippedLocales;
+  final locales = shippedLocales;
   return showSheet(
     context,
     (sheet) => SafeArea(

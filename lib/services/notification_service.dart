@@ -1,10 +1,12 @@
 import 'dart:io';
+import 'dart:ui' show PlatformDispatcher;
 
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:streak/core/i18n/app_locale.dart';
 import 'package:streak/core/constants/motivational_quotes.dart';
 import 'package:streak/core/database/local_store.dart';
 import 'package:streak/core/extensions/date_extensions.dart';
@@ -225,12 +227,14 @@ class NotificationService {
 
   Future<AppLocalizations> localizations() async {
     final tag = LocalStore.setting('locale', '').trim();
-    for (final candidate in [if (tag.isNotEmpty) tag, 'en']) {
-      try {
-        return await AppLocalizations.delegate.load(_localeOf(candidate));
-      } catch (_) {}
+    final locale = pickLocale(
+      tag.isEmpty ? PlatformDispatcher.instance.locales : [_localeOf(tag)],
+    );
+    try {
+      return await AppLocalizations.delegate.load(locale);
+    } catch (_) {
+      return AppLocalizationsEn();
     }
-    return AppLocalizationsEn();
   }
 
   Locale _localeOf(String tag) {
@@ -239,7 +243,7 @@ class NotificationService {
   }
 
   String _bodyFor(Habit habit, Reminder? reminder, AppLocalizations strings) {
-    final lang = LocalStore.setting('locale', '') == 'es' ? 'es' : 'en';
+    final lang = strings.localeName == 'es' ? 'es' : 'en';
     final message = reminder?.message.trim() ?? '';
     final quotesOff = LocalStore.setting('quoteSource', 0) == 3;
     var body = message.isNotEmpty

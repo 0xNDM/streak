@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
+import 'package:streak/core/i18n/app_locale.dart';
 import 'package:streak/app/app_background.dart';
 import 'package:streak/app/app_lock.dart';
 import 'package:streak/app/home_shell.dart';
@@ -14,7 +15,6 @@ import 'package:streak/core/utils/responsive.dart';
 import 'package:streak/features/focus/widgets/focus_island.dart';
 import 'package:streak/features/habits/state/habits_controller.dart';
 import 'package:streak/features/onboarding/pages/onboarding_page.dart';
-import 'package:streak/features/settings/settings_actions.dart';
 import 'package:streak/features/settings/state/settings_controller.dart';
 import 'package:streak/services/home_widget_service.dart';
 
@@ -50,7 +50,8 @@ class StreakApp extends StatelessWidget {
         );
       },
       locale: settings.locale,
-      supportedLocales: SettingsActions.shippedLocales,
+      supportedLocales: shippedLocales,
+      localeListResolutionCallback: (wanted, _) => pickLocale(wanted),
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
@@ -72,7 +73,7 @@ class _DesktopFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (Platform.isAndroid || (shell && isWideLayout(context))) return child;
+    if (Platform.isAndroid || (shell && hasSideRail(context))) return child;
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: phoneWidth),
