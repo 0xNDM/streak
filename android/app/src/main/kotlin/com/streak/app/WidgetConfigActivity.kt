@@ -1,7 +1,5 @@
 package com.streak.app
 
-import HomeWidgetGlanceState
-import HomeWidgetGlanceStateDefinition
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
@@ -38,10 +36,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.style.TextAlign
@@ -50,7 +50,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
-import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import org.json.JSONObject
@@ -125,6 +124,7 @@ class WidgetConfigActivity : ComponentActivity() {
                 initialFollowSystem = WidgetConfig.followSystem(this, appWidgetId),
                 initialBgLight = WidgetConfig.bgLight(this, appWidgetId),
                 initialTodosAll = WidgetConfig.todosAll(this, appWidgetId),
+                initialRound = WidgetConfig.round(this, appWidgetId),
                 isEdit = WidgetConfig.exists(this, appWidgetId),
             )
         }
@@ -164,7 +164,7 @@ class WidgetConfigActivity : ComponentActivity() {
     private fun save(
         bg: Int, opacity: Int, border: Boolean, borderWidth: Int,
         habitId: String?, allColor: Int, layout: Int,
-        followSystem: Boolean, bgLight: Int, todosAll: Boolean,
+        followSystem: Boolean, bgLight: Int, todosAll: Boolean, round: Boolean,
     ) {
         val image = if (bgModeState.value == 1) imageState.value else null
         WidgetConfig.set(
@@ -173,6 +173,7 @@ class WidgetConfigActivity : ComponentActivity() {
         )
         if (image != originalImage) WidgetConfig.deleteImage(this, originalImage)
         if (type == WType.TODOS) WidgetConfig.setTodosAll(this, appWidgetId, todosAll)
+        WidgetConfig.setRound(this, appWidgetId, round)
         if (type == WType.HEATMAP) {
             HeatmapConfig.setHabit(this, appWidgetId, habitId)
             HeatmapConfig.setColor(this, appWidgetId, if (habitId == null) allColor else null)
@@ -193,10 +194,7 @@ class WidgetConfigActivity : ComponentActivity() {
         lifecycleScope.launch {
             try {
                 val glanceId = GlanceAppWidgetManager(ctx).getGlanceIdBy(id)
-                updateAppWidgetState<HomeWidgetGlanceState>(
-                    ctx, HomeWidgetGlanceStateDefinition(), glanceId,
-                ) { it }
-                if (providerClass.isNotEmpty()) widgetFor(type).update(ctx, glanceId)
+                if (providerClass.isNotEmpty()) GlanceWidgets.refresh(ctx, widgetFor(type), glanceId)
             } catch (_: Exception) {
             }
             finish()
@@ -268,6 +266,7 @@ class WidgetConfigActivity : ComponentActivity() {
         initialFollowSystem: Boolean,
         initialBgLight: Int,
         initialTodosAll: Boolean,
+        initialRound: Boolean,
         isEdit: Boolean,
     ) {
         var bg by remember { mutableStateOf(initialBg) }
@@ -282,6 +281,7 @@ class WidgetConfigActivity : ComponentActivity() {
         var bgLight by remember { mutableStateOf(initialBgLight) }
         var lightCustom by remember { mutableStateOf(false) }
         var todosAll by remember { mutableStateOf(initialTodosAll) }
+        var round by remember { mutableStateOf(initialRound) }
         val mode by bgModeState
         val image by imageState
 
@@ -291,22 +291,28 @@ class WidgetConfigActivity : ComponentActivity() {
             WidgetStyle.image(image!!, opacity, border, borderWidth)
         } else {
             WidgetStyle.from(shown, opacity, border, borderWidth)
-        }
+        }.copy(round = round)
 
         Column(modifier = Modifier.fillMaxSize().background(screenBg)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Brush.verticalGradient(listOf(Color(0xFF231F3A), screenBg)))
+                    .padding(start = 20.dp, end = 20.dp, top = 22.dp, bottom = 18.dp),
+            ) {
+                Text(
+                    tr("cfg_title", "Customize widget"),
+                    color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold,
+                )
+                Spacer(Modifier.height(18.dp))
+                Preview(style, image.takeIf { mode == 1 }, layout, habitId, allColor, todosAll)
+            }
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 20.dp),
             ) {
-                Spacer(Modifier.height(22.dp))
-                Text(
-                    tr("cfg_title", "Customize widget"),
-                    color = Color.White, fontSize = 25.sp, fontWeight = FontWeight.Bold,
-                )
-                Spacer(Modifier.height(18.dp))
-                Preview(style, image.takeIf { mode == 1 }, layout, habitId, allColor, todosAll)
 
                 if (type == WType.HEATMAP) {
                     Spacer(Modifier.height(18.dp))
@@ -319,7 +325,7 @@ class WidgetConfigActivity : ComponentActivity() {
                     )
                 }
 
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(6.dp))
                 Section(tr("cfg_color", "Color")) {
                     Segmented(
                         left = tr("cfg_color", "Color"),
@@ -409,6 +415,19 @@ class WidgetConfigActivity : ComponentActivity() {
                     }
                 }
 
+                if (type == WType.TODAY || type == WType.HABIT || type == WType.TODOS) {
+                    Spacer(Modifier.height(14.dp))
+                    Section(tr("cfg_checks", "Checks")) {
+                        Segmented(
+                            left = tr("cfg_square", "Square"),
+                            right = tr("cfg_circle", "Circle"),
+                            selected = if (round) 1 else 0,
+                            onLeft = { round = false },
+                            onRight = { round = true },
+                        )
+                    }
+                }
+
                 if (type == WType.TODOS) {
                     Spacer(Modifier.height(14.dp))
                     Section(tr("cfg_todos_scope", "Tasks")) {
@@ -464,7 +483,7 @@ class WidgetConfigActivity : ComponentActivity() {
                 ) {
                     save(
                         bg, opacity, border, borderWidth, habitId, allColor, layout,
-                        followSystem, bgLight, todosAll,
+                        followSystem, bgLight, todosAll, round,
                     )
                 }
                 Box(
@@ -480,6 +499,7 @@ class WidgetConfigActivity : ComponentActivity() {
                             lightCustom = false
                             allColor = brand.toArgb()
                             layout = HeatmapConfig.LAYOUT_CLASSIC
+                            round = false
                             bgModeState.value = 0
                             imageState.value = null
                         }
@@ -580,9 +600,9 @@ class WidgetConfigActivity : ComponentActivity() {
         todosAll: Boolean,
     ) = Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         val frame = if (type == WType.STATS) {
-            Modifier.size(152.dp)
+            Modifier.size(158.dp)
         } else {
-            Modifier.fillMaxWidth().height(140.dp)
+            Modifier.fillMaxWidth().height(150.dp)
         }
         Box(
             modifier = frame
@@ -625,99 +645,189 @@ class WidgetConfigActivity : ComponentActivity() {
     }
 
     @Composable
-    private fun HabitPreview(s: WidgetStyle) = Column(
-        Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceEvenly,
-    ) {
-        listOf(tr("demo_read", "Read"), tr("demo_run", "Run"), tr("demo_water", "Water")).forEach { name ->
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(name, color = s.content, fontSize = 13.sp, fontWeight = FontWeight.Medium,
-                    modifier = Modifier.width(60.dp))
-                Row(Modifier.weight(1f), horizontalArrangement = Arrangement.SpaceBetween) {
-                    repeat(7) { i -> Dot(if (i % 2 == 0) brand else s.cell, 13.dp, 4.dp) }
+    private fun HabitPreview(s: WidgetStyle) = Column(Modifier.fillMaxSize()) {
+        val days = listOf("M", "T", "W", "T", "F", "S", "S")
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.width(92.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("67%", color = s.content, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            }
+            Row(Modifier.weight(1f)) {
+                days.forEachIndexed { i, day ->
+                    Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                        val today = i == 6
+                        Box(
+                            Modifier.size(20.dp).clip(CircleShape)
+                                .background(if (today) s.content else Color.Transparent),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                day, fontSize = 10.sp, fontWeight = FontWeight.Bold,
+                                color = if (today) inverse(s) else s.muted,
+                            )
+                        }
+                    }
                 }
             }
         }
-    }
-
-    @Composable
-    private fun TodayPreview(s: WidgetStyle) = Column(
-        Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center,
-    ) {
-        Text(trf("today_progress", "Today  2/3", "{done}" to "2", "{total}" to "3"), color = s.content, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(8.dp))
-        listOf(tr("demo_read", "Read") to true, tr("demo_run", "Run") to false).forEach { (name, done) ->
-            Row(Modifier.fillMaxWidth().padding(vertical = 5.dp),
-                verticalAlignment = Alignment.CenterVertically) {
-                Text(name, color = s.content, fontSize = 13.sp, modifier = Modifier.weight(1f))
-                Dot(if (done) brand else s.cell, 22.dp, 8.dp)
-            }
-        }
-    }
-
-    @Composable
-    private fun TodosPreview(s: WidgetStyle, all: Boolean) = Column(
-        Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center,
-    ) {
-        val rows = if (all) 3 else 2
-        Text(trf("todos_open", "To-do  $rows", "{count}" to rows.toString()),
-            color = s.content, fontSize = 15.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
         listOf(
-            tr("demo_read", "Read") to Color(0xFFEF4444),
-            tr("demo_run", "Run") to s.cell,
-            tr("demo_water", "Water") to Color(0xFFF59E0B),
-        ).take(rows).forEach { (name, dot) ->
-            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically) {
-                Dot(s.cell, 20.dp, 6.dp)
-                Spacer(Modifier.width(9.dp))
-                if (dot != s.cell) {
-                    Dot(dot, 7.dp, 4.dp)
-                    Spacer(Modifier.width(6.dp))
+            Triple(tr("demo_read", "Read"), Color(0xFF7C5CFC), listOf(1, 1, 0, 1, 1, 0, 1)),
+            Triple(tr("demo_run", "Run"), Color(0xFF2196F3), listOf(0, 1, 1, 0, 1, 1, 0)),
+            Triple(tr("demo_water", "Water"), Color(0xFF00BCD4), listOf(1, 1, 1, 1, 1, 1, 0)),
+        ).forEach { (name, color, pattern) ->
+            Row(
+                Modifier.fillMaxWidth().padding(vertical = 3.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    name, color = s.content, fontSize = 13.sp, fontWeight = FontWeight.Medium,
+                    maxLines = 1, modifier = Modifier.width(92.dp),
+                )
+                Row(Modifier.weight(1f)) {
+                    pattern.forEachIndexed { i, done ->
+                        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                            when {
+                                done == 1 -> DoneDot(color, s, 18.dp)
+                                i == 6 -> RingDot(color, s, 18.dp)
+                                else -> EmptyDot(s, 18.dp)
+                            }
+                        }
+                    }
                 }
-                Text(name, color = s.content, fontSize = 13.sp, modifier = Modifier.weight(1f))
             }
         }
     }
 
     @Composable
-    private fun StatsPreview(s: WidgetStyle) = Column(Modifier.fillMaxSize()) {
+    private fun TodayPreview(s: WidgetStyle) = Column(Modifier.fillMaxSize()) {
+        Text(
+            trf("today_progress", "Today  2/3", "{done}" to "2", "{total}" to "3"),
+            color = s.content, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1,
+        )
+        Spacer(Modifier.height(8.dp))
+        listOf(
+            Triple(tr("demo_read", "Read"), Color(0xFF7C5CFC), true),
+            Triple(tr("demo_run", "Run"), Color(0xFF2196F3), true),
+            Triple(tr("demo_water", "Water"), Color(0xFF00BCD4), false),
+        ).forEach { (name, color, done) ->
+            Row(
+                Modifier.fillMaxWidth().padding(vertical = 3.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    name, color = s.content, fontSize = 13.sp, fontWeight = FontWeight.Medium,
+                    maxLines = 1, modifier = Modifier.weight(1f),
+                )
+                FlameCount(if (done) 12 else 4, s)
+                Spacer(Modifier.width(10.dp))
+                if (done) DoneDot(color, s, 24.dp) else FadedDot(color, s, 24.dp)
+            }
+        }
+    }
+
+    @Composable
+    private fun TodosPreview(s: WidgetStyle, all: Boolean) = Column(Modifier.fillMaxSize()) {
+        val rows = if (all) 3 else 2
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("🔥", fontSize = 11.sp)
-            Spacer(Modifier.width(6.dp))
             Text(
-                "S T R E A K", color = s.muted, fontSize = 10.sp,
-                fontWeight = FontWeight.Bold,
+                WidgetText.title(this@WidgetConfigActivity, "todos_open", "To-do"),
+                color = s.content, fontSize = 15.sp, fontWeight = FontWeight.Bold,
             )
+            Spacer(Modifier.width(8.dp))
+            Box(
+                Modifier.clip(RoundedCornerShape(10.dp))
+                    .background(WidgetInk.done.copy(alpha = 0.18f))
+                    .padding(horizontal = 8.dp, vertical = 2.dp),
+            ) {
+                Text("$rows", color = WidgetInk.done, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
         }
-        Spacer(Modifier.height(6.dp))
-        Row(verticalAlignment = Alignment.Bottom) {
-            Text("2", color = s.content, fontSize = 34.sp, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.width(5.dp))
-            Text("/ 3", color = s.muted, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+        Spacer(Modifier.height(10.dp))
+        listOf(
+            tr("demo_read", "Read") to Color(0xFFEF4444),
+            tr("demo_run", "Run") to null,
+            tr("demo_water", "Water") to Color(0xFFF59E0B),
+        ).take(rows).forEach { (name, priority) ->
+            Row(
+                Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                RingDot(s.muted, s, 20.dp)
+                Spacer(Modifier.width(10.dp))
+                if (priority != null) {
+                    Box(Modifier.size(7.dp).clip(CircleShape).background(priority))
+                    Spacer(Modifier.width(7.dp))
+                }
+                Text(
+                    name, color = s.content, fontSize = 13.sp, fontWeight = FontWeight.Medium,
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
-        Text(tr("done_today", "done today"), color = s.muted, fontSize = 11.sp)
-        Spacer(Modifier.weight(1f))
-        Row(Modifier.fillMaxWidth()) {
-            listOf(
-                "12" to tr("label_week", "Week"),
-                "🔥5" to tr("label_best", "Best"),
-            ).forEachIndexed { index, (value, label) ->
-                if (index > 0) Spacer(Modifier.width(8.dp))
-                Column(
-                    Modifier.weight(1f).clip(RoundedCornerShape(12.dp))
-                        .background(s.cell)
-                        .padding(horizontal = 10.dp, vertical = 7.dp),
-                ) {
-                    Text(value, color = s.content, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+    }
+
+    @Composable
+    private fun StatsPreview(s: WidgetStyle) = Column(
+        Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Image(painterResource(R.drawable.widget_flame_3d), null, Modifier.size(36.dp))
+            Spacer(Modifier.width(9.dp))
+            Column {
+                Caps(tr("done_today", "done today"), s)
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text("2", color = s.content, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                     Text(
-                        label.uppercase(), color = s.muted, fontSize = 9.sp,
-                        fontWeight = FontWeight.Medium,
+                        "/3", color = s.muted, fontSize = 13.sp, fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(start = 2.dp, bottom = 3.dp),
                     )
                 }
             }
         }
     }
+
+    @Composable
+    private fun Caps(text: String, s: WidgetStyle) = Text(
+        text.uppercase(), color = s.muted, fontSize = 10.sp,
+        fontWeight = FontWeight.Bold, maxLines = 1,
+    )
+
+    private fun markShape(s: WidgetStyle) =
+        if (s.round) CircleShape else RoundedCornerShape(30)
+
+    @Composable
+    private fun DoneDot(color: Color, s: WidgetStyle, size: androidx.compose.ui.unit.Dp) = Box(
+        Modifier.size(size).clip(markShape(s)).background(color),
+        contentAlignment = Alignment.Center,
+    ) {
+        Image(painterResource(R.drawable.ic_widget_check), null, Modifier.size(size * 0.6f))
+    }
+
+    @Composable
+    private fun RingDot(color: Color, s: WidgetStyle, size: androidx.compose.ui.unit.Dp) = Box(
+        Modifier.size(size).clip(markShape(s)).background(color.copy(alpha = 0.14f))
+            .border(2.dp, color, markShape(s)),
+    )
+
+    @Composable
+    private fun FadedDot(color: Color, s: WidgetStyle, size: androidx.compose.ui.unit.Dp) =
+        Box(Modifier.size(size).clip(markShape(s)).background(color.copy(alpha = 0.18f)))
+
+    @Composable
+    private fun EmptyDot(s: WidgetStyle, size: androidx.compose.ui.unit.Dp) =
+        Box(Modifier.size(size).clip(markShape(s)).background(s.cell))
+
+    @Composable
+    private fun FlameCount(streak: Int, s: WidgetStyle) =
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Image(painterResource(R.drawable.widget_flame_3d), null, Modifier.size(15.dp))
+            Spacer(Modifier.width(2.dp))
+            Text("$streak", color = s.content, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        }
+
+    private fun inverse(s: WidgetStyle): Color =
+        if (s.content == Color.White) Color(0xFF111114) else Color.White
 
     @Composable
     private fun LivePreview(
@@ -820,10 +930,6 @@ class WidgetConfigActivity : ComponentActivity() {
         }
         Image(bitmap.asImageBitmap(), null, Modifier.size(size))
     }
-
-    @Composable
-    private fun Dot(color: Color, size: androidx.compose.ui.unit.Dp, radius: androidx.compose.ui.unit.Dp) =
-        Box(Modifier.size(size).clip(RoundedCornerShape(radius)).background(color))
 
     private fun label(value: String) = value.substringBefore("{").trim()
 

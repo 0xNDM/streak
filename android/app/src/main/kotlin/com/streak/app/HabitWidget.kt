@@ -2,42 +2,40 @@ package com.streak.app
 
 import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
+import androidx.glance.action.actionStartActivity
+import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.SizeMode
-import androidx.glance.appwidget.provideContent
-import androidx.glance.background
-import androidx.glance.state.GlanceStateDefinition
-import androidx.glance.currentState
-import HomeWidgetGlanceState
-import HomeWidgetGlanceStateDefinition
-import androidx.glance.layout.*
+import androidx.glance.appwidget.action.actionSendBroadcast
+import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.lazy.LazyColumn
 import androidx.glance.appwidget.lazy.items
+import androidx.glance.appwidget.provideContent
+import androidx.glance.background
+import androidx.glance.currentState
+import androidx.glance.layout.Alignment
+import androidx.glance.layout.Box
+import androidx.glance.layout.Column
+import androidx.glance.layout.Row
+import androidx.glance.layout.Spacer
+import androidx.glance.layout.fillMaxSize
+import androidx.glance.layout.fillMaxWidth
+import androidx.glance.layout.height
+import androidx.glance.layout.padding
+import androidx.glance.layout.size
+import androidx.glance.layout.width
+import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
-import androidx.glance.text.FontWeight
-import androidx.glance.appwidget.cornerRadius
-import androidx.glance.action.clickable
-import androidx.glance.action.actionStartActivity
-import androidx.glance.appwidget.action.actionSendBroadcast
 import androidx.glance.unit.ColorProvider
-import androidx.glance.Image
-import androidx.glance.ColorFilter
-import androidx.glance.ImageProvider
-import androidx.glance.layout.ContentScale
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.net.Uri
-import es.antonborri.home_widget.HomeWidgetBackgroundIntent
 import org.json.JSONArray
 import org.json.JSONObject
-
-private val brandColor = androidx.compose.ui.graphics.Color(0xFF6C5CE7)
 
 private const val FALLBACK_COLOR = 0xFF7C3AED.toInt()
 private const val KIND_POSITIVE = 0
@@ -45,251 +43,109 @@ private const val KIND_NEGATIVE = 1
 private const val KIND_QUANTITATIVE = 2
 
 private const val LABEL_WIDTH_DP = 104
-private const val RATE_BAR_DP = 44
 private const val TODAY_INDEX = 6
-
-private fun flameFor(streak: Int): Int = when {
-    streak >= 365 -> R.drawable.ic_widget_flame_365
-    streak >= 100 -> R.drawable.ic_widget_flame_100
-    streak >= 50 -> R.drawable.ic_widget_flame_50
-    else -> 0
-}
+private const val DOT_DP = 22
 
 class HabitWidget : GlanceAppWidget() {
-
-    override val stateDefinition: GlanceStateDefinition<*>
-        get() = HomeWidgetGlanceStateDefinition()
 
     override val sizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val appWidgetId = GlanceAppWidgetManager(context).getAppWidgetId(id)
         provideContent {
-            currentState<HomeWidgetGlanceState>()
-            WidgetContent(context, WidgetStyle.loadFor(context, appWidgetId))
+            currentState(GlanceWidgets.REVISION)
+            val style = WidgetStyle.loadFor(context, appWidgetId)
+            WidgetSurface(style) { Body(context, style) }
         }
     }
 
     @Composable
-    private fun WidgetContent(context: Context, style: WidgetStyle) {
-        val data = loadWidgetData(context)
-        WidgetSurface(style) {
-            WidgetBody(style, data)
-        }
-    }
-
-    @Composable
-    private fun WidgetBody(style: WidgetStyle, data: JSONObject?) {
-        val context = androidx.glance.LocalContext.current
-        val modifier = GlanceModifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .clickable(actionStartActivity<MainActivity>())
-
-        Column(modifier = modifier) {
-            if (data != null) {
-                val habits = data.optJSONArray("habits")
-                val days = data.optJSONArray("days")
-
-                val weekOffset = data.optInt("weekOffset", 0)
-                    .coerceIn(0, maxOf(0, (days?.length() ?: 7) - 7))
-
-                if (habits != null && days != null) {
-                    Row(
-                        modifier = GlanceModifier
-                            .fillMaxWidth()
-                            .padding(bottom = 8.dp)
-                    ) {
-                        Box(
-                            modifier = GlanceModifier.width(LABEL_WIDTH_DP.dp),
-                            contentAlignment = Alignment.CenterStart
-                        ) {
-                            CompletionRate(style, data.optJSONObject("summary"))
-                        }
-                        Spacer(modifier = GlanceModifier.width(8.dp))
-                        Row(
-                            modifier = GlanceModifier.defaultWeight(),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            for (i in weekOffset until weekOffset + 7) {
-                                val day = days.optJSONObject(i)
-                                if (day != null) {
-                                    val label = day.optString("label")
-                                    val isToday = day.optBoolean("isToday", false)
-                                    Box(
-                                        modifier = GlanceModifier.defaultWeight(),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = label,
-                                            style = TextStyle(
-                                                color = ColorProvider(
-                                                    if (isToday) brandColor else style.muted
-                                                ),
-                                                fontSize = 14.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-
+    private fun Body(context: Context, style: WidgetStyle) {
+        val data = WidgetPayload.aligned(context)
+        Column(
+            modifier = GlanceModifier
+                .fillMaxSize()
+                .padding(16.dp)
+                .clickable(actionStartActivity<MainActivity>()),
+        ) {
+            val habits = data?.optJSONArray("habits")
+            val days = data?.optJSONArray("days")
+            when {
+                data == null -> EmptyNote(
+                    WidgetText.get(context, "no_data", "No data yet\nOpen Streak to sync"),
+                    style,
+                )
+                habits == null || days == null || habits.length() == 0 -> EmptyNote(
+                    WidgetText.get(context, "no_habits", "No habits yet\nTap to open Streak"),
+                    style,
+                )
+                else -> {
+                    val offset = data.optInt("weekOffset", 0)
+                        .coerceIn(0, maxOf(0, days.length() - 7))
+                    Header(style, data.optJSONObject("summary"), days, offset)
+                    Spacer(GlanceModifier.height(10.dp))
                     val keys = List(days.length()) {
                         days.optJSONObject(it)?.optString("key") ?: WidgetPayload.todayKey(context)
                     }
-
-                    LazyColumn(
-                        modifier = GlanceModifier.fillMaxWidth().defaultWeight()
-                    ) {
-                        items(habits.length()) { habitIndex ->
-                            habits.optJSONObject(habitIndex)?.let {
-                                HabitRow(style, it, keys, weekOffset)
-                            }
+                    LazyColumn(modifier = GlanceModifier.fillMaxWidth().defaultWeight()) {
+                        items(habits.length()) { index ->
+                            habits.optJSONObject(index)?.let { HabitRow(style, it, keys, offset) }
                         }
                     }
-                } else {
-                    EmptyState(style, WidgetText.get(context, "no_habits", "No habits yet\nTap to open Streak"))
                 }
-            } else {
-                EmptyState(style, WidgetText.get(context, "no_data", "No data yet\nOpen Streak to sync"))
             }
         }
     }
 
     @Composable
-    private fun CompletionRate(style: WidgetStyle, summary: JSONObject?) {
+    private fun Header(style: WidgetStyle, summary: JSONObject?, days: JSONArray, offset: Int) {
         val total = summary?.optInt("total", 0) ?: 0
-        if (total <= 0) return
         val done = summary?.optInt("doneToday", 0) ?: 0
-        val ratio = (done.toFloat() / total).coerceIn(0f, 1f)
-
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = "${(ratio * 100).toInt()}%",
-                style = TextStyle(
-                    color = ColorProvider(style.content),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold
-                ),
-                maxLines = 1
-            )
-            Spacer(modifier = GlanceModifier.width(6.dp))
-            Box(
-                modifier = GlanceModifier
-                    .width(RATE_BAR_DP.dp)
-                    .height(4.dp)
-                    .cornerRadius(2.dp)
-                    .background(ColorProvider(style.cell)),
-                contentAlignment = Alignment.CenterStart
-            ) {
-                if (ratio > 0f) {
-                    Box(
-                        modifier = GlanceModifier
-                            .width((RATE_BAR_DP * ratio).dp.coerceAtLeast(4.dp))
-                            .height(4.dp)
-                            .cornerRadius(2.dp)
-                            .background(ColorProvider(brandColor)),
-                        content = {}
-                    )
-                }
-            }
-        }
-    }
-
-    @Composable
-    private fun HabitRow(
-        style: WidgetStyle,
-        habit: JSONObject,
-        dayKeys: List<String>,
-        weekOffset: Int,
-    ) {
-        val context = androidx.glance.LocalContext.current
-        val habitId = habit.optString("id")
-        val name = habit.optString("name")
-        val colorInt = habit.optInt("color", FALLBACK_COLOR)
-        val color = androidx.compose.ui.graphics.Color(colorInt)
-        val completions = habit.optJSONArray("completions") ?: JSONArray()
-        val kind = habit.optInt("kind", KIND_POSITIVE)
-        val perDayTarget = habit.optDouble("perDayTarget", 1.0).coerceAtLeast(1.0)
-        val counts = habit.optJSONArray("counts")
-        val streak = habit.optInt("streak", 0)
-        val quantified = kind == KIND_QUANTITATIVE || perDayTarget > 1
-
+        val ratio = if (total > 0) done.toFloat() / total else 0f
         Row(
-            modifier = GlanceModifier
-                .fillMaxWidth()
-                .padding(vertical = 2.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = GlanceModifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(
                 modifier = GlanceModifier.width(LABEL_WIDTH_DP.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = name,
+                    text = "${(ratio * 100).toInt()}%",
                     style = TextStyle(
                         color = ColorProvider(style.content),
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Bold,
                     ),
                     maxLines = 1,
-                    modifier = GlanceModifier.defaultWeight()
                 )
-                StreakBadge(streak, color, style)
             }
-
-            Spacer(modifier = GlanceModifier.width(8.dp))
-
-            Row(
-                modifier = GlanceModifier.defaultWeight(),
-                horizontalAlignment = Alignment.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                for (i in weekOffset until weekOffset + 7) {
-                    val isCompleted = if (i < completions.length()) completions.getBoolean(i) else false
-                    val count =
-                        if (counts != null && i < counts.length()) counts.optDouble(i, 0.0) else 0.0
-                    val future = i > TODAY_INDEX
-                    Box(
-                        modifier = GlanceModifier
-                            .defaultWeight()
-                            .padding(4.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
+            Spacer(GlanceModifier.width(8.dp))
+            Row(modifier = GlanceModifier.defaultWeight()) {
+                for (i in offset until offset + 7) {
+                    val day = days.optJSONObject(i)
+                    val today = day?.optBoolean("isToday", false) == true
+                    Box(modifier = GlanceModifier.defaultWeight(), contentAlignment = Alignment.Center) {
                         Box(
                             modifier = GlanceModifier
-                                .size(24.dp)
-                                .cornerRadius(12.dp)
-                                .let { slot ->
-                                    if (future) slot else slot.clickable(
-                                        onClick = actionSendBroadcast(
-                                            WidgetActionReceiver.intent(
-                                                context,
-                                                habitId,
-                                                dayKeys.getOrElse(i) { WidgetPayload.todayKey(context) },
-                                            )
-                                        )
-                                    )
-                                },
-                            contentAlignment = Alignment.Center
+                                .size(DOT_DP.dp)
+                                .cornerRadius((DOT_DP / 2).dp)
+                                .background(
+                                    ColorProvider(if (today) style.content else Color.Transparent),
+                                ),
+                            contentAlignment = Alignment.Center,
                         ) {
-                            when {
-                                future -> PendingFlame(color, faint = true)
-                                kind == KIND_NEGATIVE -> if (count > 0) {
-                                    BreachMark(style)
-                                } else {
-                                    CompletionIndicator(isCompleted, color, streak)
-                                }
-                                quantified -> ValueIndicator(
-                                    count = count,
-                                    ratio = (count / perDayTarget).toFloat(),
-                                    color = color,
-                                    streak = streak
-                                )
-                                else -> CompletionIndicator(isCompleted, color, streak)
-                            }
+                            Text(
+                                text = day?.optString("label").orEmpty(),
+                                style = TextStyle(
+                                    color = ColorProvider(
+                                        if (today) inverse(style) else style.muted,
+                                    ),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                ),
+                                maxLines = 1,
+                            )
                         }
                     }
                 }
@@ -298,105 +154,100 @@ class HabitWidget : GlanceAppWidget() {
     }
 
     @Composable
-    private fun CompletionIndicator(
-        isCompleted: Boolean,
-        color: androidx.compose.ui.graphics.Color,
-        streak: Int,
-    ) {
-        if (!isCompleted) {
-            PendingFlame(color, faint = false)
-            return
+    private fun HabitRow(style: WidgetStyle, habit: JSONObject, keys: List<String>, offset: Int) {
+        val context = androidx.glance.LocalContext.current
+        val habitId = habit.optString("id")
+        val color = Color(habit.optInt("color", FALLBACK_COLOR))
+        val completions = habit.optJSONArray("completions") ?: JSONArray()
+        val counts = habit.optJSONArray("counts")
+        val kind = habit.optInt("kind", KIND_POSITIVE)
+        val target = habit.optDouble("perDayTarget", 1.0).coerceAtLeast(1.0)
+        val quantified = kind == KIND_QUANTITATIVE || target > 1
+
+        Row(
+            modifier = GlanceModifier.fillMaxWidth().padding(vertical = 3.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(
+                modifier = GlanceModifier.width(LABEL_WIDTH_DP.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = habit.optString("name"),
+                    style = TextStyle(
+                        color = ColorProvider(style.content),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                    ),
+                    maxLines = 2,
+                    modifier = GlanceModifier.defaultWeight(),
+                )
+                StreakChip(habit.optInt("streak", 0), style)
+            }
+            Spacer(GlanceModifier.width(8.dp))
+            Row(modifier = GlanceModifier.defaultWeight(), verticalAlignment = Alignment.CenterVertically) {
+                for (i in offset until offset + 7) {
+                    val completed = i < completions.length() && completions.optBoolean(i, false)
+                    val count = counts?.optDouble(i, 0.0) ?: 0.0
+                    val future = i > TODAY_INDEX
+                    val cell = GlanceModifier
+                        .defaultWeight()
+                        .padding(vertical = 3.dp)
+                        .cornerRadius(markRadius(DOT_DP.dp, style))
+                    Box(
+                        modifier = if (future) cell else cell.clickable(
+                            actionSendBroadcast(
+                                WidgetActionReceiver.intent(
+                                    context,
+                                    habitId,
+                                    keys.getOrElse(i) { WidgetPayload.todayKey(context) },
+                                ),
+                            ),
+                        ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        when {
+                            future -> DayDot(DayMark.FUTURE, color, style, DOT_DP.dp)
+                            kind == KIND_NEGATIVE && count > 0 ->
+                                DayDot(DayMark.RELAPSE, color, style, DOT_DP.dp)
+                            completed -> DayDot(DayMark.DONE, color, style, DOT_DP.dp)
+                            quantified && count > 0 -> Partial(count, (count / target).toFloat(), color, style)
+                            i == TODAY_INDEX -> DayDot(DayMark.TODAY, color, style, DOT_DP.dp)
+                            else -> DayDot(DayMark.MISSED, color, style, DOT_DP.dp)
+                        }
+                    }
+                }
+            }
         }
-        val tier = flameFor(streak)
-        Image(
-            provider = ImageProvider(
-                if (tier == 0) R.drawable.ic_widget_flame_solid else tier
-            ),
-            contentDescription = null,
-            colorFilter = if (tier == 0) ColorFilter.tint(ColorProvider(color)) else null,
-            modifier = GlanceModifier.size(20.dp)
-        )
     }
 
     @Composable
-    private fun PendingFlame(color: androidx.compose.ui.graphics.Color, faint: Boolean) {
-        Image(
-            provider = ImageProvider(R.drawable.ic_widget_flame),
-            contentDescription = null,
-            colorFilter = ColorFilter.tint(
-                ColorProvider(color.copy(alpha = if (faint) 0.16f else 0.3f))
-            ),
-            modifier = GlanceModifier.size(16.dp)
-        )
-    }
-
-    @Composable
-    private fun BreachMark(style: WidgetStyle) {
-        Text(
-            text = "✕",
-            style = TextStyle(
-                color = ColorProvider(style.content),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold
-            )
-        )
-    }
-
-    @Composable
-    private fun ValueIndicator(
-        count: Double,
-        ratio: Float,
-        color: androidx.compose.ui.graphics.Color,
-        streak: Int
-    ) {
-        if (count <= 0) {
-            CompletionIndicator(false, color, streak)
-            return
-        }
-        val clamped = ratio.coerceIn(0f, 1f)
+    private fun Partial(count: Double, ratio: Float, color: Color, style: WidgetStyle) {
+        val filled = ratio.coerceIn(0f, 1f)
         val label = WidgetText.compact(count)
         Box(
             modifier = GlanceModifier
-                .size(20.dp)
-                .background(ColorProvider(color.copy(alpha = 0.35f + 0.65f * clamped)))
-                .cornerRadius(7.dp),
-            contentAlignment = Alignment.Center
+                .size(DOT_DP.dp)
+                .cornerRadius(markRadius(DOT_DP.dp, style))
+                .background(ColorProvider(color.copy(alpha = 0.22f + 0.5f * filled))),
+            contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = label,
                 style = TextStyle(
-                    color = ColorProvider(
-                        if (clamped >= 0.6f) androidx.compose.ui.graphics.Color.White else color
-                    ),
+                    color = ColorProvider(Color.White),
                     fontSize = when {
                         label.length > 3 -> 7.sp
                         label.length > 2 -> 8.sp
                         else -> 10.sp
                     },
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
                 ),
-                maxLines = 1
+                maxLines = 1,
             )
         }
     }
 
-    @Composable
-    private fun EmptyState(style: WidgetStyle, message: String) {
-        Box(
-            modifier = GlanceModifier
-                .fillMaxSize()
-                .padding(top = 24.dp),
-            contentAlignment = Alignment.TopCenter
-        ) {
-            Text(
-                text = message,
-                style = TextStyle(
-                    color = ColorProvider(style.muted),
-                    fontSize = 13.sp
-                )
-            )
-        }
-    }
-
-    private fun loadWidgetData(context: Context): JSONObject? = WidgetPayload.aligned(context)
+    private fun inverse(style: WidgetStyle): Color =
+        if (style.content == Color.White) Color(0xFF111114) else Color.White
 }

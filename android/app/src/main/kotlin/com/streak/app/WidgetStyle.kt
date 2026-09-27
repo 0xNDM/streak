@@ -37,9 +37,13 @@ data class WidgetStyle(
     val cell: Color,
     val imagePath: String?,
     val scrim: Color,
+    val round: Boolean = false,
 ) {
     companion object {
-        fun loadFor(context: Context, id: Int): WidgetStyle {
+        fun loadFor(context: Context, id: Int): WidgetStyle =
+            base(context, id).copy(round = WidgetConfig.round(context, id))
+
+        private fun base(context: Context, id: Int): WidgetStyle {
             val opacity = WidgetConfig.opacity(context, id)
             val border = WidgetConfig.border(context, id)
             val bw = WidgetConfig.borderWidth(context, id)
@@ -92,10 +96,26 @@ data class WidgetStyle(
     }
 }
 
+private val backdrops = HashMap<String, Bitmap>()
+
 private fun decode(path: String?): Bitmap? {
     if (path.isNullOrEmpty()) return null
+    val file = File(path)
+    if (!file.exists()) return null
+    val key = "$path:${file.lastModified()}"
+    synchronized(backdrops) {
+        backdrops[key]?.let { return it }
+    }
+    val bitmap = load(path) ?: return null
+    synchronized(backdrops) {
+        if (backdrops.size >= 4) backdrops.clear()
+        backdrops[key] = bitmap
+    }
+    return bitmap
+}
+
+private fun load(path: String): Bitmap? {
     return try {
-        if (!File(path).exists()) return null
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeFile(path, bounds)
         var sample = 1

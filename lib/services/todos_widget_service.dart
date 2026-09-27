@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:home_widget/home_widget.dart';
+import 'package:streak/core/database/local_store.dart';
 import 'package:streak/core/extensions/date_extensions.dart';
 import 'package:streak/core/utils/app_dirs.dart';
 import 'package:streak/features/todos/data/todo.dart';
@@ -44,7 +45,12 @@ class TodosWidgetService {
   static String _encode(List<Todo> todos) {
     final today = AppClock.today();
     final listed = [
-      for (final section in groupPending(todos, today)) ...section.todos,
+      for (final section in groupPending(
+        todos,
+        today,
+        lowFirst: LocalStore.setting('todoLowFirst', false),
+      ))
+        ...section.todos,
     ].take(_maxTodos).toList()
       ..addAll(
         sortCompleted(todos)

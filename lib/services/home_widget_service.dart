@@ -82,6 +82,9 @@ class HomeWidgetService {
           'cfg_thickness': l10n.widget_cfg_thickness('{value}'),
           'cfg_todos_scope': l10n.widget_cfg_todos_scope,
           'cfg_todos_all': l10n.widget_cfg_todos_all,
+          'cfg_checks': l10n.widget_cfg_checks,
+          'cfg_square': l10n.widget_cfg_square,
+          'cfg_circle': l10n.widget_cfg_circle,
           'cfg_todos_hint': l10n.widget_cfg_todos_hint,
           'cfg_show_activity': l10n.widget_cfg_show_activity,
           'cfg_dot_color': l10n.widget_cfg_dot_color,
@@ -266,14 +269,10 @@ class HomeWidgetService {
   }
 
   static List<DateTime> _heatmapDays(DateTime midnight) {
-    final monday = midnight.subtract(Duration(days: midnight.weekday - 1));
-    final start = monday.subtract(
-      const Duration(days: 7 * (_heatmapWeeks - 1)),
-    );
-    return List.generate(
-      _heatmapWeeks * 7,
-      (i) => start.add(Duration(days: i)),
-    );
+    final start = midnight
+        .startOfWeek(DateTime.monday)
+        .addDays(-7 * (_heatmapWeeks - 1));
+    return List.generate(_heatmapWeeks * 7, start.addDays);
   }
 
   static List<int> _heatmapLevels(Iterable<Habit> habits, DateTime today) {

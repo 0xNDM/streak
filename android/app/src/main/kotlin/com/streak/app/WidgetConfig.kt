@@ -44,6 +44,13 @@ object WidgetConfig {
     fun image(context: Context, id: Int): String? =
         prefs(context).getString("image_$id", null)
 
+    fun round(context: Context, id: Int): Boolean =
+        prefs(context).getBoolean("round_$id", false)
+
+    fun setRound(context: Context, id: Int, value: Boolean) {
+        prefs(context).edit().putBoolean("round_$id", value).commit()
+    }
+
     fun todosAll(context: Context, id: Int): Boolean =
         prefs(context).getBoolean("todosAll_$id", false)
 
@@ -91,6 +98,7 @@ object WidgetConfig {
             .remove("bgMode_$id")
             .remove("image_$id")
             .remove("todosAll_$id")
+            .remove("round_$id")
             .apply()
     }
 

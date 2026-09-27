@@ -17,8 +17,8 @@ object WidgetPayload {
     fun dayCutoff(context: Context): Int =
         (raw(context)?.optInt("dayCutoff", 0) ?: 0).coerceIn(0, 6)
 
-    fun systemDayKey(): String {
-        val now = Calendar.getInstance()
+    fun systemDayKey(cutoff: Int = 0): String {
+        val now = Calendar.getInstance().apply { add(Calendar.HOUR_OF_DAY, -cutoff) }
         return String.format(
             Locale.US,
             "%02d-%02d-%04d",
@@ -42,7 +42,8 @@ object WidgetPayload {
     fun isStale(context: Context): Boolean {
         val root = raw(context) ?: return false
         val stored = root.optString("todayKey", "")
-        return stored.isNotEmpty() && stored != systemDayKey()
+        val cutoff = root.optInt("dayCutoff", 0).coerceIn(0, 6)
+        return stored.isNotEmpty() && stored != systemDayKey(cutoff)
     }
 
     fun windowIndexOf(root: JSONObject, dayKey: String): Int {

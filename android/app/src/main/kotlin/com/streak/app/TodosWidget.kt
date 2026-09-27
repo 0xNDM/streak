@@ -19,14 +19,11 @@ import androidx.glance.action.clickable
 import androidx.glance.background
 import androidx.glance.currentState
 import androidx.glance.layout.*
-import androidx.glance.state.GlanceStateDefinition
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextDecoration
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
-import HomeWidgetGlanceState
-import HomeWidgetGlanceStateDefinition
 import java.util.Locale
 import org.json.JSONObject
 
@@ -37,21 +34,18 @@ private val PRIORITY_COLORS = listOf(
     Color(0xFFEF4444),
 )
 
-private val DONE = Color(0xFF22C55E)
+private val DONE = WidgetInk.done
 
 private val OVERDUE = Color(0xFFEF4444)
 
 class TodosWidget : GlanceAppWidget() {
-
-    override val stateDefinition: GlanceStateDefinition<*>
-        get() = HomeWidgetGlanceStateDefinition()
 
     override val sizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val appWidgetId = GlanceAppWidgetManager(context).getAppWidgetId(id)
         provideContent {
-            currentState<HomeWidgetGlanceState>()
+            currentState(GlanceWidgets.REVISION)
             Content(
                 context,
                 WidgetStyle.loadFor(context, appWidgetId),
@@ -71,20 +65,36 @@ class TodosWidget : GlanceAppWidget() {
                     .padding(16.dp)
                     .clickable(openPageAction(context, "todos"))
             ) {
-                Text(
-                    text = WidgetText.format(
-                        context,
-                        "todos_open",
-                        "To-do  $open",
-                        "{count}" to open.toString(),
-                    ),
-                    style = TextStyle(
-                        color = ColorProvider(style.content),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                    ),
-                )
-                Spacer(modifier = GlanceModifier.height(10.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = WidgetText.title(context, "todos_open", "To-do"),
+                        style = TextStyle(
+                            color = ColorProvider(style.content),
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                        ),
+                        maxLines = 1,
+                    )
+                    if (open > 0) {
+                        Spacer(modifier = GlanceModifier.width(8.dp))
+                        Box(
+                            modifier = GlanceModifier
+                                .cornerRadius(10.dp)
+                                .background(ColorProvider(DONE.copy(alpha = 0.18f)))
+                                .padding(horizontal = 8.dp, vertical = 2.dp),
+                        ) {
+                            Text(
+                                text = open.toString(),
+                                style = TextStyle(
+                                    color = ColorProvider(DONE),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                ),
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = GlanceModifier.height(12.dp))
 
                 if (todos.isEmpty()) {
                     Text(
@@ -120,12 +130,11 @@ class TodosWidget : GlanceAppWidget() {
             modifier = GlanceModifier.fillMaxWidth().padding(vertical = 5.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            val box = GlanceModifier
-                .size(24.dp)
-                .cornerRadius(7.dp)
-                .background(ColorProvider(if (done) DONE else style.cell))
             Box(
-                modifier = box.clickable(
+                modifier = GlanceModifier
+                    .size(24.dp)
+                    .cornerRadius(markRadius(24.dp, style))
+                    .clickable(
                     onClick = actionSendBroadcast(
                         WidgetActionReceiver.todoIntent(context, id)
                     )
@@ -133,14 +142,9 @@ class TodosWidget : GlanceAppWidget() {
                 contentAlignment = Alignment.Center,
             ) {
                 if (done) {
-                    Text(
-                        text = "✓",
-                        style = TextStyle(
-                            color = ColorProvider(Color.White),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                        ),
-                    )
+                    DayDot(DayMark.DONE, DONE, style, 22.dp)
+                } else {
+                    DayDot(DayMark.TODAY, style.muted, style, 22.dp)
                 }
             }
             Spacer(modifier = GlanceModifier.width(10.dp))
@@ -161,7 +165,7 @@ class TodosWidget : GlanceAppWidget() {
                     fontWeight = FontWeight.Medium,
                     textDecoration = if (done) TextDecoration.LineThrough else null,
                 ),
-                maxLines = 1,
+                maxLines = 2,
                 modifier = GlanceModifier
                     .defaultWeight()
                     .clickable(openPageAction(context, "todos")),
