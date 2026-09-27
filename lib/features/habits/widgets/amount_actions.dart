@@ -20,6 +20,7 @@ Future<void> addCustomAmount(BuildContext context, Habit habit) async {
     value: 0,
     unit: habit.unitLabel,
     decimals: true,
+    clock: habit.isTimeAmount,
     accent: habit.color,
   );
   if (amount == null || amount <= 0 || !context.mounted) return;

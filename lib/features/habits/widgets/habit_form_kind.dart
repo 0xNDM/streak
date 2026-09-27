@@ -648,7 +648,8 @@ class QuantitativeFields extends StatelessWidget {
               value: target,
               unit: unit,
               step: _step,
-              min: _step,
+              min: 0.01,
+              clock: time,
               onChanged: onTargetChanged,
             ),
             const SizedBox(height: 8),
@@ -657,7 +658,8 @@ class QuantitativeFields extends StatelessWidget {
               value: increment,
               unit: unit,
               step: _step,
-              min: _step,
+              min: 0.01,
+              clock: time,
               onChanged: onIncrementChanged,
             ),
           ],
@@ -726,6 +728,7 @@ class _QuantityStepperRow extends StatelessWidget {
     required this.unit,
     required this.step,
     required this.min,
+    required this.clock,
     required this.onChanged,
   });
 
@@ -734,6 +737,7 @@ class _QuantityStepperRow extends StatelessWidget {
   final String unit;
   final double step;
   final double min;
+  final bool clock;
   final ValueChanged<double> onChanged;
 
   Future<void> _promptValue(BuildContext context) async {
@@ -744,6 +748,7 @@ class _QuantityStepperRow extends StatelessWidget {
       unit: unit,
       min: min,
       decimals: true,
+      clock: clock,
     );
     if (result != null) onChanged(result);
   }
@@ -770,7 +775,7 @@ class _QuantityStepperRow extends StatelessWidget {
           HoldRepeatButton(
             icon: LucideIcons.minus,
 label: context.l10n.a11y_decrease,
-            onTap: value > min ? () => onChanged(value - step) : null,
+            onTap: value - step >= min ? () => onChanged(value - step) : null,
           ),
           Semantics(
             button: true,
@@ -782,9 +787,11 @@ label: context.l10n.a11y_decrease,
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
                 alignment: Alignment.center,
                 child: Text(
-                  unit.isEmpty
-                      ? formatAmount(value)
-                      : '${formatAmount(value)} $unit',
+                  clock
+                      ? formatMinutes(value)
+                      : unit.isEmpty
+                          ? formatAmount(value)
+                          : '${formatAmount(value)} $unit',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: scheme.onSurface,

@@ -115,6 +115,7 @@ class _HabitDetailsPageState extends State<HabitDetailsPage> {
             unit: habit.unitLabel,
             target: habit.perDayTarget,
             decimals: true,
+            clock: habit.isTimeAmount,
             accent: habit.color,
           );
           if (value != null && value != current) {
@@ -722,7 +723,8 @@ class _FocusTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final focus = context.watch<FocusController>();
+    context.select<FocusController, int>((f) => f.revision);
+    final focus = context.read<FocusController>();
     final seconds = focus.secondsForHabit(habit.id);
     final today = focus.secondsForHabitOnDay(habit.id, AppClock.now());
     final week = focus.secondsForHabitSince(

@@ -36,6 +36,7 @@ class QuantitativeProgress extends StatelessWidget {
       unit: habit.unitLabel,
       target: habit.perDayTarget,
       decimals: true,
+      clock: habit.isTimeAmount,
       accent: habit.color,
     );
     if (result != null && result >= 0 && result != current && context.mounted) {

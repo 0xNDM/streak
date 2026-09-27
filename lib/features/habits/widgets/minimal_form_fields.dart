@@ -219,6 +219,7 @@ class CompactStepperRow extends StatelessWidget {
     this.unit = '',
     this.editable = false,
     this.decimals = false,
+    this.clock = false,
   });
 
   final String label;
@@ -229,6 +230,7 @@ class CompactStepperRow extends StatelessWidget {
   final String unit;
   final bool editable;
   final bool decimals;
+  final bool clock;
   final ValueChanged<double> onChanged;
 
   Future<void> _promptValue(BuildContext context) async {
@@ -239,6 +241,7 @@ class CompactStepperRow extends StatelessWidget {
       unit: unit,
       min: min,
       decimals: decimals,
+      clock: clock,
     );
     if (result != null) onChanged(result);
   }
@@ -246,9 +249,11 @@ class CompactStepperRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.colors;
-    final text = unit.isEmpty
-        ? formatAmount(value)
-        : '${formatAmount(value)} $unit';
+    final text = clock
+        ? formatMinutes(value)
+        : unit.isEmpty
+            ? formatAmount(value)
+            : '${formatAmount(value)} $unit';
 
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 4, 4, 4),

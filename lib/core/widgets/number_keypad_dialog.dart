@@ -13,6 +13,7 @@ Future<double?> showNumberKeypadDialog(
   double? target,
   double min = 0,
   bool decimals = false,
+  bool clock = false,
   Color? accent,
 }) {
   return showDialog<double>(
@@ -24,6 +25,7 @@ Future<double?> showNumberKeypadDialog(
       target: target,
       min: min,
       decimals: decimals,
+      clock: clock,
       accent: accent,
     ),
   );
@@ -37,6 +39,7 @@ class _NumberKeypadDialog extends StatefulWidget {
     required this.target,
     required this.min,
     required this.decimals,
+    required this.clock,
     required this.accent,
   });
 
@@ -46,6 +49,7 @@ class _NumberKeypadDialog extends StatefulWidget {
   final double? target;
   final double min;
   final bool decimals;
+  final bool clock;
   final Color? accent;
 
   @override
@@ -53,16 +57,32 @@ class _NumberKeypadDialog extends StatefulWidget {
 }
 
 class _NumberKeypadDialogState extends State<_NumberKeypadDialog> {
-  late String _text =
-      widget.value == 0 ? '' : formatAmount(widget.value);
+  late String _text = widget.value == 0
+      ? ''
+      : widget.clock
+          ? _clockDigits(widget.value)
+          : formatAmount(widget.value);
+
+  static String _clockDigits(double minutes) {
+    final total = minutes.round();
+    final hours = total ~/ 60;
+    final rest = total % 60;
+    return hours == 0 ? '$rest' : '$hours${rest.toString().padLeft(2, '0')}';
+  }
+
+  double get _clockMinutes {
+    final digits = int.tryParse(_text) ?? 0;
+    return (digits ~/ 100 * 60 + digits % 100).toDouble();
+  }
 
   double get _value {
-    final parsed = double.tryParse(_text) ?? 0;
+    final parsed =
+        widget.clock ? _clockMinutes : double.tryParse(_text) ?? 0;
     return parsed < widget.min ? widget.min : roundAmount(parsed);
   }
 
   void _type(String digit) {
-    if (_text.length >= 8) return;
+    if (_text.length >= (widget.clock ? 4 : 8)) return;
     setState(() {
       final next = _text + digit;
       _text = next.replaceFirst(RegExp(r'^0+(?=\d)'), '');
@@ -122,9 +142,16 @@ class _NumberKeypadDialogState extends State<_NumberKeypadDialog> {
     final scheme = context.colors;
     final accent = widget.accent ?? scheme.primary;
     final target = widget.target;
-    final suffix = target != null
-        ? '/ ${formatAmount(target)} ${widget.unit}'.trimRight()
-        : widget.unit;
+    final suffix = widget.clock
+        ? (target != null ? '/ ${formatMinutes(target)}' : '')
+        : target != null
+            ? '/ ${formatAmount(target)} ${widget.unit}'.trimRight()
+            : widget.unit;
+    final shown = widget.clock
+        ? formatMinutes(_clockMinutes)
+        : _text.isEmpty
+            ? '0'
+            : _text;
     return Dialog(
       backgroundColor: scheme.surface,
       insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
@@ -148,7 +175,7 @@ class _NumberKeypadDialogState extends State<_NumberKeypadDialog> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    _text.isEmpty ? '0' : _text,
+                    shown,
                     style: sheetFigureStyle(
                       context,
                       color: _text.isEmpty ? context.tokens.muted : accent,
@@ -176,7 +203,7 @@ class _NumberKeypadDialogState extends State<_NumberKeypadDialog> {
               Row(children: [for (final d in row) _digit(d)]),
             Row(
               children: [
-                widget.decimals
+                widget.decimals && !widget.clock
                     ? _key(
                         Text(
                           '.',
