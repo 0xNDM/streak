@@ -37,7 +37,7 @@ class FocusController extends ChangeNotifier {
     _round = ((map['round'] ?? 1) as num).toInt();
     _accumulated = ((map['acc'] ?? 0) as num).toInt();
     final since = (map['since'] ?? '') as String;
-    _since = since.isEmpty ? null : DateTime.tryParse(since);
+    _since = since.isEmpty ? null : DateTime.tryParse(since)?.toLocal();
     _open = (map['open'] ?? false) as bool;
     if (!_open) return;
     if (_since == null && _accumulated <= 0) {
@@ -57,7 +57,7 @@ class FocusController extends ChangeNotifier {
       'isBreak': _isBreak,
       'round': _round,
       'acc': _accumulated,
-      'since': _since?.toIso8601String() ?? '',
+      'since': _since?.toUtc().toIso8601String() ?? '',
       'open': _open,
     });
   }
@@ -79,8 +79,23 @@ class FocusController extends ChangeNotifier {
   int _accumulated = 0;
   DateTime? _since;
   Timer? _ticker;
+  List<FocusSession>? _view;
+  Map<String, int>? _perDay;
+  int _revision = 0;
 
-  List<FocusSession> get sessions => List.unmodifiable(_sessions);
+  int get revision => _revision;
+
+  List<FocusSession> get sessions => _view ??= List.unmodifiable(_sessions);
+
+  @override
+  void notifyListeners() {
+    _revision++;
+    _view = null;
+    _perDay = null;
+    super.notifyListeners();
+  }
+
+  void _tick() => super.notifyListeners();
 
   void reload() {
     _sessions = LocalStore.readFocusSessions();
@@ -99,6 +114,8 @@ class FocusController extends ChangeNotifier {
     if (index == -1) return;
     final counted = _sessions[index].asCounted;
     _sessions[index] = counted;
+    _view = null;
+    _perDay = null;
     await LocalStore.writeFocusSession(counted);
   }
 
@@ -123,7 +140,13 @@ class FocusController extends ChangeNotifier {
   Future<void> _keep(FocusSession session) async {
     for (final piece in session.split()) {
       _sessions.add(piece);
-      await LocalStore.writeFocusSession(piece);
+      _view = null;
+      _perDay = null;
+      try {
+        await LocalStore.writeFocusSession(piece);
+      } catch (e) {
+        debugPrint('Could not save a focus session: $e');
+      }
     }
   }
 
@@ -214,10 +237,10 @@ class FocusController extends ChangeNotifier {
   }
 
   void continueNow() {
-    if (!_awaiting) return;
+    if (!_awaiting && !(isPomodoro && reachedTarget)) return;
     _awaiting = false;
     unawaited(FocusAudio.stopAlert());
-    unawaited(_advancePhase());
+    _advancePhase();
   }
 
   void reset() {
@@ -249,7 +272,7 @@ class FocusController extends ChangeNotifier {
   void skipBreak() {
     _awaiting = false;
     unawaited(FocusAudio.stopAlert());
-    if (_isBreak) unawaited(_advancePhase());
+    if (_isBreak) _advancePhase();
   }
 
   void addTask() {
@@ -302,6 +325,7 @@ class FocusController extends ChangeNotifier {
     _stopTicker();
     _awaiting = false;
     unawaited(FocusAudio.stopAlert());
+    if (FocusAudio.current.value.isNotEmpty) unawaited(FocusAudio.stop());
     _accumulated = 0;
     _since = null;
     _habitId = '';
@@ -334,21 +358,29 @@ class FocusController extends ChangeNotifier {
     return session;
   }
 
-  Future<void> _advancePhase() async {
+  Future<void> _saveRound(FocusSession session) async {
+    await _keep(session);
+    notifyListeners();
+    onRoundSaved?.call(session);
+  }
+
+  void _advancePhase() {
     final endedAt = _phaseEnd;
     if (!_isBreak) {
       final seconds = elapsedAt(endedAt);
       if (seconds >= 30) {
-        final session = FocusSession(
-          id: const Uuid().v4(),
-          habitId: _habitId,
-          targetMinutes: _focusMinutes,
-          seconds: seconds,
-          completed: true,
-          startedAt: endedAt.subtract(Duration(seconds: seconds)),
+        unawaited(
+          _saveRound(
+            FocusSession(
+              id: const Uuid().v4(),
+              habitId: _habitId,
+              targetMinutes: _focusMinutes,
+              seconds: seconds,
+              completed: true,
+              startedAt: endedAt.subtract(Duration(seconds: seconds)),
+            ),
+          ),
         );
-        await _keep(session);
-        onRoundSaved?.call(session);
       }
     } else {
       _round++;
@@ -359,19 +391,24 @@ class FocusController extends ChangeNotifier {
     _accumulated = 0;
     _since = DateTime.now();
     _celebrated = false;
+    _startTicker();
     _persist();
     _sync();
     notifyListeners();
-    await _holdSound();
+    unawaited(_holdSound());
   }
 
   Future<void> _holdSound() async {
-    if (_isBreak) {
-      _soundOnBreak = FocusAudio.playing.value;
-      if (_soundOnBreak) await FocusAudio.pause();
-    } else if (_soundOnBreak) {
-      _soundOnBreak = false;
-      await FocusAudio.resume();
+    try {
+      if (_isBreak) {
+        _soundOnBreak = FocusAudio.playing.value;
+        if (_soundOnBreak) await FocusAudio.pause();
+      } else if (_soundOnBreak) {
+        _soundOnBreak = false;
+        await FocusAudio.resume();
+      }
+    } catch (e) {
+      debugPrint('Focus sound hold failed: $e');
     }
   }
 
@@ -393,14 +430,17 @@ class FocusController extends ChangeNotifier {
           _stopTicker();
           _persist();
           _sync();
+          notifyListeners();
         } else if (isPomodoro) {
           _advancePhase();
+          return;
         } else {
           _stopTicker();
           _sync();
+          notifyListeners();
         }
       }
-      notifyListeners();
+      _tick();
     });
   }
 
@@ -432,7 +472,13 @@ class FocusController extends ChangeNotifier {
     }
   }
 
-  Future<void> _sync() async {
+  Future<void> _pushed = Future.value();
+
+  void _sync() {
+    _pushed = _pushed.then((_) => _push());
+  }
+
+  Future<void> _push() async {
     unawaited(_syncEndAlarm());
     try {
       if (!_open) {
@@ -440,7 +486,11 @@ class FocusController extends ChangeNotifier {
         return;
       }
       final strings = await NotificationService().localizations();
-      final habit = _habitId.isEmpty ? null : LocalStore.readHabits()[_habitId];
+      if (!_open) {
+        await FocusService.hide();
+        return;
+      }
+      final name = _habitId.isEmpty ? null : LocalStore.habitName(_habitId);
       final done = _awaiting || (reachedTarget && !isPomodoro);
       final label = _awaiting
           ? strings.focus_continue
@@ -464,7 +514,7 @@ class FocusController extends ChangeNotifier {
                   : 'paused';
       await FocusService.show(
         habitId: _habitId,
-        title: habit?.name ?? strings.focus,
+        title: name ?? strings.focus,
         state: isPomodoro
             ? '$label  ·  ${strings.focus_round(_round)}'
             : label,
@@ -511,9 +561,19 @@ class FocusController extends ChangeNotifier {
           .where((s) => s.habitId == habitId && s.countedOn.dayKey == day.dayKey)
           .toList();
 
+  Map<String, int> get _secondsPerDay => _perDay ??= _sumPerDay();
+
+  Map<String, int> _sumPerDay() {
+    final sums = <String, int>{};
+    for (final session in _sessions) {
+      final key = '${session.habitId}|${session.countedOn.dayKey}';
+      sums[key] = (sums[key] ?? 0) + session.seconds;
+    }
+    return sums;
+  }
+
   int secondsForHabitOnDay(String habitId, DateTime day) =>
-      sessionsForHabitOnDay(habitId, day)
-          .fold(0, (sum, session) => sum + session.seconds);
+      _secondsPerDay['$habitId|${day.dayKey}'] ?? 0;
 
   Future<void> removeForHabit(String habitId) async {
     _sessions.removeWhere((s) => s.habitId == habitId);

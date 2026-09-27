@@ -18,13 +18,14 @@ class FocusDailyBars extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final express = context.watch<SettingsController>().isExpressStyle;
-    final focus = context.watch<FocusController>();
+    context.select<FocusController, int>((f) => f.revision);
+    final focus = context.read<FocusController>();
     final span = express ? 30 : days;
     final today = AppClock.today();
-    final start = today.subtract(Duration(days: span - 1));
+    final start = today.addDays(1 - span);
     final minutes = [
       for (var i = 0; i < span; i++)
-        focus.secondsForHabitOnDay(habit.id, start.add(Duration(days: i))) / 60,
+        focus.secondsForHabitOnDay(habit.id, start.addDays(i)) / 60,
     ];
     String label(double value) => formatHoursShort((value * 60).round());
     String axis(double value) => value <= 0 ? '0' : label(value);
@@ -39,9 +40,9 @@ class FocusDailyBars extends StatelessWidget {
         height: 176,
         format: label,
         axisFormat: axis,
-        label: (index) => '${start.add(Duration(days: index)).day}',
+        label: (index) => '${start.addDays(index).day}',
         subLabel: (index) {
-          final day = start.add(Duration(days: index));
+          final day = start.addDays(index);
           return day.day == 1 || index == 0 ? month.format(day) : null;
         },
       );

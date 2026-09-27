@@ -32,11 +32,26 @@ class FocusBackground extends StatelessWidget {
     required this.scene,
     required this.imagePath,
     required this.child,
+    this.thumbnail = false,
   });
 
   final int scene;
   final String imagePath;
   final Widget child;
+  final bool thumbnail;
+
+  ImageProvider _sized(BuildContext context, ImageProvider image) {
+    final media = MediaQuery.of(context);
+    final side = thumbnail
+        ? 320
+        : (media.size.longestSide * media.devicePixelRatio * 1.35).round();
+    return ResizeImage(
+      image,
+      width: side,
+      height: side,
+      policy: ResizeImagePolicy.fit,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +63,11 @@ class FocusBackground extends StatelessWidget {
       return Stack(
         fit: StackFit.expand,
         children: [
-          Image.file(File(imagePath), fit: BoxFit.cover),
+          Image(
+            image: _sized(context, FileImage(File(imagePath))),
+            fit: BoxFit.cover,
+            gaplessPlayback: true,
+          ),
           ColoredBox(color: Colors.black.withValues(alpha: 0.55)),
           child,
         ],
@@ -78,7 +97,11 @@ class FocusBackground extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        Image.asset(focusSceneAssets[index], fit: BoxFit.cover),
+        Image(
+          image: _sized(context, AssetImage(focusSceneAssets[index])),
+          fit: BoxFit.cover,
+          gaplessPlayback: true,
+        ),
         ColoredBox(color: Colors.black.withValues(alpha: 0.32)),
         child,
       ],
@@ -135,6 +158,7 @@ class FocusScenePreview extends StatelessWidget {
                   : FocusBackground(
                       scene: scene,
                       imagePath: imagePath,
+                      thumbnail: true,
                       child: const SizedBox.expand(),
                     ),
             ),

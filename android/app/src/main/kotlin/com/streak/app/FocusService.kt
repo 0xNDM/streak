@@ -40,8 +40,8 @@ class FocusService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val state = FocusState.read(this)
-        if (state == null) {
-            stop()
+        if (state == null || intent?.action == ACTION_HIDE) {
+            settle()
             return START_NOT_STICKY
         }
 
@@ -83,12 +83,15 @@ class FocusService : Service() {
 
     private fun schedule(state: JSONObject) {
         main.removeCallbacks(tick)
-        if (Build.VERSION.SDK_INT < 36) return
         if (!state.optBoolean("running") || state.optBoolean("done")) return
         val now = System.currentTimeMillis()
         val anchor = state.optLong("anchor")
         val countDown = state.optBoolean("countDown")
         if (countDown && anchor <= now) return
+        if (Build.VERSION.SDK_INT < 36) {
+            if (countDown) main.postDelayed(tick, anchor - now + 15L)
+            return
+        }
         val phase = (if (countDown) anchor - now else now - anchor).mod(1000L)
         main.postDelayed(tick, (if (countDown) phase else 1000L - phase) + 15L)
     }
@@ -103,6 +106,21 @@ class FocusService : Service() {
         } else {
             startForeground(NOTIFICATION_ID, notification)
         }
+    }
+
+    private fun settle() {
+        try {
+            val manager = getSystemService(NotificationManager::class.java)
+            if (manager?.getNotificationChannel(CHANNEL_ID) == null) ensureChannel("")
+            enterForeground(
+                NotificationCompat.Builder(this, CHANNEL_ID)
+                    .setSmallIcon(R.drawable.ic_stat_notify)
+                    .setSilent(true)
+                    .build(),
+            )
+        } catch (e: Exception) {
+        }
+        stop()
     }
 
     private fun stop() {
@@ -124,10 +142,12 @@ class FocusService : Service() {
 
     private fun build(state: JSONObject): Notification {
         if (Build.VERSION.SDK_INT >= 36) return live(state)
-        val running = state.optBoolean("running")
         val countDown = state.optBoolean("countDown")
-        val accent = ContextCompat.getColor(this, colorFor(state.optString("phase")))
         val seconds = FocusState.seconds(state)
+        val ended = state.optBoolean("running") && countDown && seconds == 0
+        val running = state.optBoolean("running") && !ended
+        val phase = if (ended) PHASE_DONE else state.optString("phase")
+        val accent = ContextCompat.getColor(this, colorFor(phase))
 
         val content = RemoteViews(packageName, R.layout.focus_notification).apply {
             setTextViewText(R.id.focus_title, state.optString("title"))
@@ -169,7 +189,7 @@ class FocusService : Service() {
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setContentIntent(open(state))
 
-        for (button in buttons(state, running, state.optBoolean("done"))) {
+        for (button in buttons(state, running, ended || state.optBoolean("done"))) {
             builder.addAction(button.icon, button.label, action(button.action, button.request))
         }
 
@@ -269,7 +289,7 @@ class FocusService : Service() {
         paint.fontFeatureSettings = "tnum"
         paint.textAlign = Paint.Align.CENTER
         paint.textSize = height * 0.84f
-        val room = width * 0.84f
+        val room = width * 0.68f
         val measured = paint.measureText(time)
         if (measured > room) paint.textSize *= room / measured
         val metrics = paint.fontMetrics
@@ -321,6 +341,7 @@ class FocusService : Service() {
         const val NOTIFICATION_ID = 4181
 
         const val ACTION_SHOW = "com.streak.app.FOCUS_SHOW"
+        const val ACTION_HIDE = "com.streak.app.FOCUS_HIDE"
         const val ACTION_PAUSE = "com.streak.app.FOCUS_PAUSE"
         const val ACTION_RESUME = "com.streak.app.FOCUS_RESUME"
         const val ACTION_STOP = "com.streak.app.FOCUS_STOP"
@@ -354,7 +375,11 @@ class FocusService : Service() {
 
         fun hide(context: Context) {
             FocusState.clear(context)
-            context.stopService(Intent(context, FocusService::class.java))
+            try {
+                context.startService(Intent(context, FocusService::class.java).setAction(ACTION_HIDE))
+            } catch (e: Exception) {
+                context.stopService(Intent(context, FocusService::class.java))
+            }
             context.getSystemService(NotificationManager::class.java)?.cancel(NOTIFICATION_ID)
         }
     }

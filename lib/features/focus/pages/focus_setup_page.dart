@@ -17,6 +17,7 @@ import 'package:streak/features/focus/pages/focus_history_page.dart';
 import 'package:streak/features/focus/pages/focus_page.dart';
 import 'package:streak/features/focus/pages/focus_stats_page.dart';
 import 'package:streak/features/focus/widgets/focus_duration_fields.dart';
+import 'package:streak/features/habits/data/habit.dart';
 import 'package:streak/features/habits/state/habits_controller.dart';
 import 'package:streak/core/express/express_button.dart';
 import 'package:streak/features/settings/state/settings_controller.dart';
@@ -42,12 +43,21 @@ class _FocusSetupPageState extends State<FocusSetupPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_restored || widget.habitId != null) return;
+    if (_restored) return;
     _restored = true;
+    final habit = context.read<HabitsController>().byId(_habitId);
+    if (habit != null) return _pick(habit);
     final settings = context.read<SettingsController>();
     _minutes = settings.focusMinutes;
     _pomodoro = settings.focusBreakMinutes > 0;
     if (_pomodoro) _breakMinutes = settings.focusBreakMinutes;
+  }
+
+  void _pick(Habit habit) {
+    _habitId = habit.id;
+    _minutes = habit.focusMinutes;
+    _pomodoro = habit.focusBreakMinutes > 0;
+    if (_pomodoro) _breakMinutes = habit.focusBreakMinutes;
   }
 
   void _start() {
@@ -170,14 +180,7 @@ class _FocusSetupPageState extends State<FocusSetupPage> {
                         glyph: habits[i].icon,
                         color: habits[i].color,
                         selected: _habitId == habits[i].id,
-                        onTap: () => setState(() {
-                          _habitId = habits[i].id;
-                          _minutes = habits[i].focusMinutes;
-                          _pomodoro = habits[i].focusBreakMinutes > 0;
-                          if (_pomodoro) {
-                            _breakMinutes = habits[i].focusBreakMinutes;
-                          }
-                        }),
+                        onTap: () => setState(() => _pick(habits[i])),
                       ),
                     ),
                   const SizedBox(height: 22),

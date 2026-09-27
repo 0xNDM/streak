@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
@@ -58,10 +59,17 @@ class FocusTrack {
 }
 
 const builtInTracks = <String, String>{
-  'rain.ogg': 'Rain',
-  'one_love.ogg': 'One Love',
-  'i_can_find_you.ogg': 'I Can Find You',
+  'rain.mp3': 'Rain',
+  'brown_noise.mp3': 'Brown noise',
+  'fire.mp3': 'Fire',
+  'one_love.mp3': 'One Love',
+  'i_can_find_you.mp3': 'I Can Find You',
 };
+
+String builtInTrackId(String id) {
+  final mp3 = id.replaceFirst(RegExp(r'\.ogg$'), '.mp3');
+  return builtInTracks.containsKey(mp3) ? mp3 : id;
+}
 
 class FocusAudio {
   const FocusAudio._();
@@ -72,6 +80,8 @@ class FocusAudio {
 
   static final ValueNotifier<String> current = ValueNotifier('');
   static final ValueNotifier<bool> playing = ValueNotifier(false);
+  static final ValueNotifier<Duration> position = ValueNotifier(Duration.zero);
+  static final ValueNotifier<Duration> length = ValueNotifier(Duration.zero);
 
   static List<FocusTrack> _queue = const [];
   static bool _shuffle = false;
@@ -80,13 +90,12 @@ class FocusAudio {
 
   static const maxTracks = 10;
 
-  static const trackExtensions = [
+  static final trackExtensions = [
     'mp3',
     'm4a',
     'aac',
     'wav',
-    'ogg',
-    'opus',
+    if (!Platform.isWindows) ...['ogg', 'opus'],
     'flac',
     'mp4',
   ];
@@ -96,6 +105,8 @@ class FocusAudio {
     if (_wired) return;
     _wired = true;
     _player.onPlayerComplete.listen((_) => _advance());
+    _player.onPositionChanged.listen((at) => position.value = at);
+    _player.onDurationChanged.listen((total) => length.value = total);
   }
 
   static Future<void> _advance() async {
@@ -122,12 +133,20 @@ class FocusAudio {
 
   static Future<void> _start(FocusTrack track) async {
     _wire();
+    position.value = Duration.zero;
+    length.value = Duration.zero;
     await _player.setReleaseMode(
       _repeatOne ? ReleaseMode.loop : ReleaseMode.stop,
     );
-    await _player.play(track.source);
     current.value = track.id;
-    playing.value = true;
+    try {
+      await _player.play(track.source);
+      playing.value = true;
+    } catch (e) {
+      debugPrint('Could not play the track: $e');
+      await _player.stop();
+      playing.value = false;
+    }
   }
 
   static Future<void> playQueue(
@@ -143,6 +162,24 @@ class FocusAudio {
     final start = from ??
         (shuffle ? tracks[_random.nextInt(tracks.length)] : tracks.first);
     await _start(start);
+  }
+
+  static Future<void> skip(int step) async {
+    if (_queue.isEmpty) return;
+    final index = _queue.indexWhere((t) => t.id == current.value);
+    if (step < 0 && position.value > const Duration(seconds: 3)) {
+      await seek(Duration.zero);
+      return;
+    }
+    final next = _shuffle && step > 0
+        ? _pickRandom(index)
+        : (index + step) % _queue.length;
+    await _start(_queue[next]);
+  }
+
+  static Future<void> seek(Duration at) async {
+    position.value = at;
+    await _player.seek(at);
   }
 
   static Future<void> setMode({
@@ -171,18 +208,24 @@ class FocusAudio {
     await _player.stop();
     playing.value = false;
     current.value = '';
+    position.value = Duration.zero;
+    length.value = Duration.zero;
   }
 
   static const silentAlert = 'none';
 
+  static Timer? _alertCutoff;
+
   static Future<void> alert(String sound, {bool loop = false}) async {
     if (sound == silentAlert) return;
+    _alertCutoff?.cancel();
+    if (loop) _alertCutoff = Timer(const Duration(minutes: 2), stopAlert);
     try {
       await _effects.stop();
       await _effects.setReleaseMode(loop ? ReleaseMode.loop : ReleaseMode.stop);
       await _effects.play(
         sound.isEmpty
-            ? AssetSource('sounds/chime.ogg')
+            ? AssetSource('sounds/chime.mp3')
             : DeviceFileSource(sound),
         volume: 0.9,
       );
@@ -190,6 +233,8 @@ class FocusAudio {
   }
 
   static Future<void> stopAlert() async {
+    _alertCutoff?.cancel();
+    _alertCutoff = null;
     try {
       await _effects.stop();
       await _effects.setReleaseMode(ReleaseMode.stop);

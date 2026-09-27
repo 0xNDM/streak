@@ -16,7 +16,16 @@ import 'package:streak/features/settings/state/settings_controller.dart';
 List<FocusTrack> focusTracksOf(BuildContext context, SettingsController s) => [
       for (final entry in builtInTracks.entries)
         if (!s.isTrackHidden(entry.key))
-          FocusTrack(id: entry.key, name: entry.value, asset: true),
+          FocusTrack(
+            id: entry.key,
+            name: switch (entry.key) {
+              'rain.mp3' => context.l10n.focus_track_rain,
+              'brown_noise.mp3' => context.l10n.focus_track_brown,
+              'fire.mp3' => context.l10n.focus_track_fire,
+              _ => entry.value,
+            },
+            asset: true,
+          ),
       for (final raw in s.focusTracks)
         if (FocusTrack.decode(raw) != null) FocusTrack.decode(raw)!,
     ];
@@ -105,6 +114,7 @@ class _MusicSheet extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 14),
+            _NowPlaying(tracks: tracks),
             Flexible(
               child: ListView(
                 shrinkWrap: true,
@@ -383,6 +393,208 @@ class _TrackRow extends StatelessWidget {
           },
         );
       },
+    );
+  }
+}
+
+class _NowPlaying extends StatelessWidget {
+  const _NowPlaying({required this.tracks});
+
+  final List<FocusTrack> tracks;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<String>(
+      valueListenable: FocusAudio.current,
+      builder: (context, currentId, _) {
+        final track = tracks.where((t) => t.id == currentId).firstOrNull;
+        return AnimatedSize(
+          duration: const Duration(milliseconds: 260),
+          curve: Curves.easeOutCubic,
+          alignment: Alignment.topCenter,
+          child: track == null
+              ? const SizedBox(width: double.infinity)
+              : Padding(
+                  padding: const EdgeInsets.only(bottom: 14),
+                  child: _PlayerCard(track: track),
+                ),
+        );
+      },
+    );
+  }
+}
+
+class _PlayerCard extends StatelessWidget {
+  const _PlayerCard({required this.track});
+
+  final FocusTrack track;
+
+  Future<void> _toggle(BuildContext context, bool playing) async {
+    final settings = context.read<SettingsController>();
+    if (playing) {
+      await FocusAudio.pause();
+      await settings.setFocusTrack('');
+    } else {
+      await FocusAudio.resume();
+      await settings.setFocusTrack(track.id);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colors;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 10),
+      decoration: BoxDecoration(
+        color: scheme.primary.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: scheme.primary.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(LucideIcons.music, size: 20, color: scheme.primary),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      track.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: sheetOptionStyle(context, selected: true),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      track.asset
+                          ? context.l10n.focus_built_in
+                          : context.l10n.focus_sound,
+                      style: sheetLabelStyle(context, size: 12),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const _Scrubber(),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                onPressed: () => FocusAudio.skip(-1),
+                icon: const Icon(LucideIcons.skipBack, size: 22),
+              ),
+              const SizedBox(width: 14),
+              ValueListenableBuilder<bool>(
+                valueListenable: FocusAudio.playing,
+                builder: (context, playing, _) => IconButton.filled(
+                  iconSize: 26,
+                  style: IconButton.styleFrom(
+                    fixedSize: const Size(58, 58),
+                    backgroundColor: scheme.primary,
+                    foregroundColor: scheme.onPrimary,
+                  ),
+                  onPressed: () => _toggle(context, playing),
+                  icon: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 180),
+                    transitionBuilder: (child, animation) =>
+                        ScaleTransition(scale: animation, child: child),
+                    child: Icon(
+                      playing ? LucideIcons.pause : LucideIcons.play,
+                      key: ValueKey(playing),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              IconButton(
+                onPressed: () => FocusAudio.skip(1),
+                icon: const Icon(LucideIcons.skipForward, size: 22),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Scrubber extends StatefulWidget {
+  const _Scrubber();
+
+  @override
+  State<_Scrubber> createState() => _ScrubberState();
+}
+
+class _ScrubberState extends State<_Scrubber> {
+  double? _dragging;
+
+  static String _clock(Duration at) {
+    final seconds = (at.inSeconds % 60).toString().padLeft(2, '0');
+    return '${at.inMinutes}:$seconds';
+  }
+
+  Future<void> _seek(double value, int total) async {
+    await FocusAudio.seek(Duration(milliseconds: (value * total).round()));
+    if (mounted) setState(() => _dragging = null);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colors;
+    final label = sheetLabelStyle(context, size: 11.5);
+    return ValueListenableBuilder<Duration>(
+      valueListenable: FocusAudio.length,
+      builder: (context, length, _) => ValueListenableBuilder<Duration>(
+        valueListenable: FocusAudio.position,
+        builder: (context, position, _) {
+          final total = length.inMilliseconds;
+          final shown = _dragging ??
+              (total <= 0 ? 0.0 : position.inMilliseconds / total);
+          return Column(
+            children: [
+              SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  trackHeight: 4,
+                  activeTrackColor: scheme.primary,
+                  inactiveTrackColor: scheme.primary.withValues(alpha: 0.18),
+                  thumbColor: scheme.primary,
+                  overlayShape: SliderComponentShape.noOverlay,
+                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
+                ),
+                child: Slider(
+                  value: shown.clamp(0.0, 1.0),
+                  onChanged: total <= 0
+                      ? null
+                      : (value) => setState(() => _dragging = value),
+                  onChangeEnd: (value) => _seek(value, total),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _clock(Duration(milliseconds: (shown * total).round())),
+                    style: label,
+                  ),
+                  Text(_clock(length), style: label),
+                ],
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 }

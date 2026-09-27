@@ -32,7 +32,8 @@ class _MinimalFocusStatsPageState extends State<MinimalFocusStatsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final focus = context.watch<FocusController>();
+    context.select<FocusController, int>((f) => f.revision);
+    final focus = context.read<FocusController>();
     final habits = context.watch<HabitsController>();
     final habit = widget.habitId == null ? null : habits.byId(widget.habitId!);
     final accent = habit?.color ?? context.colors.primary;

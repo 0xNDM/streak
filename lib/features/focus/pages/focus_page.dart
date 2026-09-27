@@ -225,7 +225,6 @@ class _FocusPageState extends State<FocusPage> {
     final habitId = focus.habitId;
     final completed = reached || result == 'done';
     final session = await focus.stop(completed: completed);
-    await FocusAudio.stop();
     if (!mounted) return;
 
     final target = habitId.isEmpty ? null : habits.byId(habitId);
@@ -527,18 +526,26 @@ class _TopBar extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          for (var i = 0; i < labels.length; i++)
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(labels[i]),
-              trailing: settings.focusClockStyle == i
-                  ? Icon(LucideIcons.check, color: context.colors.primary)
-                  : null,
-              onTap: () {
-                settings.setFocusClockStyle(i);
-                Navigator.of(context).pop();
-              },
-            ),
+          Row(
+            children: [
+              for (var i = 0; i < labels.length; i++) ...[
+                if (i > 0) const SizedBox(width: 10),
+                Expanded(
+                  child: ClockPreview(
+                    style: ClockStyle.values[i],
+                    label: labels[i],
+                    color: context.colors.primary,
+                    selected: settings.focusClockStyle == i,
+                    onTap: () {
+                      settings.setFocusClockStyle(i);
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 4),
           const Divider(height: 20),
           Consumer<SettingsController>(
             builder: (_, s, __) => ListTile(

@@ -89,11 +89,13 @@ class FocusSession {
       );
 }
 
-DateTime dayBorderAfter(DateTime moment) => moment
-    .subtract(Duration(hours: AppClock.cutoffHour))
-    .atMidnight
-    .addDays(1)
-    .add(Duration(hours: AppClock.cutoffHour));
+DateTime dayBorderAfter(DateTime moment) {
+  final day = moment
+      .subtract(Duration(hours: AppClock.cutoffHour))
+      .atMidnight
+      .addDays(1);
+  return DateTime(day.year, day.month, day.day, AppClock.cutoffHour);
+}
 
 String formatDuration(int seconds) {
   final h = seconds ~/ 3600;

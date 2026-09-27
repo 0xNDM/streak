@@ -170,8 +170,7 @@ class _FocusHistoryPageState extends State<FocusHistoryPage> {
     final minimal = style.isMinimalStyle;
     final habitId = widget.habitId;
     final sessions = context
-        .watch<FocusController>()
-        .sessions
+        .select<FocusController, List<FocusSession>>((f) => f.sessions)
         .where((s) => habitId == null || s.habitId == habitId)
         .toList()
       ..sort((a, b) => b.startedAt.compareTo(a.startedAt));
@@ -251,7 +250,7 @@ class _DayHeader extends StatelessWidget {
   String _label(BuildContext context) {
     final today = DateTime.now();
     if (day.isSameDay(today)) return context.l10n.today;
-    if (day.isSameDay(today.subtract(const Duration(days: 1)))) {
+    if (day.isSameDay(today.addDays(-1))) {
       return context.l10n.yesterday;
     }
     final locale = Localizations.localeOf(context).toString();

@@ -60,7 +60,8 @@ class _FocusStatsPageState extends State<FocusStatsPage> {
       return MinimalFocusStatsPage(habitId: widget.habitId);
     }
 
-    final focus = context.watch<FocusController>();
+    context.select<FocusController, int>((f) => f.revision);
+    final focus = context.read<FocusController>();
     final habits = context.watch<HabitsController>();
     final habit = widget.habitId == null ? null : habits.byId(widget.habitId!);
     final accent = habit?.color ?? context.colors.primary;

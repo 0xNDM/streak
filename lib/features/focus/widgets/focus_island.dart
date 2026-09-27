@@ -423,9 +423,11 @@ class _Panel extends StatelessWidget {
                   ? LucideIcons.pause
                   : LucideIcons.play,
               color: Colors.white,
-              label: focus.isRunning
-                  ? context.l10n.focus_pause
-                  : context.l10n.focus_resume,
+              label: focus.isAwaiting
+                  ? context.l10n.focus_continue
+                  : focus.isRunning
+                      ? context.l10n.focus_pause
+                      : context.l10n.focus_resume,
               onTap: onToggle,
             ),
             Expanded(

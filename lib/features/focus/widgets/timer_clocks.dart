@@ -4,11 +4,20 @@ import 'dart:ui' as ui;
 
 import 'package:flip_board/flip_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:streak/core/express/express_type.dart';
 import 'package:streak/features/focus/data/focus_session.dart';
 
 enum ClockStyle { ring, flip, dots }
 
 const _flipDepth = 0.22;
+const _flipBleed = 0.08;
+
+TextStyle _digitWeight(BuildContext context, FontWeight weight) =>
+    Theme.of(context).textTheme.bodyMedium?.fontFamily == ExpressType.family
+        ? TextStyle(
+            fontVariations: [FontVariation('wght', weight.value.toDouble())],
+          )
+        : TextStyle(fontWeight: weight);
 
 class FocusClock extends StatelessWidget {
   const FocusClock({
@@ -92,10 +101,9 @@ class _RingClock extends StatelessWidget {
                   child: Text(
                     text,
                     maxLines: 1,
-                    style: TextStyle(
+                    style: _digitWeight(context, FontWeight.w800).copyWith(
                       fontSize: size * 0.235,
                       height: 1,
-                      fontWeight: FontWeight.w800,
                       letterSpacing: -1.5,
                       color: Colors.white,
                       fontFeatures: const [FontFeature.tabularFigures()],
@@ -367,10 +375,19 @@ class _FlipGroupState extends State<_FlipGroup> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        FlipWidget<String>(
+    final bleed = EdgeInsets.symmetric(
+      horizontal: widget.width * _flipBleed,
+      vertical: widget.height * _flipBleed,
+    );
+    return SizedBox(
+      width: widget.width,
+      height: widget.height,
+      child: OverflowBox(
+        minWidth: 0,
+        minHeight: 0,
+        maxWidth: widget.width + bleed.horizontal,
+        maxHeight: widget.height + bleed.vertical,
+        child: FlipWidget<String>(
           flipType: FlipType.middleFlip,
           itemStream: _controller.stream,
           initialValue: widget.value,
@@ -378,13 +395,16 @@ class _FlipGroupState extends State<_FlipGroup> {
           flipDuration: const Duration(milliseconds: 450),
           flipCurve: Curves.easeInOut,
           perspectiveEffect: _flipDepth / widget.height,
-          itemBuilder: (_, value) => _FlipFace(
-            value: value ?? widget.value,
-            width: widget.width,
-            height: widget.height,
+          itemBuilder: (_, value) => Padding(
+            padding: bleed,
+            child: _FlipFace(
+              value: value ?? widget.value,
+              width: widget.width,
+              height: widget.height,
+            ),
           ),
         ),
-      ],
+      ),
     );
   }
 }
@@ -425,10 +445,9 @@ class _FlipFace extends StatelessWidget {
         children: [
           Text(
             value,
-            style: TextStyle(
+            style: _digitWeight(context, FontWeight.w700).copyWith(
               fontSize: height * 0.56,
               height: 1,
-              fontWeight: FontWeight.w700,
               letterSpacing: -2,
               color: const Color(0xFFE6E6E6),
               fontFeatures: const [FontFeature.tabularFigures()],
@@ -438,6 +457,75 @@ class _FlipFace extends StatelessWidget {
             width: double.infinity,
             height: (height * 0.016).clamp(1.4, 3.0),
             color: Colors.black.withValues(alpha: 0.62),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class ClockPreview extends StatelessWidget {
+  const ClockPreview({
+    super.key,
+    required this.style,
+    required this.label,
+    required this.color,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final ClockStyle style;
+  final String label;
+  final Color color;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: double.infinity,
+            height: 104,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF111114),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: selected ? color : Colors.white.withValues(alpha: 0.08),
+                width: selected ? 2.5 : 1,
+              ),
+            ),
+            child: IgnorePointer(
+              child: FittedBox(
+                child: FocusClock(
+                  style: style,
+                  seconds: 25 * 60,
+                  progress: 0.35,
+                  color: color,
+                  label: '',
+                  size: 220,
+                  row: true,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+              color: selected
+                  ? color
+                  : Theme.of(context).colorScheme.onSurface,
+            ),
           ),
         ],
       ),

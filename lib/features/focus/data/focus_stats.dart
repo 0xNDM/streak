@@ -49,10 +49,8 @@ class FocusStats {
   ) {
     switch (range) {
       case FocusRange.week:
-        final first = today
-            .startOfWeek(weekStart)
-            .add(Duration(days: offset * 7));
-        return [for (var i = 0; i < 7; i++) first.add(Duration(days: i))];
+        final first = today.startOfWeek(weekStart).addDays(offset * 7);
+        return [for (var i = 0; i < 7; i++) first.addDays(i)];
       case FocusRange.month:
         final anchor = DateTime(today.year, today.month + offset);
         final days = DateTime(anchor.year, anchor.month + 1, 0).day;
@@ -64,19 +62,6 @@ class FocusStats {
         final year = today.year + offset;
         return [for (var m = 1; m <= 12; m++) DateTime(year, m)];
     }
-  }
-
-  static int _bucketOf(
-    FocusRange range,
-    List<DateTime> buckets,
-    DateTime date,
-  ) {
-    final day = date.atMidnight;
-    if (range == FocusRange.year) {
-      return day.year == buckets.first.year ? day.month - 1 : -1;
-    }
-    final index = day.epochDay - buckets.first.epochDay;
-    return index >= 0 && index < buckets.length ? index : -1;
   }
 
   static FocusStats compute({
@@ -91,11 +76,17 @@ class FocusStats {
         ? sessions
         : sessions.where((s) => s.habitId == habitId).toList();
 
-    final today = now.atMidnight;
+    final today =
+        now.subtract(Duration(hours: AppClock.cutoffHour)).atMidnight;
     final weekFrom = today.startOfWeek(weekStart);
     final buckets = _bucketsFor(range, today, weekStart, offset);
     final series = List<int>.filled(buckets.length, 0);
     final perHabit = <String, int>{};
+
+    final todayIndex = today.epochDay;
+    final weekIndex = weekFrom.epochDay;
+    final firstBucket = buckets.first.epochDay;
+    final bucketYear = buckets.first.year;
 
     var rangeCount = 0;
     var todaySeconds = 0;
@@ -104,17 +95,20 @@ class FocusStats {
     var totalSeconds = 0;
 
     for (final session in scoped) {
-      final day = session.startedAt.atMidnight;
+      final day = session.countedOn;
+      final epoch = day.epochDay;
       totalSeconds += session.seconds;
-      if (day.isSameDay(today)) todaySeconds += session.seconds;
-      final weekOffset = day.epochDay - weekFrom.epochDay;
+      if (epoch == todayIndex) todaySeconds += session.seconds;
+      final weekOffset = epoch - weekIndex;
       if (weekOffset >= 0 && weekOffset < 7) weekSeconds += session.seconds;
       if (day.year == today.year && day.month == today.month) {
         monthSeconds += session.seconds;
       }
 
-      final index = _bucketOf(range, buckets, session.startedAt);
-      if (index < 0) continue;
+      final index = range == FocusRange.year
+          ? (day.year == bucketYear ? day.month - 1 : -1)
+          : epoch - firstBucket;
+      if (index < 0 || index >= buckets.length) continue;
       rangeCount++;
       series[index] += session.seconds;
       perHabit[session.habitId] =
