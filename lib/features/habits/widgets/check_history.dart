@@ -26,9 +26,13 @@ String _clock(BuildContext context, Completion entry) {
 }
 
 String lastCheckLabel(BuildContext context, Habit habit) {
-  final log = checkLog(habit);
-  if (log.isEmpty) return context.l10n.check_never;
-  final entry = log.first;
+  Completion? entry;
+  for (final candidate in habit.completions.values) {
+    final day = candidate.day;
+    if (day == null) continue;
+    if (entry == null || day.isAfter(entry.day!)) entry = candidate;
+  }
+  if (entry == null) return context.l10n.check_never;
   final day = entry.day!;
   final today = AppClock.today();
   final when = day.isAtSameMomentAs(today)

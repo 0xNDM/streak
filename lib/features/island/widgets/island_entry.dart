@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:streak/core/i18n/l10n.dart';
 import 'package:streak/core/routing/app_navigator.dart';
 import 'package:streak/core/widgets/sheet_type.dart';
+import 'package:streak/features/focus/data/focus_session.dart';
 import 'package:streak/features/focus/state/focus_controller.dart';
 import 'package:streak/features/habits/state/habits_controller.dart';
 import 'package:streak/features/island/data/island_piece.dart';
@@ -17,14 +18,16 @@ class IslandEntry extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!context.watch<SettingsController>().islandEnabled) {
+    if (!context.watch<SettingsController>().islandEnabled ||
+        !TickerMode.valuesOf(context).enabled) {
       return const SizedBox.shrink();
     }
     final island = context.watch<IslandController>();
     final ledger = island.ledgerFor(
       context.watch<HabitsController>().habits,
-      context.watch<FocusController>().sessions,
-      context.watch<TodosController>().all,
+      context.select<FocusController, List<FocusSession>>((f) => f.sessions),
+      context.read<TodosController>().all,
+      context.select<TodosController, int>((t) => t.doneCount),
     );
     final balance = island.balanceFrom(ledger);
     final total = islandPieces.length;

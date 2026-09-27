@@ -57,7 +57,13 @@ class _ExpressStatisticsPageState extends State<ExpressStatisticsPage> {
     final key = (habits: all, id: _habitId, year: _year);
     if (_statsKey != key) {
       _statsKey = key;
-      _stats = HabitStats.compute(scoped, _year);
+      if (HabitStats.isLight(scoped)) {
+        _stats = HabitStats.compute(scoped, _year);
+      } else {
+        HabitStats.inBackground(scoped, _year).then((stats) {
+          if (mounted && _statsKey == key) setState(() => _stats = stats);
+        });
+      }
     }
     return _stats;
   }
@@ -204,7 +210,8 @@ class _ExpressStatisticsPageState extends State<ExpressStatisticsPage> {
     List<Habit> all,
     Color accent,
   ) {
-    final focus = context.watch<FocusController>();
+    context.select<FocusController, int>((f) => f.revision);
+    final focus = context.read<FocusController>();
     final settings = context.watch<SettingsController>();
 
     final ranked = [

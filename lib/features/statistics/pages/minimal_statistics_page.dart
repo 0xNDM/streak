@@ -44,7 +44,13 @@ class _MinimalStatisticsPageState extends State<MinimalStatisticsPage> {
     final key = (habits: all, id: _habitId, year: _year);
     if (_key != key) {
       _key = key;
-      _stats = HabitStats.compute(scoped, _year);
+      if (HabitStats.isLight(scoped)) {
+        _stats = HabitStats.compute(scoped, _year);
+      } else {
+        HabitStats.inBackground(scoped, _year).then((stats) {
+          if (mounted && _key == key) setState(() => _stats = stats);
+        });
+      }
     }
     return _stats;
   }
@@ -260,7 +266,8 @@ class _MinimalStatisticsPageState extends State<MinimalStatisticsPage> {
 
 Widget? _focusSection(BuildContext context, String? habitId) {
   if (!context.watch<SettingsController>().focusEnabled) return null;
-  final focus = context.watch<FocusController>();
+  context.select<FocusController, int>((f) => f.revision);
+  final focus = context.read<FocusController>();
   if (focus.sessionCount == 0) return null;
 
   final sessions = habitId == null

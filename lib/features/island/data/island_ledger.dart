@@ -47,6 +47,8 @@ class IslandLedger {
       todos * perTodo +
       milestones;
 
+  static final Expando<_Share> _shares = Expando();
+
   static IslandLedger of(
     List<Habit> habits,
     List<FocusSession> sessions,
@@ -54,40 +56,34 @@ class IslandLedger {
   ) {
     final counted = habits.where((habit) => !habit.tracking).toList();
     final today = AppClock.today();
+    final shares = [for (final habit in counted) _shareOf(habit, today)];
 
     var checks = 0;
     var milestones = 0;
-    final days = <String>{};
-    for (final habit in counted) {
-      for (final step in steps) {
-        if (habit.longestStreak >= step.$1) milestones += step.$2;
-      }
-      if (habit.kind == HabitKind.negative) {
-        var cursor = habit.startedAt;
-        while (!cursor.isAfter(today)) {
-          if (habit.isCompletedOn(cursor)) {
-            checks++;
-            days.add(cursor.dayKey);
-          }
-          cursor = cursor.addDays(1);
-        }
-        continue;
-      }
-      for (final entry in habit.completions.values) {
-        if (entry.count < habit.effectiveTarget) continue;
-        if (parseDayKey(entry.date).isAfter(today)) continue;
-        checks++;
-        days.add(entry.date);
-      }
+    final days = <int>{};
+    for (final share in shares) {
+      checks += share.checked.length;
+      milestones += share.milestones;
+      days.addAll(share.checked);
     }
 
     var perfect = 0;
-    for (final key in days) {
-      final date = parseDayKey(key);
-      final due = counted.where((habit) => habit.isScheduledOn(date));
-      if (due.isNotEmpty && due.every((habit) => habit.isCompletedOn(date))) {
-        perfect++;
+    for (final day in days) {
+      DateTime? date;
+      var due = false;
+      var all = true;
+      for (var i = 0; i < counted.length; i++) {
+        if (!shares[i].everyDay &&
+            !counted[i].isScheduledOn(date ??= epochDayDate(day))) {
+          continue;
+        }
+        due = true;
+        if (!shares[i].done.contains(day)) {
+          all = false;
+          break;
+        }
       }
+      if (due && all) perfect++;
     }
 
     final minutes = sessions.fold(0, (sum, session) => sum + session.minutes);
@@ -100,4 +96,61 @@ class IslandLedger {
       milestones: milestones,
     );
   }
+
+  static _Share _shareOf(Habit habit, DateTime today) {
+    final cached = _shares[habit];
+    if (cached != null && cached.today == today) return cached;
+    var milestones = 0;
+    for (final step in steps) {
+      if (habit.longestStreak >= step.$1) milestones += step.$2;
+    }
+    final share = habit.kind == HabitKind.negative
+        ? _cleanShare(habit, today, milestones)
+        : _checkedShare(habit, today, milestones);
+    _shares[habit] = share;
+    return share;
+  }
+
+  static _Share _cleanShare(Habit habit, DateTime today, int milestones) {
+    final relapses = {for (final key in habit.completions.keys) dayKeyEpoch(key)};
+    final clean = <int>{
+      for (var day = habit.startedAt.epochDay; day <= today.epochDay; day++)
+        if (!relapses.contains(day)) day,
+    };
+    return _Share(today, _everyDay(habit), milestones, clean, clean);
+  }
+
+  static _Share _checkedShare(Habit habit, DateTime today, int milestones) {
+    final checked = <int>{};
+    final done = <int>{};
+    final last = today.epochDay;
+    for (final entry in habit.completions.values) {
+      final day = dayKeyEpoch(entry.date);
+      if (day > last) continue;
+      if (entry.count >= habit.effectiveTarget) checked.add(day);
+      final complete = habit.hasSubsteps
+          ? habit.substeps.every((s) => entry.steps.contains(s.id))
+          : entry.count >= habit.perDayTarget;
+      if (complete) done.add(day);
+    }
+    return _Share(today, _everyDay(habit), milestones, checked, done);
+  }
+
+  static bool _everyDay(Habit habit) => switch (habit.interval) {
+        HabitInterval.daily ||
+        HabitInterval.weekly ||
+        HabitInterval.monthly =>
+          true,
+        HabitInterval.weekdays || HabitInterval.everyXDays => false,
+      };
+}
+
+class _Share {
+  const _Share(this.today, this.everyDay, this.milestones, this.checked, this.done);
+
+  final DateTime today;
+  final bool everyDay;
+  final int milestones;
+  final Set<int> checked;
+  final Set<int> done;
 }

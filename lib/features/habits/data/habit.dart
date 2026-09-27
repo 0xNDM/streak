@@ -150,6 +150,7 @@ class Habit {
   final int difficulty;
 
   static bool weighDifficulty = false;
+  static int weekStart = DateTime.monday;
 
   int get difficultyWeight => !weighDifficulty
       ? 2
@@ -215,7 +216,9 @@ class Habit {
   bool get isOnVacation => vacations.any((v) => v.isOngoing);
 
   bool isNeutralOn(DateTime date) =>
-      isPausedOn(date) && !completions.containsKey(date.dayKey);
+      !date.atMidnight.isBefore(startedAt) &&
+      isPausedOn(date) &&
+      !completions.containsKey(date.dayKey);
 
   bool isSatisfiedOn(DateTime date) =>
       isCompletedOn(date) || _doneAheadOf(date);
@@ -235,7 +238,7 @@ class Habit {
   }
 
   int _periodOf(DateTime day) => interval == HabitInterval.weekly
-      ? day.startOfWeek(DateTime.monday).epochDay
+      ? day.startOfWeek(weekStart).epochDay
       : day.year * 12 + day.month;
 
   late final Map<int, int> _periodDone = _countPeriods();
@@ -280,12 +283,13 @@ class Habit {
   late final DateTime startedAt = _startedAt();
 
   DateTime _startedAt() {
-    var first = createdAt.atMidnight;
+    final created = createdAt.atMidnight;
+    var first = created.epochDay;
     for (final key in completions.keys) {
-      final day = parseDayKey(key);
-      if (day.isBefore(first)) first = day;
+      final day = dayKeyEpoch(key);
+      if (day < first) first = day;
     }
-    return first;
+    return first == created.epochDay ? created : epochDayDate(first);
   }
 
   bool isCompletedOn(DateTime date) {
@@ -438,18 +442,15 @@ class Habit {
         return streak;
 
       case HabitInterval.weekly:
-        var weekStart = now.addDays(-(now.weekday - 1));
+        var first = now.startOfWeek(weekStart);
         var streak = 0;
-        if (_countInRange(weekStart, weekStart.addDays(6)) >=
-            targetFrequency) {
+        if (_countInRange(first, first.addDays(6)) >= targetFrequency) {
           streak++;
         }
-        weekStart = weekStart.addDays(-7);
-        while (_countInRange(
-                weekStart, weekStart.addDays(6)) >=
-            targetFrequency) {
+        first = first.addDays(-7);
+        while (_countInRange(first, first.addDays(6)) >= targetFrequency) {
           streak++;
-          weekStart = weekStart.addDays(-7);
+          first = first.addDays(-7);
         }
         return streak;
 
@@ -519,51 +520,65 @@ class Habit {
 
   late final int longestStreak = _longestStreak();
 
-  int _longestStreak() {
-    if (kind == HabitKind.negative) {
-      var cursor = startedAt;
-      final end = AppClock.today();
-      var best = 0;
-      var run = 0;
-      while (!cursor.isAfter(end)) {
-        if (isNeutralOn(cursor)) {
-        } else if (isCompletedOn(cursor)) {
-          run++;
-          if (run > best) best = run;
-        } else {
-          run = 0;
-        }
-        cursor = cursor.addDays(1);
-      }
-      return best;
+  int _dailyBest() {
+    final negative = kind == HabitKind.negative;
+    final today = AppClock.today();
+    final marked = <int, bool>{};
+    for (final entry in completions.entries) {
+      marked[dayKeyEpoch(entry.key)] = negative ||
+          (hasSubsteps
+              ? substeps.every((s) => entry.value.steps.contains(s.id))
+              : entry.value.count >= perDayTarget);
     }
+    final breaks = [
+      for (final vacation in vacations)
+        (vacation.start.epochDay, (vacation.end ?? today).epochDay),
+    ];
+    var best = 0;
+    var run = 0;
+    for (var day = startedAt.epochDay; day <= today.epochDay; day++) {
+      final mark = marked[day];
+      if (mark == null && _pausedOn(day, breaks)) continue;
+      if (negative ? mark == null : mark == true) {
+        run++;
+        if (run > best) best = run;
+      } else {
+        run = 0;
+      }
+    }
+    return best;
+  }
+
+  bool _pausedOn(int epochDay, List<(int, int)> breaks) {
+    if (restDays.contains((epochDay + 3) % 7 + 1)) return true;
+    for (final (from, to) in breaks) {
+      if (epochDay >= from && epochDay <= to) return true;
+    }
+    return false;
+  }
+
+  int _longestStreak() {
+    if (kind == HabitKind.negative) return _dailyBest();
 
     if (completions.isEmpty) return 0;
-    final dates = completions.keys.map(parseDayKey).toList()
-      ..sort((a, b) => a.compareTo(b));
+    if (interval == HabitInterval.daily) return _dailyBest();
+    var low = dayKeyEpoch(completions.keys.first);
+    var high = low;
+    for (final key in completions.keys) {
+      final day = dayKeyEpoch(key);
+      if (day < low) low = day;
+      if (day > high) high = day;
+    }
+    final first = epochDayDate(low);
+    final last = epochDayDate(high);
 
     switch (interval) {
       case HabitInterval.daily:
-        var cursor = startedAt;
-        final end = AppClock.today();
-        var best = 0;
-        var run = 0;
-        while (!cursor.isAfter(end)) {
-          if (isNeutralOn(cursor)) {
-          } else if (isCompletedOn(cursor)) {
-            run++;
-            if (run > best) best = run;
-          } else {
-            run = 0;
-          }
-          cursor = cursor.addDays(1);
-        }
-        return best;
+        return _dailyBest();
 
       case HabitInterval.weekly:
-        var start = dates.first.addDays(-(dates.first.weekday - 1));
-        final end =
-            dates.last.addDays(7 - dates.last.weekday);
+        var start = first.startOfWeek(weekStart);
+        final end = last.startOfWeek(weekStart).addDays(6);
         var best = 0;
         var run = 0;
         while (!start.isAfter(end)) {
@@ -579,9 +594,8 @@ class Habit {
         return best;
 
       case HabitInterval.monthly:
-        var start = DateTime(dates.first.year, dates.first.month, 1);
-        final end = DateTime(dates.last.year, dates.last.month + 1, 1)
-            .addDays(-1);
+        var start = DateTime(first.year, first.month, 1);
+        final end = DateTime(last.year, last.month + 1, 1).addDays(-1);
         var best = 0;
         var run = 0;
         while (!start.isAfter(end)) {
@@ -679,8 +693,6 @@ class Habit {
     );
   }
 
-  /// A copy of this habit under a new [id], optionally reordered. Used when
-  /// duplicating a habit so the copy gets its own identity.
   Habit rebuildId(String id, {int? order}) => Habit.fromMap({
         ...toMap(),
         'id': id,

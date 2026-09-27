@@ -33,6 +33,13 @@ class _HabitDonutState extends State<HabitDonut> with TickerProviderStateMixin {
   List<double> _to = const [];
 
   @override
+  void initState() {
+    super.initState();
+    _reveal;
+    _select;
+  }
+
+  @override
   void didUpdateWidget(HabitDonut old) {
     super.didUpdateWidget(old);
     if (old.entries.length != widget.entries.length) {

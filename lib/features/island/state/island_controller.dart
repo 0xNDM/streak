@@ -64,10 +64,11 @@ class IslandController extends ChangeNotifier {
     List<Habit> habits,
     List<FocusSession> sessions,
     List<Todo> todos,
+    int doneTodos,
   ) {
     final key = sessions.fold(0, (sum, s) => sum + s.seconds) * 100000 +
         sessions.length * 1000 +
-        todos.where((todo) => todo.done).length;
+        doneTodos;
     if (identical(habits, _habitsKey) && key == _focusKey) return _ledger;
     _habitsKey = habits;
     _focusKey = key;

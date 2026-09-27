@@ -1,3 +1,5 @@
+import 'dart:isolate';
+
 import 'package:flutter/foundation.dart';
 import 'package:streak/core/extensions/date_extensions.dart';
 import 'package:streak/features/habits/data/habit.dart';
@@ -104,16 +106,42 @@ class HabitStats {
     final series = List<double>.filled(window, 0);
 
     for (final habit in habits) {
+      final negative = habit.kind == HabitKind.negative;
+      final periodic = !negative &&
+          (habit.interval == HabitInterval.weekly ||
+              habit.interval == HabitInterval.monthly);
+      final daySpecific = !negative && habit.interval.isDaySpecific;
       var run = 0;
-      var cursor = start.addDays(-1);
-      while (habit.isCompletedOn(cursor)) {
-        run++;
-        cursor = cursor.addDays(-1);
-      }
-      for (var i = 0; i < window; i++) {
-        final day = start.addDays(i);
-        run = habit.isCompletedOn(day) ? run + 1 : 0;
-        if (run > series[i]) series[i] = run.toDouble();
+      var closed = 0;
+      var inPeriod = 0;
+      DateTime? period;
+      for (var day = habit.startedAt;
+          !day.isAfter(today);
+          day = day.addDays(1)) {
+        if (periodic) {
+          final key = habit.interval == HabitInterval.weekly
+              ? day.startOfWeek(Habit.weekStart)
+              : DateTime(day.year, day.month);
+          if (key != period) {
+            if (period != null) {
+              closed = inPeriod >= habit.targetFrequency ? closed + 1 : 0;
+            }
+            period = key;
+            inPeriod = 0;
+          }
+          if (habit.isCompletedOn(day)) inPeriod++;
+          run = closed + (inPeriod >= habit.targetFrequency ? 1 : 0);
+        } else if (habit.isNeutralOn(day) ||
+            (daySpecific && !habit.isScheduledOn(day))) {
+        } else if (daySpecific
+            ? habit.isSatisfiedOn(day)
+            : habit.isCompletedOn(day)) {
+          run++;
+        } else if (negative || day != today) {
+          run = 0;
+        }
+        final i = day.epochDay - start.epochDay;
+        if (i >= 0 && run > series[i]) series[i] = run.toDouble();
       }
     }
     return series;
@@ -164,6 +192,27 @@ class HabitStats {
     return best;
   }
 
+  static bool isLight(List<Habit> habits) {
+    final today = AppClock.today().epochDay;
+    final days = habits.fold(
+      0,
+      (sum, habit) => sum + today - habit.startedAt.epochDay,
+    );
+    return days < 4000;
+  }
+
+  static Future<HabitStats> inBackground(List<Habit> habits, int year) {
+    final cutoff = AppClock.cutoffHour;
+    final weigh = Habit.weighDifficulty;
+    final weekStart = Habit.weekStart;
+    return Isolate.run(() {
+      AppClock.cutoffHour = cutoff;
+      Habit.weighDifficulty = weigh;
+      Habit.weekStart = weekStart;
+      return compute(habits, year);
+    });
+  }
+
   static List<Habit> counted(List<Habit> habits) =>
       habits.where((h) => !h.tracking).toList();
 
@@ -178,7 +227,7 @@ class HabitStats {
     var weekDone = 0;
     var monthDone = 0;
     var allDone = 0;
-    final weekFloor = today.startOfWeek(DateTime.monday);
+    final weekFloor = today.startOfWeek(Habit.weekStart);
 
     for (final habit in habits) {
       if (habit.kind == HabitKind.negative) {

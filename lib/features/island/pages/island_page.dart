@@ -8,6 +8,7 @@ import 'package:streak/core/i18n/l10n.dart';
 import 'package:streak/core/routing/app_navigator.dart';
 import 'package:streak/core/utils/app_snackbar.dart';
 import 'package:streak/core/widgets/sheet_type.dart';
+import 'package:streak/features/focus/data/focus_session.dart';
 import 'package:streak/features/focus/state/focus_controller.dart';
 import 'package:streak/features/habits/state/habits_controller.dart';
 import 'package:streak/features/island/data/island_art.dart';
@@ -101,9 +102,15 @@ class _IslandPageState extends State<IslandPage> {
   Widget build(BuildContext context) {
     final island = context.watch<IslandController>();
     final habits = context.watch<HabitsController>();
-    final focus = context.watch<FocusController>();
-    final todos = context.watch<TodosController>();
-    _ledger = island.ledgerFor(habits.habits, focus.sessions, todos.all);
+    final sessions =
+        context.select<FocusController, List<FocusSession>>((f) => f.sessions);
+    final todos = context.read<TodosController>();
+    _ledger = island.ledgerFor(
+      habits.habits,
+      sessions,
+      todos.all,
+      context.select<TodosController, int>((t) => t.doneCount),
+    );
     final balance = island.balanceFrom(_ledger);
     final dark = Theme.of(context).brightness == Brightness.dark;
     final now = DateTime.now();

@@ -52,7 +52,13 @@ class _StatisticsPageState extends State<StatisticsPage> {
     final key = (habits: all, id: _habitId, year: _year);
     if (_statsKey != key) {
       _statsKey = key;
-      _stats = HabitStats.compute(scoped, _year);
+      if (HabitStats.isLight(scoped)) {
+        _stats = HabitStats.compute(scoped, _year);
+      } else {
+        HabitStats.inBackground(scoped, _year).then((stats) {
+          if (mounted && _statsKey == key) setState(() => _stats = stats);
+        });
+      }
     }
     return _stats;
   }
@@ -200,7 +206,8 @@ class _StatisticsPageState extends State<StatisticsPage> {
                 StatReveal(child: QuantStatsRow(habit: scoped.first)),
               ],
               if (context.watch<SettingsController>().focusEnabled &&
-                  context.watch<FocusController>().sessionCount > 0) ...[
+                  context.select<FocusController, int>((f) => f.sessionCount) >
+                      0) ...[
                 const SizedBox(height: 12),
                 StatReveal(
                   child: _FocusStats(habitId: _habitId, accent: accent),
@@ -600,7 +607,8 @@ class _FocusStats extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final focus = context.watch<FocusController>();
+    context.select<FocusController, int>((f) => f.revision);
+    final focus = context.read<FocusController>();
     final seconds = habitId == null
         ? focus.totalSeconds
         : focus.secondsForHabit(habitId!);

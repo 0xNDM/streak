@@ -45,7 +45,10 @@ class Completion {
 
   List<int> plus(int minuteOfDay) => [...marks, minuteOfDay];
 
-  DateTime? get day => date.length == 10 ? parseDayKey(date) : null;
+  static final _days = Expando<DateTime>();
+
+  DateTime? get day =>
+      date.length == 10 ? _days[this] ??= parseDayKey(date) : null;
 
   DateTime? get stamp {
     final at = day;
