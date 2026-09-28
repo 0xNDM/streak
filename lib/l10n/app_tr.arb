@@ -92,5 +92,32 @@
   "a11y_previous_week": "Önceki hafta",
   "app_tagline": "Alışkanlık takibi",
   "island_t_white": "beyaz",
-  "widget_demo_water": "Su"
+  "widget_demo_water": "Su",
+  "no_habits_yet": "Henüz alışkanlık yok",
+  "all_done_today": "Bugünlük hepsi tamam!",
+  "x_of_y_completed": "{done} of {total} tamamlandı",
+  "@x_of_y_completed": {
+    "placeholders": {
+      "done": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "empty_title": "İlk serini başlat",
+  "empty_body": "Bir alışkanlık oluştur ve kaydetmek için bir güne dokun. Her gün küçük adımlar.",
+  "onb1_title": "Gerçek seriler oluşturun",
+  "onb1_body": "Alışkanlığınızı tek dokunuşla kaydedin ve ivmenizin günden güne artışını izleyin.",
+  "onb2_title": "Yolunuzdan sapmayın",
+  "onb2_body": "Hiçbir şeyi gözden kaçırmamak için akıllı hatırlatıcılarla günlük, haftalık veya aylık hedefler.",
+  "onb3_title": "İlerlemenizi görün",
+  "onb3_body": "Zengin istatistikler ve yıllık tablo, ne kadar yol katettiğinizi net bir şekilde gösterir.",
+  "skip": "Atla",
+  "get_started": "Başlayın",
+  "onb_kicker": "Hoş geldiniz",
+  "onb_free_title": "Ücretsiz, sonsuza dek",
+  "onb_free_body": "Reklam yok, abonelik yok, kilitli özellik yok.",
+  "onb_private_title": "Gizli ve çevrimdışı"
 }
