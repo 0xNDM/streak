@@ -243,5 +243,18 @@
   "category_mindfulness": "Farkındalık",
   "kind_quantitative": "Miktar",
   "kind_locked_hint": "Alışkanlık oluşturulduktan sonra türü değiştirilemez.",
-  "kind_negative_hint": "Varsayılan olarak her gün \"temiz\" sayılır — seriniz kendi kendine ilerler. Yalnızca bir aksama olursa onay işaretine dokunun; o gün kırmızıya döner ve işlemi geri alabilirsiniz."
+  "kind_negative_hint": "Varsayılan olarak her gün \"temiz\" sayılır — seriniz kendi kendine ilerler. Yalnızca bir aksama olursa onay işaretine dokunun; o gün kırmızıya döner ve işlemi geri alabilirsiniz.",
+  "currency_custom": "Özel",
+  "money_saved": "Tasarruf edilen para",
+  "clean_days": "Temiz günler",
+  "quant_preset_reading": "Okuma",
+  "quant_preset_generic": "Özel",
+  "quant_unit_pages": "sayfalar",
+  "quant_edit_title": "Bugünün miktarı",
+  "quant_tap_amount": "Dokunma başına miktar",
+  "quant_per_day": "Günlük miktar",
+  "quant_average": "Günlük ortalama",
+  "quant_logged_days": "Kaydedilen gün sayısı",
+  "quant_best_day": "En iyi gün",
+  "quant_goal_days": "Hedefe ulaşılan günler"
 }
