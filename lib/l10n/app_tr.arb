@@ -119,5 +119,125 @@
   "onb_kicker": "Hoş geldiniz",
   "onb_free_title": "Ücretsiz, sonsuza dek",
   "onb_free_body": "Reklam yok, abonelik yok, kilitli özellik yok.",
-  "onb_private_title": "Gizli ve çevrimdışı"
+  "onb_private_title": "Gizli ve çevrimdışı",
+  "onb_blurb": "Her gün yaptığın küçük kontroller, zamanla sürdürdüğün alışkanlıklara dönüşür.",
+  "onb_private_body": "Her şey cihazında kalır. Hesap oluşturman gerekmez.",
+  "onb_yours_title": "Verilerin sana aittir",
+  "onb_yours_body": "İstediğin zaman yedekle veya yanında götür.",
+  "onb_step": "{total} adımdan {step}",
+  "@onb_step": {
+    "placeholders": {
+      "step": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "done_today": "Bugün tamamlandı",
+  "best_streak": "En uzun seri",
+  "active_habits": "Aktif alışkanlıklar",
+  "total_logs": "Toplam kayıtlar",
+  "your_habits": "Alışkanlıkların",
+  "stats_empty": "İstatistiklerini görmek için alışkanlık ekle",
+  "completion_rate_short": "Tutarlılık",
+  "completion_rate": "Tamamlama oranı",
+  "appearance": "Görünüm",
+  "theme": "Tema",
+  "system": "Sistem",
+  "week_starts_on": "Haftanın başlangıcı",
+  "mon": "Pzt",
+  "sat": "Cmt",
+  "sun": "Paz",
+  "data": "Veri",
+  "export_backup": "Yedeği dışa aktar",
+  "export_backup_sub": "Tüm alışkanlıkları bir dosyaya kaydet",
+  "auto_backup": "Otomatik yedekleme",
+  "auto_backup_sub": "Kapalı",
+  "auto_backup_off": "Kapalı",
+  "auto_backup_daily": "Her gün",
+  "auto_backup_weekly": "Her hafta",
+  "auto_backup_where": "Uygulamayı açtığında Streak, her şeyin dahil olduğu tam bir yedekleme oluşturur: fotoğraflar ve müzik dahil olmak üzere bir .zip dosyası ve bir .json dosyası. Ayrıca herhangi bir düzenleyicide açabileceğin, okunabilir bir kopya da oluşturur. Son birkaç yedekleme saklanır.",
+  "auto_backup_folder_default": "Uygulama içinde (uygulamayı kaldırırsan silinir)",
+  "auto_backup_folder_set": "Klasör kaydedildi",
+  "auto_backup_folder_failed": "Bu klasöre yazılamıyor",
+  "auto_backup_no_permission": "Depolama izni reddedildi",
+  "auto_backup_run_now": "Şimdi yedekle",
+  "refresh_now_sub": "Diğer cihazlarının klasöre bıraktığı verileri içe aktar",
+  "refresh_brought": "Alışkanlıkların güncel",
+  "refresh_nothing": "Klasörde yeni bir şey yok",
+  "import_backup": "Yedeği içe aktar",
+  "import_backup_sub": "Alışkanlıkları bir dosyadan geri yükle",
+  "import_from_app": "Başka bir uygulamadan içe aktar",
+  "import_from_app_sub": "Loop Habit Tracker, HabitKit…",
+  "import_from_app_done": "{source} uygulamasından {habits} alışkanlık ({days} gün) içe aktarıldı",
+  "@import_from_app_done": {
+    "placeholders": {
+      "habits": {
+        "type": "int"
+      },
+      "days": {
+        "type": "int"
+      },
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "import_failed": "Bu dosya içe aktarılamadı",
+  "backup_saved": "Yedekleme kaydedildi",
+  "export_cancelled": "Dışa aktarma iptal edildi",
+  "habits_imported": "Alışkanlıklar içe aktarıldı",
+  "new_habit": "Yeni alışkanlık",
+  "edit_habit": "Alışkanlığı düzenle",
+  "name": "Ad",
+  "name_hint": "Örn. Sabah koşusu",
+  "description": "Açıklama",
+  "description_hint": "İsteğe bağlı not",
+  "color": "Renk",
+  "icon": "Simge",
+  "category_productivity": "Üretkenlik",
+  "count_days": "{count, plural, =1{1 gün} other{{count} gün}}",
+  "@count_days": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "count_weeks": "{count, plural, =1{1 hafta} other{{count} hafta}}",
+  "@count_weeks": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "count_months": "{count, plural, =1{1 ay} other{{count} ay}}",
+  "@count_months": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "streak_unit_week": "{count}h",
+  "@streak_unit_week": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "streak_unit_month": "{count} ay",
+  "@streak_unit_month": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "kind_positive": "Normal",
+  "kind_negative": "Kaçın"
 }
