@@ -239,5 +239,9 @@
     }
   },
   "kind_positive": "Normal",
-  "kind_negative": "Kaçın"
+  "kind_negative": "Kaçın",
+  "category_mindfulness": "Farkındalık",
+  "kind_quantitative": "Miktar",
+  "kind_locked_hint": "Alışkanlık oluşturulduktan sonra türü değiştirilemez.",
+  "kind_negative_hint": "Varsayılan olarak her gün \"temiz\" sayılır — seriniz kendi kendine ilerler. Yalnızca bir aksama olursa onay işaretine dokunun; o gün kırmızıya döner ve işlemi geri alabilirsiniz."
 }
