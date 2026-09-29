@@ -256,5 +256,10 @@
   "quant_average": "Günlük ortalama",
   "quant_logged_days": "Kaydedilen gün sayısı",
   "quant_best_day": "En iyi gün",
-  "quant_goal_days": "Hedefe ulaşılan günler"
+  "quant_goal_days": "Hedefe ulaşılan günler",
+  "currency_hint": "Sembol veya kod",
+  "quant_unit_hint": "Birim (örn. ml, sayfa, tekrar)",
+  "quant_unit_ml": "ml",
+  "quant_stats_empty": "Miktar kaydet; hedefin altında kaldığın günlerde bile burada toplamına eklenir.",
+  "frequency": "Sıklık"
 }
