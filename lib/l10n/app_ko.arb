@@ -1167,7 +1167,7 @@
   "last_check": "최근 체크",
   "heatmap_rolling_sub": "이 연간 표는 12월 31일 대신 오늘 끝나요",
   "island_reset_go": "처음부터 재시작",
-  "island_how_focus": "집중 시간 1분마다 1, 하루에 최대 60",
+  "island_how_focus": "집중 시간 1분마다 1",
   "island_p_stone_basin": "석조",
   "check_marks": "{count}회",
   "@check_marks": {
@@ -1368,5 +1368,33 @@
       }
     }
   },
-  "today_progress_option_sub": "일일 목표 고리와 각 습관의 진행 막대"
+  "today_progress_option_sub": "일일 목표 고리와 각 습관의 진행 막대",
+  "focus_countdown": "3초 카운트다운",
+  "focus_skip_break": "휴식 건너뛰기",
+  "focus_continue": "계속",
+  "onb_free_title": "영원히, 무료",
+  "onb_free_body": "광고도, 구독도, 잠긴 기능도 없어요.",
+  "onb_blurb": "매일 조금씩 확인하며 습관을 만들어요.",
+  "onb_private_body": "모두 기기에만 저장돼요. 계정이 필요하지 않아요.",
+  "onb_private_title": "비공개, 오프라인",
+  "onb_yours_title": "데이터의 주인은 나",
+  "onb_yours_body": "원할 때 언제든 백업하거나 이동할 수 있어요.",
+  "onb_step": "{step} / {total} 단계",
+  "@onb_step": {
+    "placeholders": {
+      "step": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "todo_paper": "색상",
+  "todo_add": "추가",
+  "todo_title_hint": "제목",
+  "todo_body_hint": "노트",
+  "todo_background": "배경",
+  "todo_background_pick": "사진 선택",
+  "todo_deleted": "노트를 삭제했어요"
 }
