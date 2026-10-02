@@ -755,6 +755,7 @@
   "day_timeline_anytime": "Anytime",
   "day_timeline_empty": "Nothing planned for this day",
   "day_timeline_empty_sub": "Give a habit a time of day and it will show up here.",
+  "day_timeline_empty_todos": "Give a to-do this date and it will show up here.",
   "clear": "Clear",
   "start_view": "Today opens on",
   "start_view_last": "Last used",

@@ -11,6 +11,7 @@ import 'package:streak/core/routing/app_navigator.dart';
 import 'package:streak/core/utils/app_dirs.dart';
 import 'package:streak/core/widgets/section_label.dart';
 import 'package:streak/features/habits/widgets/category_editor_sheet.dart';
+import 'package:streak/features/settings/data_folder_actions.dart';
 import 'package:streak/features/settings/pages/about_page.dart';
 import 'package:streak/features/settings/pages/app_style_page.dart';
 import 'package:streak/features/settings/pages/archived_habits_page.dart';
@@ -532,21 +533,9 @@ class _PreferencesPage extends StatelessWidget {
               icon: LucideIcons.calendarClock,
               title: context.l10n.plan_day,
               subtitle: context.l10n.plan_day_sub,
-              trailing: _SoftSwitch(
-                value: settings.planningEnabled,
-                onChanged: settings.setPlanningEnabled,
-              ),
+              value: SettingsActions.planOptions(context)[settings.planChoice],
+              onTap: () => SettingsActions.pickPlan(context),
             ),
-            if (settings.planningEnabled && settings.todosEnabled)
-              SoftRow(
-                icon: LucideIcons.listTodo,
-                title: context.l10n.plan_todos,
-                subtitle: context.l10n.plan_todos_sub,
-                trailing: _SoftSwitch(
-                  value: settings.planTodos,
-                  onChanged: settings.setPlanTodos,
-                ),
-              ),
             SoftRow(
               icon: LucideIcons.moveHorizontal,
               title: context.l10n.swipe_cards,
@@ -707,6 +696,13 @@ class _DataPage extends StatelessWidget {
                 title: context.l10n.refresh_now,
                 subtitle: context.l10n.refresh_now_sub,
                 onTap: () => SettingsActions.refreshFolder(context),
+              ),
+            if (DataFolderActions.available)
+              SoftRow(
+                icon: LucideIcons.folderInput,
+                title: context.l10n.data_folder,
+                subtitle: dataPath,
+                onTap: () => DataFolderActions.pick(context),
               ),
             SoftRow(
               icon: LucideIcons.archive,

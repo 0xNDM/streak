@@ -82,6 +82,26 @@ class SettingsActions {
     }
   }
 
+  static List<String> planOptions(BuildContext context) => [
+        context.l10n.off,
+        context.l10n.plan_show_habits,
+        if (context.read<SettingsController>().todosEnabled) ...[
+          context.l10n.plan_show_todos,
+          context.l10n.plan_show_both,
+        ],
+      ];
+
+  static Future<void> pickPlan(BuildContext context) {
+    final settings = context.read<SettingsController>();
+    return showOptionSheet(
+      context,
+      title: context.l10n.plan_day,
+      options: planOptions(context),
+      index: settings.planChoice,
+      onSelected: settings.setPlanChoice,
+    );
+  }
+
   static bool canRefresh(BuildContext context) {
     final settings = context.watch<SettingsController>();
     return settings.autoBackup > 0 && settings.autoBackupFolder.isNotEmpty;

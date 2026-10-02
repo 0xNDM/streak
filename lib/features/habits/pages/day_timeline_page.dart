@@ -307,7 +307,9 @@ class _DayTimelinePageState extends State<DayTimelinePage> {
                     ? AppEmptyState(
                         icon: LucideIcons.calendarClock,
                         title: context.l10n.day_timeline_empty,
-                        message: context.l10n.day_timeline_empty_sub,
+                        message: style.planHabits
+                            ? context.l10n.day_timeline_empty_sub
+                            : context.l10n.day_timeline_empty_todos,
                       )
                     : CustomScrollView(
                         key: ValueKey(_day.epochDay),

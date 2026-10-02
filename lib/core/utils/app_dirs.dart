@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:streak/core/database/data_location.dart';
 
 const appDataFolder = 'Streak';
 
@@ -17,17 +18,27 @@ bool get hasBiometricLock => !Platform.isLinux;
 
 Future<Directory>? _dataDir;
 
-Future<Directory> appDataDir() => _dataDir ??= _resolveDataDir();
+String _dataPath = '';
+
+String get dataPath => _dataPath;
+
+Future<Directory> appDataDir() => _dataDir ??= _resolveDataDir().then((dir) {
+      _dataPath = dir.path;
+      return dir;
+    });
 
 @visibleForTesting
 void forgetAppDataDir() => _dataDir = null;
 
 Future<Directory> _resolveDataDir() async {
   const wait = Duration(seconds: 15);
-  if (Platform.isLinux) return getApplicationSupportDirectory().timeout(wait);
   if (isMobile) return getApplicationDocumentsDirectory().timeout(wait);
 
   final support = await getApplicationSupportDirectory().timeout(wait);
+  final chosen = await DataLocation.resolve(support);
+  if (chosen != null) return chosen;
+  if (Platform.isLinux) return support;
+
   final fallback = File('${support.path}/.documents-unavailable');
   final used = File('${support.path}/.documents-used');
   if (fallback.existsSync()) return support;

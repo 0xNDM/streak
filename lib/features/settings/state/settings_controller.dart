@@ -65,7 +65,10 @@ class SettingsController extends ChangeNotifier {
     _heatmapRolling = LocalStore.setting('heatmapRolling', false);
     _startView = LocalStore.setting('startView', 0);
     _planningEnabled = LocalStore.setting('planningEnabled', true);
-    _planTodos = LocalStore.setting('planTodos', false);
+    _planContent = LocalStore.setting(
+      'planContent',
+      LocalStore.setting('planTodos', false) ? 1 : 0,
+    );
     _swipeCards = LocalStore.setting('swipeCards', false);
     _cardActivity = LocalStore.setting('cardActivity', true);
     _viewSwitcher = LocalStore.setting('viewSwitcher', true);
@@ -147,7 +150,7 @@ class SettingsController extends ChangeNotifier {
   late bool _heatmapRolling;
   late int _startView;
   late bool _planningEnabled;
-  late bool _planTodos;
+  late int _planContent;
   late bool _swipeCards;
   late bool _cardActivity;
   late bool _viewSwitcher;
@@ -283,11 +286,26 @@ class SettingsController extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool get planTodos => _planTodos;
+  int get planContent => _planContent;
 
-  Future<void> setPlanTodos(bool value) async {
-    _planTodos = value;
-    await LocalStore.writeSetting('planTodos', value);
+  bool get planTodos => todosEnabled && _planContent != 0;
+
+  bool get planHabits => !planTodos || _planContent != 2;
+
+  int get planChoice {
+    if (!_planningEnabled) return 0;
+    if (!todosEnabled) return 1;
+    return const [1, 3, 2][_planContent];
+  }
+
+  Future<void> setPlanChoice(int choice) async {
+    await setPlanningEnabled(choice > 0);
+    if (choice > 0) await setPlanContent(const [0, 2, 1][choice - 1]);
+  }
+
+  Future<void> setPlanContent(int value) async {
+    _planContent = value;
+    await LocalStore.writeSetting('planContent', value);
     notifyListeners();
   }
 

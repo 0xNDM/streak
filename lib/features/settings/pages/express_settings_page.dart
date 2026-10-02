@@ -18,6 +18,7 @@ import 'package:streak/core/utils/app_dirs.dart';
 import 'package:streak/core/widgets/section_label.dart';
 import 'package:streak/core/widgets/number_keypad_dialog.dart';
 import 'package:streak/features/habits/widgets/category_editor_sheet.dart';
+import 'package:streak/features/settings/data_folder_actions.dart';
 import 'package:streak/features/settings/pages/about_page.dart';
 import 'package:streak/features/settings/pages/app_style_page.dart';
 import 'package:streak/features/settings/pages/archived_habits_page.dart';
@@ -634,21 +635,13 @@ List<Widget> _preferenceTiles(BuildContext context) {
           value: settings.islandEnabled,
           onChanged: settings.setIslandEnabled,
         ),
-        _Toggle(
+        ExpressTile(
           icon: LucideIcons.calendarClock,
           title: context.l10n.plan_day,
           subtitle: context.l10n.plan_day_sub,
-          value: settings.planningEnabled,
-          onChanged: settings.setPlanningEnabled,
+          value: SettingsActions.planOptions(context)[settings.planChoice],
+          onTap: () => SettingsActions.pickPlan(context),
         ),
-        if (settings.planningEnabled && settings.todosEnabled)
-          _Toggle(
-            icon: LucideIcons.listTodo,
-            title: context.l10n.plan_todos,
-            subtitle: context.l10n.plan_todos_sub,
-            value: settings.planTodos,
-            onChanged: settings.setPlanTodos,
-          ),
         _Toggle(
           icon: LucideIcons.moveHorizontal,
           title: context.l10n.swipe_cards,
@@ -776,6 +769,13 @@ List<Widget> _dataTiles(BuildContext context) {
             title: context.l10n.refresh_now,
             subtitle: context.l10n.refresh_now_sub,
             onTap: () => SettingsActions.refreshFolder(context),
+          ),
+        if (DataFolderActions.available)
+          ExpressTile(
+            icon: LucideIcons.folderInput,
+            title: context.l10n.data_folder,
+            subtitle: dataPath,
+            onTap: () => DataFolderActions.pick(context),
           ),
         ExpressTile(
           icon: LucideIcons.archive,

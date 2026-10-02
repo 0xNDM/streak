@@ -48,6 +48,7 @@ const backupSettingKeys = {
   'locale',
   'notesEnabled',
   'planTodos',
+  'planContent',
   'planningEnabled',
   'profileName',
   'profilePhoto',

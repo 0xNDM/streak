@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:hive_ce_flutter/hive_flutter.dart';
+import 'package:streak/core/database/data_location.dart';
 import 'package:streak/core/utils/app_dirs.dart';
 import 'package:streak/features/habits/data/category.dart';
 import 'package:streak/features/habits/data/habit.dart';
@@ -57,6 +58,29 @@ class LocalStore {
     _focus = await Hive.openBox(_focusBox);
     _todos = await Hive.openBox(_todosBox);
     _todoTags = await Hive.openBox(_todoTagsBox);
+    final movedFrom = DataLocation.rewriteFrom;
+    if (movedFrom != null) await _followMove(movedFrom);
+  }
+
+  static Future<void> _followMove(String from) async {
+    final to = (await appDataDir()).path;
+    for (final box in [
+      _habits,
+      _settings,
+      _categories,
+      _notes,
+      _focus,
+      _todos,
+      _todoTags,
+    ]) {
+      for (final key in box.keys.toList()) {
+        final value = box.get(key);
+        final moved = DataLocation.rewrite(value, from, to);
+        if (!identical(moved, value)) await box.put(key, moved);
+      }
+      await box.flush();
+    }
+    DataLocation.finish();
   }
 
   static List<Todo> readTodos() {

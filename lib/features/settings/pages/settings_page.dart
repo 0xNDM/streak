@@ -12,6 +12,7 @@ import 'package:streak/core/widgets/entrance.dart';
 import 'package:streak/core/widgets/number_keypad_dialog.dart';
 import 'package:streak/core/widgets/section_label.dart';
 import 'package:streak/features/habits/widgets/category_editor_sheet.dart';
+import 'package:streak/features/settings/data_folder_actions.dart';
 import 'package:streak/features/settings/pages/about_page.dart';
 import 'package:streak/features/settings/pages/app_style_page.dart';
 import 'package:streak/features/settings/pages/archived_habits_page.dart';
@@ -514,29 +515,14 @@ class _ClassicPreferencesPage extends StatelessWidget {
                     ),
                   ),
                   settingsDivider(context),
-                  SettingRow(
+                  PickerRow(
                     icon: LucideIcons.calendarClock,
                     title: context.l10n.plan_day,
                     subtitle: context.l10n.plan_day_sub,
-                    trailing: Segmented(
-                      options: [context.l10n.off, context.l10n.on],
-                      index: settings.planningEnabled ? 1 : 0,
-                      onChanged: (i) => settings.setPlanningEnabled(i == 1),
-                    ),
+                    value: SettingsActions.planOptions(context)[
+                        settings.planChoice],
+                    onTap: () => SettingsActions.pickPlan(context),
                   ),
-                  if (settings.planningEnabled && settings.todosEnabled) ...[
-                    settingsDivider(context),
-                    SettingRow(
-                      icon: LucideIcons.listTodo,
-                      title: context.l10n.plan_todos,
-                      subtitle: context.l10n.plan_todos_sub,
-                      trailing: Segmented(
-                        options: [context.l10n.off, context.l10n.on],
-                        index: settings.planTodos ? 1 : 0,
-                        onChanged: (i) => settings.setPlanTodos(i == 1),
-                      ),
-                    ),
-                  ],
                   settingsDivider(context),
                   SettingRow(
                     icon: LucideIcons.moveHorizontal,
@@ -717,6 +703,15 @@ class _ClassicDataPage extends StatelessWidget {
             title: context.l10n.refresh_now,
             subtitle: context.l10n.refresh_now_sub,
             onTap: () => SettingsActions.refreshFolder(context),
+          ),
+        ],
+        if (DataFolderActions.available) ...[
+          settingsDivider(context),
+          NavRow(
+            icon: LucideIcons.folderInput,
+            title: context.l10n.data_folder,
+            subtitle: dataPath,
+            onTap: () => DataFolderActions.pick(context),
           ),
         ],
         settingsDivider(context),

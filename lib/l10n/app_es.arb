@@ -671,6 +671,7 @@
   "day_timeline_anytime": "A cualquier hora",
   "day_timeline_empty": "Nada planificado para este día",
   "day_timeline_empty_sub": "Ponle una hora a un hábito y aparecerá aquí.",
+  "day_timeline_empty_todos": "Ponle esta fecha a una tarea y aparecerá aquí.",
   "clear": "Quitar",
   "start_view": "Hoy abre en",
   "start_view_last": "La última usada",
