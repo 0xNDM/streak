@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:streak/app/theme/app_palette.dart';
 import 'package:streak/app/theme/app_tokens.dart';
+import 'package:streak/core/extensions/date_extensions.dart';
 import 'package:streak/core/extensions/inset_extensions.dart';
 import 'package:streak/core/i18n/l10n.dart';
 import 'package:streak/core/icons/habit_icons.dart';
@@ -64,6 +65,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
   int _frequency = 1;
   List<int> _scheduleWeekdays = const [1, 3, 5];
   int _scheduleEvery = 2;
+  DateTime? _scheduleStart;
   ScheduleUnit _scheduleUnit = ScheduleUnit.days;
   String _cover = '';
   int _coverClarity = 100;
@@ -77,6 +79,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
   bool _focusOnly = false;
   bool _tracking = false;
   bool _anyAmount = false;
+  bool _anySteps = false;
   int _difficulty = 0;
   int _focusMinutes = 25;
   bool _pomodoro = false;
@@ -86,6 +89,9 @@ class _HabitFormPageState extends State<HabitFormPage> {
   late List<Substep> _substeps;
 
   bool get _kindLocked => widget.isEditing;
+
+  DateTime get _startShown =>
+      (_scheduleStart ?? widget.habit?.createdAt ?? AppClock.today()).atMidnight;
 
   bool get _planning => context.watch<SettingsController>().planningEnabled;
 
@@ -130,6 +136,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
         _scheduleWeekdays = List.of(habit.scheduleWeekdays);
       }
       _scheduleEvery = habit.scheduleEvery;
+      _scheduleStart = habit.scheduleStart;
       _scheduleUnit = habit.scheduleUnit;
       _cover = habit.coverPath;
       _coverClarity = habit.coverClarity;
@@ -142,6 +149,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
       _focusOnly = habit.focusOnly;
       _tracking = habit.tracking;
       _anyAmount = habit.anyAmount;
+      _anySteps = habit.anySteps;
       _difficulty = habit.difficulty;
       _focusMinutes = habit.focusMinutes;
       _pomodoro = habit.focusBreakMinutes > 0;
@@ -227,6 +235,8 @@ class _HabitFormPageState extends State<HabitFormPage> {
           scheduleWeekdays: negative ? const [] : _scheduleWeekdays,
           scheduleEvery: negative ? 2 : _scheduleEvery,
           scheduleUnit: negative ? ScheduleUnit.days : _scheduleUnit,
+          scheduleStart: _scheduleStart,
+          clearScheduleStart: _scheduleStart == null,
           reminders: _reminders,
           coverPath: _cover,
           coverClarity: _coverClarity,
@@ -240,6 +250,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
           focusOnly: focusOnly,
           tracking: _tracking,
           anyAmount: quantitative && _anyAmount,
+          anySteps: substeps.isNotEmpty && _anySteps,
           difficulty: _difficulty,
           focusMinutes: _focusMinutes,
           focusBreakMinutes: _pomodoro ? _breakMinutes : 0,
@@ -260,6 +271,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
         scheduleWeekdays: negative ? const [] : _scheduleWeekdays,
         scheduleEvery: negative ? 2 : _scheduleEvery,
         scheduleUnit: negative ? ScheduleUnit.days : _scheduleUnit,
+        scheduleStart: _scheduleStart,
         reminders: _reminders,
         coverPath: _cover,
         coverClarity: _coverClarity,
@@ -273,6 +285,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
         focusOnly: focusOnly,
         tracking: _tracking,
         anyAmount: quantitative && _anyAmount,
+        anySteps: substeps.isNotEmpty && _anySteps,
         difficulty: _difficulty,
         focusMinutes: _focusMinutes,
         focusBreakMinutes: _pomodoro ? _breakMinutes : 0,
@@ -503,6 +516,12 @@ class _HabitFormPageState extends State<HabitFormPage> {
             color: _color,
             onChanged: (list) => _substeps = list,
           ),
+          const SizedBox(height: 12),
+          AnyStepsToggle(
+            value: _anySteps,
+            color: _color,
+            onChanged: (v) => setState(() => _anySteps = v),
+          ),
         ],
       ],
       if (_offersTracking) ...[
@@ -570,6 +589,8 @@ class _HabitFormPageState extends State<HabitFormPage> {
           onWeekdaysChanged: (days) => setState(() => _scheduleWeekdays = days),
           onEveryChanged: (v) => setState(() => _scheduleEvery = v),
           onUnitChanged: _pickUnit,
+          start: _startShown,
+          onStartChanged: (day) => setState(() => _scheduleStart = day),
         ),
       ],
       if (_kind != HabitKind.negative && _planning) ...[
@@ -803,6 +824,13 @@ class _HabitFormPageState extends State<HabitFormPage> {
             color: _color,
             onChanged: (list) => _substeps = list,
           ),
+          const SizedBox(height: 16),
+          AnyStepsToggle(
+            value: _anySteps,
+            color: _color,
+            compact: true,
+            onChanged: (v) => setState(() => _anySteps = v),
+          ),
         ],
       ],
       if (_offersTracking) ...[
@@ -900,6 +928,11 @@ class _HabitFormPageState extends State<HabitFormPage> {
             min: 2,
             max: scheduleEveryMax(_scheduleUnit).toDouble(),
             onChanged: (v) => setState(() => _scheduleEvery = v.round()),
+          ),
+          const SizedBox(height: 8),
+          ScheduleStartRow(
+            start: _startShown,
+            onChanged: (day) => setState(() => _scheduleStart = day),
           ),
         ] else if (_interval == HabitInterval.weekdays) ...[
           const SizedBox(height: 12),
@@ -1079,6 +1112,12 @@ class _HabitFormPageState extends State<HabitFormPage> {
                   color: _color,
                   onChanged: (list) => _substeps = list,
                 ),
+                const SizedBox(height: 12),
+                AnyStepsToggle(
+                  value: _anySteps,
+                  color: _color,
+                  onChanged: (v) => setState(() => _anySteps = v),
+                ),
               ],
             ],
             if (_offersTracking) ...[
@@ -1159,6 +1198,8 @@ class _HabitFormPageState extends State<HabitFormPage> {
                     setState(() => _scheduleWeekdays = days),
                 onEveryChanged: (v) => setState(() => _scheduleEvery = v),
                 onUnitChanged: _pickUnit,
+                start: _startShown,
+                onStartChanged: (day) => setState(() => _scheduleStart = day),
               ),
             ],
             if (_kind != HabitKind.negative && _planning) ...[

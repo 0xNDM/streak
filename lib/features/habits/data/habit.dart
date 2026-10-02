@@ -69,6 +69,7 @@ class Habit {
     this.focusOnly = false,
     this.tracking = false,
     this.anyAmount = false,
+    this.anySteps = false,
     this.difficulty = 0,
     this.startMinute = -1,
     this.durationMinutes = 0,
@@ -76,6 +77,7 @@ class Habit {
     this.vacations = const [],
     this.restDays = const [],
     this.archivedAt,
+    this.scheduleStart,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? AppClock.now();
 
@@ -113,7 +115,7 @@ class Habit {
       case HabitInterval.everyXDays:
         if (scheduleEvery <= 0) return false;
         final day = date.atMidnight;
-        final start = createdAt.atMidnight;
+        final start = (scheduleStart ?? createdAt).atMidnight;
         if (day.isBefore(start)) return false;
         if (scheduleUnit == ScheduleUnit.months) {
           final months =
@@ -135,6 +137,8 @@ class Habit {
   final int coverClarity;
   final DateTime createdAt;
 
+  final DateTime? scheduleStart;
+
   final HabitKind kind;
   final double dailyCost;
   final String unitLabel;
@@ -150,6 +154,8 @@ class Habit {
   final bool tracking;
 
   final bool anyAmount;
+
+  final bool anySteps;
 
   final int difficulty;
 
@@ -305,10 +311,13 @@ class Habit {
     if (negative) {
       return day.isBefore(startedAt) ? false : entry == null;
     }
-    if (hasSubsteps) {
-      return substeps.every((s) => entry!.steps.contains(s.id));
-    }
-    return reaches(entry!.count);
+    return isDoneEntry(entry!);
+  }
+
+  bool isDoneEntry(Completion entry) {
+    if (!hasSubsteps) return reaches(entry.count);
+    bool checked(Substep step) => entry.steps.contains(step.id);
+    return anySteps ? substeps.any(checked) : substeps.every(checked);
   }
 
   bool get acceptsAnyAmount => anyAmount && kind == HabitKind.quantitative;
@@ -351,11 +360,7 @@ class Habit {
   late final int totalCompletions = _totalCompletions();
 
   int _totalCompletions() {
-    if (hasSubsteps) {
-      final ids = substeps.map((s) => s.id).toSet();
-      return completions.values.where((c) => ids.every(c.steps.contains)).length;
-    }
-    return completions.values.where((c) => reaches(c.count)).length;
+    return completions.values.where(isDoneEntry).length;
   }
 
   bool get isDoneForNow {
@@ -539,10 +544,7 @@ class Habit {
     final today = AppClock.today();
     final marked = <int, bool>{};
     for (final entry in completions.entries) {
-      marked[dayKeyEpoch(entry.key)] = negative ||
-          (hasSubsteps
-              ? substeps.every((s) => entry.value.steps.contains(s.id))
-              : reaches(entry.value.count));
+      marked[dayKeyEpoch(entry.key)] = negative || isDoneEntry(entry.value);
     }
     final breaks = [
       for (final vacation in vacations)
@@ -659,6 +661,7 @@ class Habit {
     bool? focusOnly,
     bool? tracking,
     bool? anyAmount,
+    bool? anySteps,
     int? difficulty,
     int? startMinute,
     int? durationMinutes,
@@ -667,6 +670,8 @@ class Habit {
     List<int>? restDays,
     DateTime? archivedAt,
     bool clearArchived = false,
+    DateTime? scheduleStart,
+    bool clearScheduleStart = false,
     DateTime? createdAt,
   }) {
     return Habit(
@@ -697,6 +702,7 @@ class Habit {
       focusOnly: focusOnly ?? this.focusOnly,
       tracking: tracking ?? this.tracking,
       anyAmount: anyAmount ?? this.anyAmount,
+      anySteps: anySteps ?? this.anySteps,
       difficulty: difficulty ?? this.difficulty,
       focusBreakMinutes: focusBreakMinutes ?? this.focusBreakMinutes,
       startMinute: startMinute ?? this.startMinute,
@@ -705,6 +711,9 @@ class Habit {
       vacations: vacations ?? this.vacations,
       restDays: restDays ?? this.restDays,
       archivedAt: clearArchived ? null : (archivedAt ?? this.archivedAt),
+      scheduleStart: clearScheduleStart
+          ? null
+          : (scheduleStart ?? this.scheduleStart),
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -735,6 +744,7 @@ class Habit {
         'coverPath': coverPath,
         'coverClarity': coverClarity,
         'createdAt': createdAt.toIso8601String(),
+        if (scheduleStart != null) 'scheduleStart': scheduleStart!.dayKey,
         'kind': kind.index,
         'dailyCost': dailyCost,
         'unitLabel': unitLabel,
@@ -746,6 +756,7 @@ class Habit {
         'focusOnly': focusOnly,
         'tracking': tracking,
         'anyAmount': anyAmount,
+        'anySteps': anySteps,
         'difficulty': difficulty,
         'startMinute': startMinute,
         'durationMinutes': durationMinutes,
@@ -792,6 +803,9 @@ class Habit {
         createdAt: map['createdAt'] != null
             ? DateTime.tryParse(map['createdAt'] as String)
             : null,
+        scheduleStart: map['scheduleStart'] is String
+            ? parseDayKey(map['scheduleStart'] as String)
+            : null,
         kind: HabitKind.values[(map['kind'] ?? 0) as int],
         dailyCost: ((map['dailyCost'] ?? 0) as num).toDouble(),
         unitLabel: (map['unitLabel'] ?? '') as String,
@@ -804,6 +818,7 @@ class Habit {
         focusOnly: (map['focusOnly'] ?? false) as bool,
         tracking: (map['tracking'] ?? false) as bool,
         anyAmount: (map['anyAmount'] ?? false) as bool,
+        anySteps: (map['anySteps'] ?? false) as bool,
         difficulty: ((map['difficulty'] ?? 0) as num).toInt().clamp(0, 3),
         startMinute: ((map['startMinute'] ?? -1) as num).toInt(),
         durationMinutes: ((map['durationMinutes'] ?? 0) as num).toInt(),

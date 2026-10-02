@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:streak/core/extensions/date_extensions.dart';
 import 'package:streak/features/habits/data/completion.dart';
 import 'package:streak/features/habits/data/habit.dart';
+import 'package:streak/features/habits/data/substep.dart';
 
 import 'support/app_harness.dart';
 
@@ -50,5 +51,29 @@ void main() {
     final map = _sleep(anyAmount: true).toMap();
     expect(Habit.fromMap(map).anyAmount, isTrue);
     expect(Habit.fromMap(map..remove('anyAmount')).anyAmount, isFalse);
+  });
+
+  Habit workout({required bool anySteps}) => testHabit(
+        id: 'gym',
+        name: 'Workout',
+        substeps: const [
+          Substep(id: 'legs', title: 'Legs'),
+          Substep(id: 'arms', title: 'Arms'),
+        ],
+      ).copyWith(
+        anySteps: anySteps,
+        completions: {
+          today.dayKey: Completion(date: today.dayKey, count: 1, steps: {'legs'}),
+        },
+      );
+
+  test('without the switch every step is still needed', () {
+    expect(workout(anySteps: false).isCompletedOn(today), isFalse);
+  });
+
+  test('with the switch one step marks the day as done', () {
+    final habit = workout(anySteps: true);
+    expect(habit.isCompletedOn(today), isTrue);
+    expect(habit.totalCompletions, 1);
   });
 }
