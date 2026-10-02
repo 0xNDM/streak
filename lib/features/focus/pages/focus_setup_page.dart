@@ -61,16 +61,26 @@ class _FocusSetupPageState extends State<FocusSetupPage> {
   }
 
   void _start() {
-    context.read<SettingsController>().rememberFocusSetup(
-          _minutes,
-          _pomodoro ? _breakMinutes : 0,
-        );
+    final breakMinutes = _pomodoro ? _breakMinutes : 0;
+    final habits = context.read<HabitsController>();
+    final habit = habits.byId(_habitId);
+    if (habit == null) {
+      context
+          .read<SettingsController>()
+          .rememberFocusSetup(_minutes, breakMinutes);
+    } else if (habit.focusMinutes != _minutes ||
+        habit.focusBreakMinutes != breakMinutes) {
+      habits.update(habit.copyWith(
+        focusMinutes: _minutes,
+        focusBreakMinutes: breakMinutes,
+      ));
+    }
     AppNavigator.pop();
     AppNavigator.push(
       FocusPage(
         startHabitId: _habitId,
         startMinutes: _minutes,
-        breakMinutes: _pomodoro ? _breakMinutes : 0,
+        breakMinutes: breakMinutes,
       ),
       fade: true,
       name: FocusPage.routeName,

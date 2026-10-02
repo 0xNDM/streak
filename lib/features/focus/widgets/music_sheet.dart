@@ -82,9 +82,9 @@ class _MusicSheet extends StatelessWidget {
       top: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 2, 20, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: ListView(
+          shrinkWrap: true,
+          padding: EdgeInsets.zero,
           children: [
             Row(
               children: [
@@ -115,9 +115,7 @@ class _MusicSheet extends StatelessWidget {
             ),
             const SizedBox(height: 14),
             _NowPlaying(tracks: tracks),
-            Flexible(
-              child: ListView(
-                shrinkWrap: true,
+            Column(
                 children: [
                   for (final track in tracks)
                     _TrackRow(
@@ -133,7 +131,6 @@ class _MusicSheet extends StatelessWidget {
                     ),
                 ],
               ),
-            ),
             if (settings.hiddenTracks.isNotEmpty)
               Align(
                 alignment: Alignment.centerLeft,

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:streak/core/database/local_store.dart';
 import 'package:streak/core/extensions/date_extensions.dart';
+import 'package:streak/core/utils/app_dirs.dart';
 import 'package:streak/features/focus/data/focus_session.dart';
 import 'package:streak/features/focus/state/focus_audio.dart';
 import 'package:streak/services/focus_service.dart';
@@ -257,6 +258,8 @@ class FocusController extends ChangeNotifier {
 
   void addMinute() {
     if (!_open || isFlow) return;
+    _awaiting = false;
+    unawaited(FocusAudio.stopAlert());
     if (reachedTarget) {
       _accumulated = targetSeconds;
       if (isRunning) _since = DateTime.now();
@@ -418,6 +421,7 @@ class FocusController extends ChangeNotifier {
       if (!_celebrated && reachedTarget) {
         _celebrated = true;
         completedTick.value++;
+        if (!isMobile) unawaited(_announceEnd(breakEnded: _isBreak));
         final hold = isPomodoro && LocalStore.setting('focusHold', false);
         unawaited(
           FocusAudio.alert(
@@ -456,15 +460,27 @@ class FocusController extends ChangeNotifier {
     return isFlow ? began : began + targetSeconds * 1000 + 999;
   }
 
+  Future<(String, String)> _endTexts({required bool breakEnded}) async {
+    final strings = await NotificationService().localizations();
+    if (breakEnded) return (strings.focus_break_over, strings.focus_notif_back);
+    if (isPomodoro) return (strings.focus_done_title, strings.focus_notif_break);
+    return (strings.focus_done_title, strings.focus_notif_body);
+  }
+
+  Future<void> _announceEnd({required bool breakEnded}) async {
+    final (title, body) = await _endTexts(breakEnded: breakEnded);
+    await NotificationService().showFocusEnd(title: title, body: body);
+  }
+
   Future<void> _syncEndAlarm() async {
     final notifications = NotificationService();
     try {
       if (!_open || !isRunning) return await notifications.cancelFocusEnd();
-      if (isFlow || reachedTarget) return;
-      final strings = await notifications.localizations();
+      if (isFlow || reachedTarget || !isMobile) return;
+      final (title, body) = await _endTexts(breakEnded: _isBreak);
       await notifications.scheduleFocusEnd(
-        title: strings.focus_done_title,
-        body: strings.focus_notif_body,
+        title: title,
+        body: body,
         after: Duration(seconds: remainingSeconds),
       );
     } catch (e) {

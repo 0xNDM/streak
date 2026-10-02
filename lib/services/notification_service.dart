@@ -581,6 +581,18 @@ class NotificationService {
     } catch (_) {}
   }
 
+  Future<void> showFocusEnd({
+    required String title,
+    required String body,
+  }) async {
+    if (!_ready) await initialize();
+    try {
+      await _plugin.show(_focusEndId, title, body, null);
+    } catch (e) {
+      debugPrint('Focus end notice failed: $e');
+    }
+  }
+
   Future<void> cancelFocusEnd() async {
     try {
       await _cancel(_focusEndId);
@@ -761,7 +773,9 @@ class NotificationActions {
       }
 
       final today = AppClock.today();
-      final amount = double.tryParse(input?.trim() ?? '');
+      final text = input?.trim() ?? '';
+      final amount =
+          habit.isTimeAmount ? clockMinutes(text) : double.tryParse(text);
 
       final Map<String, Completion> completions;
       if (actionId == NotificationService.actionAdd) {
@@ -781,9 +795,10 @@ class NotificationActions {
 
       if (actionId == NotificationService.actionAdd && notificationId != null) {
         final done = completions[today.dayKey]?.count ?? 0;
+        final goal = updated.effectiveTarget;
         await NotificationService().confirm(
           updated,
-          '${formatAmount(done)} / ${formatAmount(updated.effectiveTarget)}',
+          '${updated.amountText(done)} / ${updated.amountText(goal)}',
           notificationId,
         );
       }

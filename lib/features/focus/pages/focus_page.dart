@@ -26,7 +26,6 @@ import 'package:streak/features/focus/state/focus_controller.dart';
 import 'package:streak/core/widgets/celebration_overlay.dart';
 import 'package:streak/features/focus/widgets/focus_backgrounds.dart';
 import 'package:streak/features/focus/widgets/focus_end_dialog.dart';
-import 'package:streak/features/focus/widgets/focus_island.dart';
 import 'package:streak/features/focus/widgets/focus_task_lists.dart';
 import 'package:streak/features/focus/widgets/focus_video_scene.dart';
 import 'package:streak/features/focus/widgets/music_sheet.dart';
@@ -34,6 +33,7 @@ import 'package:streak/features/focus/widgets/timer_clocks.dart';
 import 'package:streak/features/habits/data/habit.dart';
 import 'package:streak/features/habits/state/habits_controller.dart';
 import 'package:streak/features/settings/state/settings_controller.dart';
+import 'package:streak/services/desktop_window.dart';
 import 'package:streak/services/notification_service.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
@@ -69,7 +69,6 @@ class _FocusPageState extends State<FocusPage> {
   void initState() {
     super.initState();
     _focus.completedTick.addListener(_celebrate);
-    FocusIsland.pages.value++;
     if (context.read<SettingsController>().focusKeepAwake) {
       WakelockPlus.enable();
     }
@@ -133,11 +132,11 @@ class _FocusPageState extends State<FocusPage> {
   @override
   void dispose() {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    if (_immersive) DesktopWindow.setFullscreen(false);
     WakelockPlus.disable();
     _lead?.cancel();
     _confetti.dispose();
     _focus.completedTick.removeListener(_celebrate);
-    FocusIsland.pages.value--;
     super.dispose();
   }
 
@@ -179,6 +178,7 @@ class _FocusPageState extends State<FocusPage> {
 
   void _toggleImmersive() {
     setState(() => _immersive = !_immersive);
+    DesktopWindow.setFullscreen(_immersive);
     SystemChrome.setEnabledSystemUIMode(
       _immersive || _big ? SystemUiMode.immersiveSticky : SystemUiMode.edgeToEdge,
     );
@@ -270,7 +270,7 @@ class _FocusPageState extends State<FocusPage> {
 
     final style = ClockStyle
         .values[settings.focusClockStyle.clamp(0, ClockStyle.values.length - 1)];
-    final label = focus.isBreak
+    final label = context.select<FocusController, bool>((f) => f.isBreak)
         ? context.l10n.focus_break
         : (habit?.name ?? context.l10n.focus);
 
