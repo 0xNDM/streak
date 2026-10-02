@@ -32,6 +32,10 @@ class IconBadge extends StatelessWidget {
   }
 }
 
+bool _stackedRows(BuildContext context) =>
+    MediaQuery.sizeOf(context).width <
+    360 * MediaQuery.textScalerOf(context).scale(1);
+
 class SettingRow extends StatelessWidget {
   const SettingRow({
     super.key,
@@ -50,6 +54,7 @@ class SettingRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final stacked = _stackedRows(context);
     final row = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
@@ -74,11 +79,15 @@ class SettingRow extends StatelessWidget {
                     style: TextStyle(fontSize: 13, color: context.tokens.muted),
                   ),
                 ],
+                if (stacked) ...[
+                  const SizedBox(height: 10),
+                  trailing,
+                ],
               ],
             ),
           ),
-          const SizedBox(width: 12),
-          trailing,
+          if (!stacked) const SizedBox(width: 12),
+          if (!stacked) trailing,
         ],
       ),
     );
@@ -232,6 +241,17 @@ class PickerRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final stacked = _stackedRows(context);
+    final shown = value == null
+        ? null
+        : Text(
+            value!,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: context.tokens.muted,
+            ),
+          );
     return Semantics(
       button: true,
       child: InkWell(
@@ -263,18 +283,14 @@ class PickerRow extends StatelessWidget {
                         ),
                       ),
                     ],
+                    if (stacked && shown != null) ...[
+                      const SizedBox(height: 4),
+                      shown,
+                    ],
                   ],
                 ),
               ),
-              if (value != null)
-                Text(
-                  value!,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: context.tokens.muted,
-                  ),
-                ),
+              if (!stacked && shown != null) shown,
               if (trailing != null) trailing!,
               const SizedBox(width: 6),
               Icon(LucideIcons.chevronRight,

@@ -25,6 +25,7 @@ import 'package:streak/features/todos/pages/todo_editor_page.dart';
 import 'package:streak/features/todos/widgets/folder_shape.dart';
 import 'package:streak/features/todos/widgets/todo_add_menu.dart';
 import 'package:streak/features/todos/widgets/todo_deal.dart';
+import 'package:streak/features/todos/widgets/todo_bulk_edit.dart';
 import 'package:streak/features/todos/widgets/todo_empty_folder.dart';
 import 'package:streak/features/todos/widgets/todo_select_bar.dart';
 import 'package:streak/features/todos/widgets/todo_trash.dart';
@@ -894,6 +895,7 @@ class _TodosPageState extends State<TodosPage>
                         pinned: _picked.every((todo) => todo.pinned),
                         onClose: () => setState(_selected.clear),
                         onPin: () => _pin(_picked),
+                        onEdit: () => editTodos(context, _selected.toList()),
                         onDone: () => _finish(_picked),
                         onDelete: () => _trash(_picked),
                       ),

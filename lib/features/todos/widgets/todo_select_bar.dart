@@ -11,6 +11,7 @@ class TodoSelectBar extends StatelessWidget {
     required this.pinned,
     required this.onClose,
     required this.onPin,
+    required this.onEdit,
     required this.onDone,
     required this.onDelete,
   });
@@ -19,6 +20,7 @@ class TodoSelectBar extends StatelessWidget {
   final bool pinned;
   final VoidCallback onClose;
   final VoidCallback onPin;
+  final VoidCallback onEdit;
   final VoidCallback onDone;
   final VoidCallback onDelete;
 
@@ -48,8 +50,11 @@ class TodoSelectBar extends StatelessWidget {
             label: MaterialLocalizations.of(context).closeButtonLabel,
             onTap: onClose,
           ),
-          Padding(
+          Flexible(
+            child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: FittedBox(
+            fit: BoxFit.scaleDown,
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 180),
               transitionBuilder: (child, animation) => FadeTransition(
@@ -68,11 +73,18 @@ class TodoSelectBar extends StatelessWidget {
                 style: sheetActionStyle(context, size: 14.5),
               ),
             ),
+            ),
+            ),
           ),
           _Icon(
             icon: pinned ? LucideIcons.pinOff : LucideIcons.pin,
             label: pinned ? context.l10n.todo_unpin : context.l10n.todo_pin,
             onTap: onPin,
+          ),
+          _Icon(
+            icon: LucideIcons.pencil,
+            label: context.l10n.edit,
+            onTap: onEdit,
           ),
           _Icon(
             icon: LucideIcons.checkCheck,
@@ -90,26 +102,12 @@ class TodoSelectBar extends StatelessWidget {
               child: InkWell(
                 borderRadius: BorderRadius.circular(16),
                 onTap: onDelete,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 11, 14, 11),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        LucideIcons.trash2,
-                        size: 17,
-                        color: Colors.white,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        context.l10n.delete,
-                        style: sheetActionStyle(
-                          context,
-                          size: 14,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
+                child: const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Icon(
+                    LucideIcons.trash2,
+                    size: 18,
+                    color: Colors.white,
                   ),
                 ),
               ),
@@ -133,6 +131,7 @@ class _Icon extends StatelessWidget {
     return IconButton(
       tooltip: label,
       onPressed: onTap,
+      visualDensity: VisualDensity.compact,
       icon: Icon(icon, size: 20, color: context.colors.onSurface),
     );
   }

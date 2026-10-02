@@ -35,7 +35,7 @@ class AppTheme {
       systemNavigationBarColor: Colors.transparent,
       systemNavigationBarDividerColor: Colors.transparent,
       systemNavigationBarIconBrightness: icons,
-      systemNavigationBarContrastEnforced: false,
+      systemNavigationBarContrastEnforced: true,
     );
   }
 
@@ -120,6 +120,7 @@ class AppTheme {
         ),
       ),
       dialogTheme: DialogThemeData(
+        constraints: const BoxConstraints(minWidth: 280, maxWidth: paneWidth),
         backgroundColor: scheme.surfaceContainerHigh,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(34)),
@@ -175,7 +176,7 @@ class AppTheme {
           : (minimal ? const Color(0xFFEFEFF2) : const Color(0xFFEDEDF2)),
       surfaceContainerHighest: isDark
           ? (minimal ? AppPalette.paperDarkRaised : AppPalette.darkElevated)
-          : (minimal ? const Color(0xFFE9E9EC) : const Color(0xFFEFEFF4)),
+          : (minimal ? const Color(0xFFE9E9EC) : const Color(0xFFE4E4EC)),
       outlineVariant: isDark
           ? (minimal ? const Color(0xFF272727) : AppPalette.darkBorder)
           : (minimal ? const Color(0xFFE4E4E8) : const Color(0xFFD9D9E0)),
@@ -228,6 +229,7 @@ class AppTheme {
         ),
       ),
       dialogTheme: DialogThemeData(
+        constraints: const BoxConstraints(minWidth: 280, maxWidth: paneWidth),
         backgroundColor: cardColor,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(

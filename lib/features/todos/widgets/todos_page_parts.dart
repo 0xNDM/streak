@@ -383,7 +383,7 @@ class TodoProjectBar extends StatelessWidget {
     final color = project?.color ?? context.tokens.muted;
     final edge = minimal ? 22.0 : 16.0;
     return Padding(
-      padding: EdgeInsets.fromLTRB(edge, 0, edge, 10),
+      padding: EdgeInsets.fromLTRB(edge, 0, edge - 10, 2),
       child: Row(
         children: [
           Icon(
@@ -414,10 +414,10 @@ class TodoProjectBar extends StatelessWidget {
                 onTap: () => editOrDeleteTag(context, project!),
                 behavior: HitTestBehavior.opaque,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 4, 4, 4),
+                  padding: const EdgeInsets.all(10),
                   child: Icon(
                     LucideIcons.ellipsis,
-                    size: 16,
+                    size: 20,
                     color: context.tokens.muted,
                   ),
                 ),
@@ -427,8 +427,8 @@ class TodoProjectBar extends StatelessWidget {
             onTap: onClear,
             behavior: HitTestBehavior.opaque,
             child: Padding(
-              padding: const EdgeInsets.all(4),
-              child: Icon(LucideIcons.x, size: 16, color: context.tokens.muted),
+              padding: const EdgeInsets.all(10),
+              child: Icon(LucideIcons.x, size: 20, color: context.tokens.muted),
             ),
           ),
         ],
