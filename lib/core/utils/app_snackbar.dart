@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:streak/app/theme/app_tokens.dart';
+import 'package:streak/core/utils/responsive.dart';
 
 enum _Kind { success, error, info, warning }
 
@@ -35,6 +36,7 @@ class AppSnackbar {
     VoidCallback? onPressed,
   }) {
     final tokens = context.tokens;
+    final wide = hasSideRail(context);
     final (color, icon) = switch (kind) {
       _Kind.success => (tokens.success, LucideIcons.circleCheck),
       _Kind.error => (tokens.danger, LucideIcons.circleX),
@@ -75,7 +77,8 @@ class AppSnackbar {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          margin: const EdgeInsets.all(16),
+          width: wide ? paneWidth : null,
+          margin: wide ? null : const EdgeInsets.all(16),
           duration: Duration(milliseconds: label == null ? 3000 : 2500),
           persist: false,
           action: label == null
