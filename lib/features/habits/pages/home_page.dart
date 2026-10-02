@@ -24,6 +24,7 @@ import 'package:streak/features/habits/pages/all_notes_page.dart';
 import 'package:streak/features/habits/pages/day_timeline_page.dart';
 import 'package:streak/features/habits/pages/habit_details_page.dart';
 import 'package:streak/features/habits/pages/habit_form_page.dart';
+import 'package:streak/features/habits/pages/note_editor_page.dart';
 import 'package:streak/features/focus/widgets/focus_pill.dart';
 import 'package:streak/features/habits/state/categories_controller.dart';
 import 'package:streak/features/habits/widgets/category_editor_sheet.dart';
@@ -138,6 +139,18 @@ class _HomePageState extends State<HomePage> {
             () => run(() => AppNavigator.push(
                   HabitDetailsPage(habitId: habit.id),
                   fullscreenDialog: true,
+                )),
+            false,
+          ),
+          (
+            LucideIcons.notebookPen,
+            context.l10n.add_note,
+            () => run(() => AppNavigator.push(
+                  NoteEditorPage(
+                    habitId: habit.id,
+                    dayKey: AppClock.today().dayKey,
+                    accent: habit.color,
+                  ),
                 )),
             false,
           ),

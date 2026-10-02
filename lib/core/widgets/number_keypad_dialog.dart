@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:streak/app/theme/app_tokens.dart';
 import 'package:streak/core/i18n/l10n.dart';
@@ -70,10 +71,7 @@ class _NumberKeypadDialogState extends State<_NumberKeypadDialog> {
     return hours == 0 ? '$rest' : '$hours${rest.toString().padLeft(2, '0')}';
   }
 
-  double get _clockMinutes {
-    final digits = int.tryParse(_text) ?? 0;
-    return (digits ~/ 100 * 60 + digits % 100).toDouble();
-  }
+  double get _clockMinutes => clockMinutes(_text);
 
   double get _value {
     final parsed =
@@ -102,6 +100,29 @@ class _NumberKeypadDialogState extends State<_NumberKeypadDialog> {
   void _clear() {
     if (_text.isEmpty) return;
     setState(() => _text = '');
+  }
+
+  KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is KeyUpEvent) return KeyEventResult.ignored;
+    final key = event.logicalKey;
+    final char = event.character ?? '';
+    if (RegExp(r'^\d$').hasMatch(char)) {
+      _type(char);
+    } else if ((char == '.' || char == ',') &&
+        widget.decimals &&
+        !widget.clock) {
+      _dot();
+    } else if (key == LogicalKeyboardKey.backspace) {
+      _backspace();
+    } else if (key == LogicalKeyboardKey.delete) {
+      _clear();
+    } else if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter) {
+      Navigator.of(context).pop(_value);
+    } else {
+      return KeyEventResult.ignored;
+    }
+    return KeyEventResult.handled;
   }
 
   Widget _key(Widget child, {VoidCallback? onTap, VoidCallback? onLongPress}) {
@@ -152,7 +173,10 @@ class _NumberKeypadDialogState extends State<_NumberKeypadDialog> {
         : _text.isEmpty
             ? '0'
             : _text;
-    return Dialog(
+    return Focus(
+      autofocus: true,
+      onKeyEvent: _onKeyEvent,
+      child: Dialog(
       backgroundColor: scheme.surface,
       insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -272,6 +296,7 @@ class _NumberKeypadDialogState extends State<_NumberKeypadDialog> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

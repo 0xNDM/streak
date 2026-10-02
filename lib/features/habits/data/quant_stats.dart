@@ -80,7 +80,7 @@ class QuantStats {
       if (!_counts(entry, parseDayKey(entry.date), today)) continue;
       total += entry.count;
       loggedDays++;
-      if (entry.count >= habit.perDayTarget) goalDays++;
+      if (habit.reaches(entry.count)) goalDays++;
       if (entry.count > best) best = entry.count;
     }
 

@@ -29,6 +29,13 @@ object WidgetText {
         return rounded.toString().trimEnd('0').trimEnd('.')
     }
 
+    fun clock(minutes: Double): String {
+        val total = Math.round(minutes).toInt()
+        val hours = total / 60
+        val rest = total % 60
+        return if (hours == 0) "${rest}m" else "$hours:${rest.toString().padStart(2, '0')}"
+    }
+
     fun compact(value: Double): String =
         if (value < 1000) amount(value) else compact(Math.round(value).toInt())
 

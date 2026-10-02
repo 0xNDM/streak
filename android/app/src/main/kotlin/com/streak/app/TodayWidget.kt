@@ -104,6 +104,8 @@ class TodayWidget : GlanceAppWidget() {
         val count = habit.optJSONArray("counts")?.optDouble(today, 0.0) ?: 0.0
         val done = habit.optJSONArray("completions")?.optBoolean(today, false) == true
         val quantified = kind == KIND_QUANTITATIVE || target > 1
+        val format: (Double) -> String =
+            if (habit.optBoolean("clock", false)) WidgetText::clock else WidgetText::amount
 
         Row(
             modifier = GlanceModifier.fillMaxWidth().padding(vertical = 4.dp),
@@ -125,7 +127,7 @@ class TodayWidget : GlanceAppWidget() {
                 }
                 if (quantified) {
                     Text(
-                        text = "${WidgetText.amount(count)}/${WidgetText.amount(target)}",
+                        text = "${format(count)}/${format(target)}",
                         style = TextStyle(color = ColorProvider(style.muted), fontSize = 11.sp),
                     )
                 }

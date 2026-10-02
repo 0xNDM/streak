@@ -273,7 +273,7 @@ class _QuantWave extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final count = habit.completions[AppClock.now().dayKey]?.count ?? 0;
-    final progress = QuantProgress.of(count: count, target: habit.perDayTarget);
+    final progress = habit.progressFor(count);
     final tint = progress.activeColor(habit.color);
     final unit = habit.isTimeAmount || habit.unitLabel.isEmpty
         ? ''

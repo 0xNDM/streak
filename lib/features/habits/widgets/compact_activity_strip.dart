@@ -25,7 +25,9 @@ class CompactActivityStrip extends StatelessWidget {
     for (final entry in habit.completions.values) {
       final day = parseDayKey(entry.date);
       if (day.year != today.year || day.isAfter(today)) continue;
-      if (negative || entry.count >= habit.effectiveTarget) {
+      if (negative ||
+          entry.count >= habit.effectiveTarget ||
+          habit.acceptsAnyAmount && entry.count > 0) {
         logged[day.month - 1]++;
       }
     }

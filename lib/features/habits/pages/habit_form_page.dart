@@ -76,6 +76,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
   String _bookCover = '';
   bool _focusOnly = false;
   bool _tracking = false;
+  bool _anyAmount = false;
   int _difficulty = 0;
   int _focusMinutes = 25;
   bool _pomodoro = false;
@@ -140,6 +141,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
       _bookCover = habit.bookCoverPath;
       _focusOnly = habit.focusOnly;
       _tracking = habit.tracking;
+      _anyAmount = habit.anyAmount;
       _difficulty = habit.difficulty;
       _focusMinutes = habit.focusMinutes;
       _pomodoro = habit.focusBreakMinutes > 0;
@@ -237,6 +239,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
           bookCoverPath: quantitative ? _bookCover : widget.habit!.bookCoverPath,
           focusOnly: focusOnly,
           tracking: _tracking,
+          anyAmount: quantitative && _anyAmount,
           difficulty: _difficulty,
           focusMinutes: _focusMinutes,
           focusBreakMinutes: _pomodoro ? _breakMinutes : 0,
@@ -269,6 +272,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
         bookCoverPath: quantitative ? _bookCover : '',
         focusOnly: focusOnly,
         tracking: _tracking,
+        anyAmount: quantitative && _anyAmount,
         difficulty: _difficulty,
         focusMinutes: _focusMinutes,
         focusBreakMinutes: _pomodoro ? _breakMinutes : 0,
@@ -445,6 +449,12 @@ class _HabitFormPageState extends State<HabitFormPage> {
           onUnitChanged: () => setState(() {}),
           onTargetChanged: (v) => setState(() => _quantTarget = v),
           onIncrementChanged: (v) => setState(() => _quantIncrement = v),
+        ),
+        const SizedBox(height: 12),
+        AnyAmountToggle(
+          value: _anyAmount,
+          color: _color,
+          onChanged: (v) => setState(() => _anyAmount = v),
         ),
         if (_quantKind == QuantKind.reading) ...[
           const SizedBox(height: 20),
@@ -737,6 +747,13 @@ class _HabitFormPageState extends State<HabitFormPage> {
             ],
           ),
         ),
+        const SizedBox(height: 16),
+        AnyAmountToggle(
+          value: _anyAmount,
+          color: _color,
+          compact: true,
+          onChanged: (v) => setState(() => _anyAmount = v),
+        ),
         if (_quantKind == QuantKind.reading) ...[
           const SizedBox(height: 16),
           SectionLabel(context.l10n.book_cover),
@@ -1006,6 +1023,12 @@ class _HabitFormPageState extends State<HabitFormPage> {
                 onUnitChanged: () => setState(() {}),
                 onTargetChanged: (v) => setState(() => _quantTarget = v),
                 onIncrementChanged: (v) => setState(() => _quantIncrement = v),
+              ),
+              const SizedBox(height: 12),
+              AnyAmountToggle(
+                value: _anyAmount,
+                color: _color,
+                onChanged: (v) => setState(() => _anyAmount = v),
               ),
               if (_quantKind == QuantKind.reading) ...[
                 const SizedBox(height: 20),

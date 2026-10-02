@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:streak/app/theme/app_tokens.dart';
+import 'package:streak/core/extensions/color_extensions.dart';
 import 'package:streak/core/extensions/date_extensions.dart';
 import 'package:streak/core/i18n/date_labels.dart';
 import 'package:streak/core/i18n/l10n.dart';
@@ -426,6 +427,9 @@ class _HabitHeatmapState extends State<HabitHeatmap> {
                       ? _todayRing(context, fill, widget.compact ? 1.2 : 1.5)
                       : null,
                 );
+                final number = inMonth && side >= 20
+                    ? _dayNumber(context, date, fill, side, future: future)
+                    : null;
                 return SizedBox(
                   width: side,
                   height: side,
@@ -433,10 +437,11 @@ class _HabitHeatmapState extends State<HabitHeatmap> {
                     date: date,
                     enabled: inMonth,
                     child: widget.compact
-                        ? DecoratedBox(decoration: decoration)
+                        ? DecoratedBox(decoration: decoration, child: number)
                         : AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
                             decoration: decoration,
+                            child: number,
                           ),
                   ),
                 );
@@ -449,6 +454,36 @@ class _HabitHeatmapState extends State<HabitHeatmap> {
       ],
         );
       },
+    );
+  }
+
+  Widget _dayNumber(
+    BuildContext context,
+    DateTime date,
+    Color fill,
+    double side, {
+    required bool future,
+  }) {
+    final filled = fill.a >= 0.55;
+    final today = _isToday(date);
+    final color = filled
+        ? fill.ink
+        : future
+            ? context.tokens.muted.withValues(alpha: 0.5)
+            : today
+                ? context.colors.primary
+                : context.tokens.muted;
+    return Center(
+      child: Text(
+        '${date.day}',
+        style: TextStyle(
+          fontSize: (side * 0.36).clamp(9.0, 14.0),
+          fontWeight: filled || today ? FontWeight.w800 : FontWeight.w600,
+          height: 1,
+          color: color,
+          fontFeatures: const [FontFeature.tabularFigures()],
+        ),
+      ),
     );
   }
 

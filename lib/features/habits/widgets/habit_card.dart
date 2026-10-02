@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:streak/app/theme/app_tokens.dart';
+import 'package:streak/core/extensions/color_extensions.dart';
 import 'package:streak/core/extensions/date_extensions.dart';
 import 'package:streak/core/i18n/l10n.dart';
 import 'package:streak/core/icons/habit_glyph.dart';
@@ -375,7 +376,7 @@ class _AmountLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final count = habit.completions[AppClock.now().dayKey]?.count ?? 0;
-    final progress = QuantProgress.of(count: count, target: habit.perDayTarget);
+    final progress = habit.progressFor(count);
     final unit = habit.isTimeAmount || habit.unitLabel.isEmpty
         ? ''
         : ' ${habit.unitLabel}';
@@ -482,10 +483,7 @@ class _ActionButton extends StatelessWidget {
           await controller.addProgress(habit.id, today, habit.incrementAmount);
         }
 
-        final progress = QuantProgress.of(
-          count: count,
-          target: habit.perDayTarget,
-        );
+        final progress = habit.progressFor(count);
 
         void addCustom() => unawaited(addCustomAmount(context, habit));
 
@@ -594,10 +592,10 @@ class _BookButton extends StatelessWidget {
                     painter: BookPainter(fill: t, color: color),
                   ),
                   if (done)
-                    const Icon(
+                    Icon(
                       LucideIcons.check,
                       size: 15,
-                      color: Colors.white,
+                      color: color.ink,
                     ),
                 ],
               ),
@@ -678,7 +676,7 @@ class _TodayButtonState extends State<_TodayButton>
           child: Icon(
             LucideIcons.check,
             size: 22,
-            color: widget.done ? Colors.white : widget.color,
+            color: widget.done ? widget.color.ink : widget.color,
           ),
         ),
       ),
@@ -853,7 +851,7 @@ class _QuantityButtonState extends State<_QuantityButton>
                 child: Icon(
                   widget.done ? LucideIcons.check : LucideIcons.plus,
                   size: 15,
-                  color: widget.done ? Colors.white : widget.color,
+                  color: widget.done ? reachedColor.ink : widget.color,
                 ),
               ),
             ],

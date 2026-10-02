@@ -11,7 +11,6 @@ import 'package:streak/features/habits/data/habit_note.dart';
 import 'package:streak/features/habits/pages/note_editor_page.dart';
 import 'package:streak/core/routing/app_navigator.dart';
 import 'package:streak/features/habits/state/notes_controller.dart';
-import 'package:streak/features/habits/data/quant_progress.dart';
 import 'package:streak/features/settings/state/settings_controller.dart';
 
 const timelineGutter = 46.0;
@@ -343,10 +342,7 @@ class TimelineCheck extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final count = habit.completions[date.dayKey]?.count ?? 0;
-    final progress = QuantProgress.of(
-      count: count,
-      target: habit.perDayTarget,
-    );
+    final progress = habit.progressFor(count);
     final color = _quant ? progress.activeColor(habit.color) : habit.color;
     final circle = context.watch<SettingsController>().isCircleCheck;
 

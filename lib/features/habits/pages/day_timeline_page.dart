@@ -116,7 +116,7 @@ class _DayTimelinePageState extends State<DayTimelinePage> {
 
   List<Todo> _todosOf(BuildContext context) {
     final settings = context.watch<SettingsController>();
-    if (!settings.todosEnabled || !settings.planTodos) return const [];
+    if (!settings.planTodos) return const [];
     return context.select<TodosController, List<Todo>>(
       (todos) => todos.dueOn(_day),
     ).toList()
@@ -221,7 +221,10 @@ class _DayTimelinePageState extends State<DayTimelinePage> {
     if (page != null && !TickerMode.valuesOf(context).enabled) return page;
     final habits = context.watch<HabitsController>().habits;
     final weekStart = context.watch<SettingsController>().weekStart;
-    final plan = DayPlan.of(habits, _day);
+    final plan = DayPlan.of(
+      context.watch<SettingsController>().planHabits ? habits : const [],
+      _day,
+    );
     final rows = _rows(context, plan);
     final todos = _todosOf(context);
     final locale = Localizations.localeOf(context).toString();

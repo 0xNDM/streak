@@ -48,6 +48,7 @@ object WidgetOptimistic {
     private fun resummarize(root: JSONObject, habits: JSONArray, today: Int) {
         val summary = root.optJSONObject("summary") ?: return
         if (today < 0) return
+        summary.remove("ratio")
         var done = 0
         for (i in 0 until habits.length()) {
             val habit = habits.optJSONObject(i) ?: continue
@@ -77,7 +78,7 @@ object WidgetOptimistic {
             }
             KIND_QUANTITATIVE -> {
                 newCount = max(0.0, count + delta)
-                done = newCount >= target
+                done = if (habit.optBoolean("anyAmount", false)) newCount > 0 else newCount >= target
             }
             else -> {
                 done = count < target

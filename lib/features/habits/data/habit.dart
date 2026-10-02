@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:streak/core/extensions/date_extensions.dart';
 import 'package:streak/core/utils/amount_format.dart';
 import 'package:streak/features/habits/data/completion.dart';
+import 'package:streak/features/habits/data/quant_progress.dart';
 import 'package:streak/features/habits/data/reminder.dart';
 import 'package:streak/features/habits/data/substep.dart';
 import 'package:streak/features/habits/data/vacation.dart';
@@ -67,6 +68,7 @@ class Habit {
     this.focusBreakMinutes = 0,
     this.focusOnly = false,
     this.tracking = false,
+    this.anyAmount = false,
     this.difficulty = 0,
     this.startMinute = -1,
     this.durationMinutes = 0,
@@ -146,6 +148,8 @@ class Habit {
   final bool focusOnly;
 
   final bool tracking;
+
+  final bool anyAmount;
 
   final int difficulty;
 
@@ -304,8 +308,18 @@ class Habit {
     if (hasSubsteps) {
       return substeps.every((s) => entry!.steps.contains(s.id));
     }
-    return entry!.count >= perDayTarget;
+    return reaches(entry!.count);
   }
+
+  bool get acceptsAnyAmount => anyAmount && kind == HabitKind.quantitative;
+
+  bool reaches(double count) =>
+      acceptsAnyAmount ? count > 0 : count >= perDayTarget;
+
+  QuantProgress progressFor(double count) =>
+      acceptsAnyAmount && count > 0 && count < perDayTarget
+          ? const QuantProgress(laps: 1, fraction: 0)
+          : QuantProgress.of(count: count, target: perDayTarget);
 
   bool isRelapseOn(DateTime date) =>
       kind == HabitKind.negative && completions.containsKey(date.dayKey);
@@ -341,7 +355,7 @@ class Habit {
       final ids = substeps.map((s) => s.id).toSet();
       return completions.values.where((c) => ids.every(c.steps.contains)).length;
     }
-    return completions.values.where((c) => c.count >= perDayTarget).length;
+    return completions.values.where((c) => reaches(c.count)).length;
   }
 
   bool get isDoneForNow {
@@ -528,7 +542,7 @@ class Habit {
       marked[dayKeyEpoch(entry.key)] = negative ||
           (hasSubsteps
               ? substeps.every((s) => entry.value.steps.contains(s.id))
-              : entry.value.count >= perDayTarget);
+              : reaches(entry.value.count));
     }
     final breaks = [
       for (final vacation in vacations)
@@ -644,6 +658,7 @@ class Habit {
     int? focusBreakMinutes,
     bool? focusOnly,
     bool? tracking,
+    bool? anyAmount,
     int? difficulty,
     int? startMinute,
     int? durationMinutes,
@@ -681,6 +696,7 @@ class Habit {
       focusMinutes: focusMinutes ?? this.focusMinutes,
       focusOnly: focusOnly ?? this.focusOnly,
       tracking: tracking ?? this.tracking,
+      anyAmount: anyAmount ?? this.anyAmount,
       difficulty: difficulty ?? this.difficulty,
       focusBreakMinutes: focusBreakMinutes ?? this.focusBreakMinutes,
       startMinute: startMinute ?? this.startMinute,
@@ -729,6 +745,7 @@ class Habit {
         'focusBreakMinutes': focusBreakMinutes,
         'focusOnly': focusOnly,
         'tracking': tracking,
+        'anyAmount': anyAmount,
         'difficulty': difficulty,
         'startMinute': startMinute,
         'durationMinutes': durationMinutes,
@@ -786,6 +803,7 @@ class Habit {
             ((map['focusBreakMinutes'] ?? 0) as num).toInt(),
         focusOnly: (map['focusOnly'] ?? false) as bool,
         tracking: (map['tracking'] ?? false) as bool,
+        anyAmount: (map['anyAmount'] ?? false) as bool,
         difficulty: ((map['difficulty'] ?? 0) as num).toInt().clamp(0, 3),
         startMinute: ((map['startMinute'] ?? -1) as num).toInt(),
         durationMinutes: ((map['durationMinutes'] ?? 0) as num).toInt(),

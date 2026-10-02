@@ -203,6 +203,8 @@ class HomeWidgetService {
         'focusOnly': habit.needsFocusSession,
         'streak': habit.currentStreak,
         'perDayTarget': habit.effectiveTarget,
+        'clock': habit.isTimeAmount,
+        'anyAmount': habit.acceptsAnyAmount,
         'incrementAmount': habit.incrementAmount,
         'counts': window
             .map((d) => habit.completions[d.dayKey]?.count ?? 0.0)
@@ -233,6 +235,11 @@ class HomeWidgetService {
         .where((h) => !h.isPausedOn(today) && h.isScheduledOn(today))
         .toList();
 
+    final finished = due
+        .where((h) => h.isCompletedOn(today) || h.isCoveredOn(today))
+        .toList();
+    final weight = due.fold<int>(0, (sum, h) => sum + h.difficultyWeight);
+
     var weekDone = 0;
     for (final habit in counted) {
       for (final date in dates) {
@@ -250,7 +257,11 @@ class HomeWidgetService {
       'fallbackIconPath': icons[_allHabitsIcon] ?? '',
       if (Platform.isIOS) 'fallbackIconData': _iconData(icons[_allHabitsIcon]),
       'summary': {
-        'doneToday': due.where((h) => h.isCompletedOn(today)).length,
+        'doneToday': finished.length,
+        'ratio': weight == 0
+            ? 0.0
+            : finished.fold<int>(0, (sum, h) => sum + h.difficultyWeight) /
+                weight,
         'total': due.length,
         'bestStreak': bestStreak,
         'weekDone': weekDone,

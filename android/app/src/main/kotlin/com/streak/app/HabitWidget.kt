@@ -65,7 +65,7 @@ class HabitWidget : GlanceAppWidget() {
         Column(
             modifier = GlanceModifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(horizontal = 16.dp, vertical = 12.dp)
                 .clickable(actionStartActivity<MainActivity>()),
         ) {
             val habits = data?.optJSONArray("habits")
@@ -101,7 +101,8 @@ class HabitWidget : GlanceAppWidget() {
     private fun Header(style: WidgetStyle, summary: JSONObject?, days: JSONArray, offset: Int) {
         val total = summary?.optInt("total", 0) ?: 0
         val done = summary?.optInt("doneToday", 0) ?: 0
-        val ratio = if (total > 0) done.toFloat() / total else 0f
+        val ratio = summary?.optDouble("ratio", Double.NaN)?.takeIf { !it.isNaN() }?.toFloat()
+            ?: if (total > 0) done.toFloat() / total else 0f
         Row(
             modifier = GlanceModifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -163,9 +164,10 @@ class HabitWidget : GlanceAppWidget() {
         val kind = habit.optInt("kind", KIND_POSITIVE)
         val target = habit.optDouble("perDayTarget", 1.0).coerceAtLeast(1.0)
         val quantified = kind == KIND_QUANTITATIVE || target > 1
+        val clock = habit.optBoolean("clock", false)
 
         Row(
-            modifier = GlanceModifier.fillMaxWidth().padding(vertical = 3.dp),
+            modifier = GlanceModifier.fillMaxWidth().padding(vertical = 1.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(
@@ -211,7 +213,12 @@ class HabitWidget : GlanceAppWidget() {
                             kind == KIND_NEGATIVE && count > 0 ->
                                 DayDot(DayMark.RELAPSE, color, style, DOT_DP.dp)
                             completed -> DayDot(DayMark.DONE, color, style, DOT_DP.dp)
-                            quantified && count > 0 -> Partial(count, (count / target).toFloat(), color, style)
+                            quantified && count > 0 -> Partial(
+                                if (clock) WidgetText.clock(count) else WidgetText.compact(count),
+                                (count / target).toFloat(),
+                                color,
+                                style,
+                            )
                             i == TODAY_INDEX -> DayDot(DayMark.TODAY, color, style, DOT_DP.dp)
                             else -> DayDot(DayMark.MISSED, color, style, DOT_DP.dp)
                         }
@@ -222,9 +229,8 @@ class HabitWidget : GlanceAppWidget() {
     }
 
     @Composable
-    private fun Partial(count: Double, ratio: Float, color: Color, style: WidgetStyle) {
+    private fun Partial(label: String, ratio: Float, color: Color, style: WidgetStyle) {
         val filled = ratio.coerceIn(0f, 1f)
-        val label = WidgetText.compact(count)
         Box(
             modifier = GlanceModifier
                 .size(DOT_DP.dp)

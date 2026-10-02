@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:streak/app/theme/app_tokens.dart';
+import 'package:streak/core/extensions/color_extensions.dart';
 import 'package:streak/core/extensions/date_extensions.dart';
 import 'package:streak/core/i18n/date_labels.dart';
 import 'package:streak/core/i18n/l10n.dart';
@@ -97,7 +98,7 @@ class _CheckTile extends StatelessWidget {
           child: Icon(
             negative ? LucideIcons.ban : Icons.check_rounded,
             size: size * 0.5,
-            color: marked ? Colors.white : tint.withValues(alpha: 0.85),
+            color: marked ? tint.ink : tint.withValues(alpha: 0.85),
           ),
         ),
       ),
@@ -130,7 +131,7 @@ class _QuantTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final today = AppClock.now();
     final count = habit.completions[today.dayKey]?.count ?? 0;
-    final progress = QuantProgress.of(count: count, target: habit.perDayTarget);
+    final progress = habit.progressFor(count);
     final reached = progress.reachedGoal;
     final settled = reached ? progress.reachedColor(habit.color) : habit.color;
 
@@ -176,7 +177,7 @@ class _QuantTile extends StatelessWidget {
                     builder: (context, t, _) => Icon(
                       Icons.check_rounded,
                       size: size * 0.5,
-                      color: reached || t >= 0.45 ? Colors.white : habit.color,
+                      color: reached || t >= 0.45 ? habit.color.ink : habit.color,
                     ),
                   ),
               ],

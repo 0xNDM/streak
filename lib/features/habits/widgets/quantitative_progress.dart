@@ -72,10 +72,7 @@ class QuantitativeProgress extends StatelessWidget {
               QuantKind.reading =>
                 ReadingBooks(habit: habit, ratio: ratio, count: count),
               QuantKind.generic || QuantKind.time => _GenericRing(
-                  progress: QuantProgress.of(
-                    count: count,
-                    target: habit.perDayTarget,
-                  ),
+                  progress: habit.progressFor(count),
                   color: habit.color,
                 ),
             },

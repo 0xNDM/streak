@@ -127,10 +127,13 @@ class IslandLedger {
     for (final entry in habit.completions.values) {
       final day = dayKeyEpoch(entry.date);
       if (day > last) continue;
-      if (entry.count >= habit.effectiveTarget) checked.add(day);
+      if (entry.count >= habit.effectiveTarget ||
+          habit.acceptsAnyAmount && entry.count > 0) {
+        checked.add(day);
+      }
       final complete = habit.hasSubsteps
           ? habit.substeps.every((s) => entry.steps.contains(s.id))
-          : entry.count >= habit.perDayTarget;
+          : habit.reaches(entry.count);
       if (complete) done.add(day);
     }
     return _Share(today, _everyDay(habit), milestones, checked, done);
