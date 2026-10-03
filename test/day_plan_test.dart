@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:streak/features/habits/data/day_plan.dart';
 import 'package:streak/features/habits/data/habit.dart';
+import 'package:streak/features/todos/data/todo.dart';
 
 final _day = DateTime(2026, 8, 12);
 
@@ -30,7 +31,51 @@ Habit _habit({
       createdAt: createdAt ?? DateTime(2026, 1, 1),
     );
 
+Todo _todo(String id, {int? minutes, int? estimate}) => Todo(
+      id: id,
+      text: id,
+      createdAt: DateTime(2026, 8, 1),
+      date: '12-08-2026',
+      minutes: minutes,
+      estimate: estimate,
+    );
+
 void main() {
+  test('timed to-dos sit in the timeline between the habits', () {
+    final plan = DayPlan.of(
+      [
+        _habit(id: 'gym', start: 9 * 60, duration: 60),
+        _habit(id: 'read', start: 14 * 60, duration: 30),
+      ],
+      _day,
+      todos: [
+        _todo('call', minutes: 11 * 60, estimate: 45),
+        _todo('someday'),
+      ],
+    );
+
+    expect(plan.slots.map((s) => s.habit?.id ?? s.todo?.id ?? 'gap'), [
+      'gym',
+      'gap',
+      'call',
+      'gap',
+      'read',
+    ]);
+    expect(plan.slots[1].minutes, 60);
+    expect(plan.slots[3].minutes, 14 * 60 - (11 * 60 + 45));
+    expect(plan.planned.map((h) => h.id), ['gym', 'read']);
+  });
+
+  test('a to-do at the same time as a habit goes after it', () {
+    final plan = DayPlan.of(
+      [_habit(id: 'gym', start: 9 * 60)],
+      _day,
+      todos: [_todo('call', minutes: 9 * 60)],
+    );
+    expect(plan.slots.first.habit?.id, 'gym');
+    expect(plan.slots.last.todo?.id, 'call');
+  });
+
   test('planned habits come out sorted with the gaps between them', () {
     final plan = DayPlan.of([
       _habit(id: 'late', start: 13 * 60, duration: 30),

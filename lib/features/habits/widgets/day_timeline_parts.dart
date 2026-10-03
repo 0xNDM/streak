@@ -12,6 +12,8 @@ import 'package:streak/features/habits/pages/note_editor_page.dart';
 import 'package:streak/core/routing/app_navigator.dart';
 import 'package:streak/features/habits/state/notes_controller.dart';
 import 'package:streak/features/settings/state/settings_controller.dart';
+import 'package:streak/features/todos/data/todo.dart';
+import 'package:streak/features/todos/widgets/todo_check.dart';
 
 const timelineGutter = 46.0;
 const _cardPadding = 12.0;
@@ -179,6 +181,144 @@ class TimelineBlock extends StatelessWidget {
                   ],
                 ),
                 TimelineNotes(habit: habit, date: date),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+Color timelineTodoColor(BuildContext context, Todo todo) =>
+    todo.priority == TodoPriority.none
+        ? context.colors.primary
+        : todoPriorityColor(context, todo.priority);
+
+class TimelineTodo extends StatelessWidget {
+  const TimelineTodo({
+    super.key,
+    required this.todo,
+    required this.checking,
+    required this.onToggle,
+    required this.onOpen,
+  });
+
+  final Todo todo;
+  final bool checking;
+  final VoidCallback onToggle;
+  final VoidCallback onOpen;
+
+  int get _start => todo.minutes ?? 0;
+
+  int get _span => todo.estimate ?? 0;
+
+  double get _tileHeight {
+    if (_span <= 0) return _tile;
+    return (_tile + (_span - 15) * 0.85).clamp(_tile, 148.0);
+  }
+
+  String get _subtitle {
+    final start = minuteLabel(_start);
+    if (_span <= 0) return start;
+    return '$start - ${minuteLabel(_start + _span)}  ·  ${spanLabel(_span)}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colors;
+    final accent = timelineTodoColor(context, todo);
+    final done = todo.done || checking;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: timelineGutter,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 14, right: 8),
+            child: Text(
+              minuteLabel(_start),
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+                color: context.tokens.muted,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ),
+        ),
+        Expanded(
+          child: Semantics(
+            button: true,
+            child: GestureDetector(
+              onTap: onOpen,
+              child: Container(
+                padding: const EdgeInsets.all(_cardPadding),
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainerHighest.withValues(
+                    alpha: done ? 0.35 : 0.6,
+                  ),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: _tile,
+                      height: _tileHeight,
+                      decoration: BoxDecoration(
+                        color: accent.withValues(alpha: done ? 0.5 : 0.18),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Icon(
+                        LucideIcons.listTodo,
+                        size: 21,
+                        color: done ? scheme.surface : accent,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            todo.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 15.5,
+                              fontWeight: FontWeight.w700,
+                              color:
+                                  done ? context.tokens.muted : scheme.onSurface,
+                              decoration:
+                                  done ? TextDecoration.lineThrough : null,
+                              decorationColor: context.tokens.muted,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            _subtitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                              color: context.tokens.muted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    TodoCheck(
+                      title: todo.title,
+                      done: done,
+                      ring: accent,
+                      onToggle: onToggle,
+                    ),
                   ],
                 ),
               ),

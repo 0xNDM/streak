@@ -37,16 +37,25 @@ Future<bool?> openTodoEditor(
   BuildContext context, {
   Todo? todo,
   String project = '',
+  String date = '',
 }) =>
     AppNavigator.key.currentState!.push(
-      TodoNoteRoute(page: TodoEditorPage(todo: todo, project: project)),
+      TodoNoteRoute(
+        page: TodoEditorPage(todo: todo, project: project, date: date),
+      ),
     );
 
 class TodoEditorPage extends StatefulWidget {
-  const TodoEditorPage({super.key, this.todo, this.project = ''});
+  const TodoEditorPage({
+    super.key,
+    this.todo,
+    this.project = '',
+    this.date = '',
+  });
 
   final Todo? todo;
   final String project;
+  final String date;
 
   @override
   State<TodoEditorPage> createState() => _TodoEditorPageState();
@@ -72,7 +81,7 @@ class _TodoEditorPageState extends State<TodoEditorPage> {
   late final _body = TextEditingController(text: widget.todo?.body ?? '');
   final _titleFocus = FocusNode();
   final _bodyFocus = FocusNode();
-  late String _date = widget.todo?.date ?? '';
+  late String _date = widget.todo?.date ?? widget.date;
   late int? _minutes = widget.todo?.minutes;
   late int? _estimate = widget.todo?.estimate;
   late TodoPriority _priority = widget.todo?.priority ?? TodoPriority.none;

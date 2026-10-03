@@ -92,6 +92,8 @@ class _DayTimelinePageState extends State<DayTimelinePage> {
     if (mounted) setState(() => _completing.remove(todo.id));
   }
 
+  Future<void> _newTodo() => openTodoEditor(context, date: _day.dayKey);
+
   Future<void> _openTodo(Todo todo) async {
     final deleted = await openTodoEditor(context, todo: todo);
     if (deleted == true && mounted) discardTodo(context, todo);
@@ -127,8 +129,11 @@ class _DayTimelinePageState extends State<DayTimelinePage> {
 
   Color _neighbourColor(DayPlan plan, int from, int step) {
     for (var i = from; i >= 0 && i < plan.slots.length; i += step) {
-      final habit = plan.slots[i].habit;
+      final slot = plan.slots[i];
+      final habit = slot.habit;
       if (habit != null) return habit.color;
+      final todo = slot.todo;
+      if (todo != null) return timelineTodoColor(context, todo);
     }
     return context.colors.primary;
   }
@@ -173,12 +178,23 @@ class _DayTimelinePageState extends State<DayTimelinePage> {
     for (var i = 0; i < plan.slots.length; i++) {
       final slot = plan.slots[i];
       final habit = slot.habit;
+      final todo = slot.todo;
       final at = index;
       rows.add(
         () => Entrance(
           index: at,
           delay: _entrance,
-          child: habit == null
+          child: todo != null
+              ? Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 3),
+                  child: TimelineTodo(
+                    todo: todo,
+                    checking: _completing.contains(todo.id),
+                    onToggle: () => _toggleTodo(todo),
+                    onOpen: () => _openTodo(todo),
+                  ),
+                )
+              : habit == null
               ? TimelineGap(
                   minutes: slot.minutes,
                   from: _neighbourColor(plan, i - 1, -1),
@@ -240,12 +256,14 @@ class _DayTimelinePageState extends State<DayTimelinePage> {
     if (page != null && !TickerMode.valuesOf(context).enabled) return page;
     final habits = context.watch<HabitsController>().habits;
     final weekStart = context.watch<SettingsController>().weekStart;
+    final dueTodos = _todosOf(context);
     final plan = DayPlan.of(
       context.watch<SettingsController>().planHabits ? habits : const [],
       _day,
+      todos: dueTodos,
     );
     final rows = _rows(context, plan);
-    final todos = _todosOf(context);
+    final todos = dueTodos.where((t) => t.minutes == null).toList();
     final locale = Localizations.localeOf(context).toString();
     final first = _day.startOfWeek(weekStart);
 
@@ -276,6 +294,30 @@ class _DayTimelinePageState extends State<DayTimelinePage> {
             ? null
             : Text(DateFormat.yMMMM(locale).format(_day)),
         actions: [
+          if (style.planTodos)
+            express
+                ? Padding(
+                    padding: EdgeInsets.only(right: _isToday ? 16 : 8),
+                    child: Center(child: ExpressIconButton(
+                      icon: LucideIcons.listPlus,
+                      tooltip: context.l10n.todo_new,
+                      onPressed: _newTodo,
+                    )),
+                  )
+                : minimal
+                ? IconButton(
+                    tooltip: context.l10n.todo_new,
+                    icon: const Icon(LucideIcons.listPlus),
+                    onPressed: _newTodo,
+                  )
+                : Padding(
+                    padding: EdgeInsets.only(right: _isToday ? 16 : 8),
+                    child: GlassIconButton(
+                      icon: LucideIcons.listPlus,
+                      tooltip: context.l10n.todo_new,
+                      onTap: _newTodo,
+                    ),
+                  ),
           if (!_isToday)
             express
                 ? Padding(
