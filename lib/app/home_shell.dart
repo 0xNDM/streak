@@ -63,6 +63,10 @@ class _HomeShellState extends State<HomeShell>
   late final AnimationController _swap;
   final _compact = ValueNotifier(false);
   Timer? _nextDay;
+  DateTime? _leftAt;
+  bool _replayDue = false;
+
+  static const _awayForReplay = Duration(minutes: 5);
 
   @override
   void initState() {
@@ -107,7 +111,10 @@ class _HomeShellState extends State<HomeShell>
 
   void _select(List<_Tab> tabs, _Tab tab) {
     if (tab == _tab) return;
-    if (tab == _Tab.today) TodayIntro.replay();
+    if (tab == _Tab.today && _replayDue) {
+      _replayDue = false;
+      TodayIntro.replay();
+    }
     setState(() {
       _visited.add(tab);
       _tab = tab;
@@ -200,12 +207,20 @@ class _HomeShellState extends State<HomeShell>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.hidden) {
+      _leftAt ??= DateTime.now();
+    }
     if (state == AppLifecycleState.resumed) {
+      final left = _leftAt;
+      _leftAt = null;
+      if (left != null && DateTime.now().difference(left) >= _awayForReplay) {
+        _replayDue = _tab != _Tab.today;
+        if (!_replayDue) TodayIntro.replay();
+      }
       final habits = context.read<HabitsController>();
       if (Platform.isIOS) _applyWidgetActions(habits);
       habits.refresh().then((_) => HomeWidgetService.sync(habits.asMap));
       context.read<TodosController>().reload();
-      TodayIntro.replay();
       drainFocusActions();
       context.read<SettingsController>().runAutoBackup();
       _waitForNextDay();
