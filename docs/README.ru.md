@@ -7,7 +7,7 @@
 ---
 
 <div align="right">
-  <sub><a href="../README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.zh-CN.md">中文</a> · <b>Русский</b></sub>
+  <sub><a href="../README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.zh-CN.md">中文</a> · <b>Русский</b> · <a href="README.ja.md">日本語</a></sub>
 </div>
 
 <div align="center">
