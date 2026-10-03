@@ -10,6 +10,7 @@ import 'package:streak/core/minimal/minimal_kit.dart';
 import 'package:streak/core/widgets/sheet_type.dart';
 import 'package:streak/features/habits/data/completion.dart';
 import 'package:streak/features/habits/data/habit.dart';
+import 'package:streak/features/habits/widgets/habit_heatmap.dart';
 import 'package:streak/features/habits/state/notes_controller.dart';
 import 'package:streak/features/settings/state/settings_controller.dart';
 
@@ -25,7 +26,28 @@ String _clock(BuildContext context, Completion entry) {
   return DateFormat.Hm(context.l10n.localeName).format(stamp);
 }
 
-String lastCheckLabel(BuildContext context, Habit habit) {
+(String, int) periodTotal(BuildContext context, Habit habit, HeatmapMode mode) {
+  final today = AppClock.today();
+  final (label, from) = switch (mode) {
+    HeatmapMode.week => (
+        context.l10n.period_this_week,
+        today.startOfWeek(context.read<SettingsController>().weekStart),
+      ),
+    HeatmapMode.year => (context.l10n.period_this_year, DateTime(today.year)),
+    _ => (context.l10n.period_this_month, DateTime(today.year, today.month)),
+  };
+  final count = habit.completions.values
+      .where((e) => e.day != null && !e.day!.isBefore(from))
+      .where(habit.isDoneEntry)
+      .length;
+  return (label, count);
+}
+
+String lastCheckLabel(
+  BuildContext context,
+  Habit habit, {
+  bool withTime = true,
+}) {
   Completion? entry;
   for (final candidate in habit.completions.values) {
     final day = candidate.day;
@@ -41,7 +63,7 @@ String lastCheckLabel(BuildContext context, Habit habit) {
           ? context.l10n.yesterday
           : DateFormat.MMMd(context.l10n.localeName).format(day);
   final time = entry.stamp;
-  if (time == null) return when;
+  if (time == null || !withTime) return when;
   return '$when · ${DateFormat.Hm(context.l10n.localeName).format(time)}';
 }
 

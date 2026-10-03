@@ -283,7 +283,7 @@ class _HabitDetailsPageState extends State<HabitDetailsPage> {
                 if (minimal) ...[
                   MinimalSection(
                     title: context.l10n.streaks,
-                    child: MinimalStreakTiles(habit: habit),
+                    child: MinimalStreakTiles(habit: habit, mode: _mode),
                   ),
                   if (habit.hasCost)
                     MinimalSection(
@@ -292,7 +292,7 @@ class _HabitDetailsPageState extends State<HabitDetailsPage> {
                     ),
                 ] else ...[
                   SectionLabel(context.l10n.streaks),
-                  StreakSummary(habit: habit),
+                  StreakSummary(habit: habit, mode: _mode),
                   if (habit.hasCost) ...[
                     const SizedBox(height: 12),
                     SavedMoneyCard(habit: habit),

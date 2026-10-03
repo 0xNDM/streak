@@ -3,6 +3,8 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:streak/app/theme/app_tokens.dart';
 import 'package:streak/core/i18n/l10n.dart';
 import 'package:streak/features/habits/data/habit.dart';
+import 'package:streak/features/habits/widgets/check_history.dart';
+import 'package:streak/features/habits/widgets/habit_heatmap.dart';
 import 'package:provider/provider.dart';
 import 'package:streak/core/express/express_motion.dart';
 import 'package:streak/core/express/express_shapes.dart';
@@ -11,9 +13,10 @@ import 'package:streak/core/express/express_type.dart';
 import 'package:streak/features/settings/state/settings_controller.dart';
 
 class StreakSummary extends StatelessWidget {
-  const StreakSummary({super.key, required this.habit});
+  const StreakSummary({super.key, required this.habit, required this.mode});
 
   final Habit habit;
+  final HeatmapMode mode;
 
   String _format(BuildContext context, int value) => switch (habit.interval) {
         HabitInterval.weekly => context.l10n.count_weeks(value),
@@ -24,8 +27,20 @@ class StreakSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final negative = habit.kind == HabitKind.negative;
+    final (period, count) = periodTotal(context, habit, mode);
     return Row(
       children: [
+        if (habit.tracking)
+          Expanded(
+            child: _StatBox(
+              icon: LucideIcons.history,
+              iconColor: habit.color,
+              shape: ExpressShape.cookie,
+              label: context.l10n.last_check,
+              value: lastCheckLabel(context, habit, withTime: false),
+            ),
+          )
+        else ...[
         Expanded(
           child: _StatBox(
             icon: LucideIcons.flame,
@@ -45,14 +60,15 @@ class StreakSummary extends StatelessWidget {
             value: _format(context, habit.longestStreak),
           ),
         ),
+        ],
         const SizedBox(width: Express.groupGap),
         Expanded(
           child: _StatBox(
             icon: negative ? LucideIcons.triangleAlert : LucideIcons.circleCheck,
             iconColor: negative ? context.tokens.danger : context.tokens.success,
             shape: ExpressShape.clover,
-            label: negative ? context.l10n.relapses : context.l10n.total,
-            value: '${habit.totalCompletions}',
+            label: period,
+            value: '$count',
           ),
         ),
       ],
