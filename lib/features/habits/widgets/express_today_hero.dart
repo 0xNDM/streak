@@ -302,6 +302,9 @@ class _CountLineState extends State<_CountLine>
   }
 }
 
+String trackingChipLabel(BuildContext context, int count, bool hidden) =>
+    hidden ? context.l10n.tracking_show(count) : context.l10n.tracking_hide;
+
 class ExpressTodayHeader extends StatelessWidget {
   const ExpressTodayHeader({
     super.key,
@@ -316,6 +319,9 @@ class ExpressTodayHeader extends StatelessWidget {
     required this.categories,
     required this.category,
     required this.onCategory,
+    required this.tracked,
+    required this.hideTracking,
+    required this.onTracking,
   });
 
   final List<Habit> habits;
@@ -329,6 +335,9 @@ class ExpressTodayHeader extends StatelessWidget {
   final List<String> categories;
   final String? category;
   final ValueChanged<String?> onCategory;
+  final int tracked;
+  final bool hideTracking;
+  final VoidCallback onTracking;
 
   @override
   Widget build(BuildContext context) {
@@ -354,10 +363,11 @@ class ExpressTodayHeader extends StatelessWidget {
             onChanged: (i) => onMode(HeatmapMode.values[i]),
           ),
         ],
-        if (categories.isNotEmpty) ...[
+        if (categories.isNotEmpty || tracked > 0) ...[
           const SizedBox(height: 12),
           ExpressChipBar(
             children: [
+              if (categories.isNotEmpty)
               ExpressChip(
                 label: context.l10n.all,
                 active: category == null,
@@ -370,6 +380,13 @@ class ExpressTodayHeader extends StatelessWidget {
                   active: category == name,
                   onTap: () => onCategory(name),
                   onLongPress: () => showCategoryOrderSheet(context),
+                ),
+              if (tracked > 0)
+                ExpressChip(
+                  label: trackingChipLabel(context, tracked, hideTracking),
+                  icon: hideTracking ? LucideIcons.eye : LucideIcons.eyeOff,
+                  active: false,
+                  onTap: onTracking,
                 ),
             ],
           ),

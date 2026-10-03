@@ -79,6 +79,7 @@ class SettingsController extends ChangeNotifier {
     _todoPapers = LocalStore.setting('todoPapers', true);
     _sortCompletedLast = LocalStore.setting('sortCompletedLast', true);
     _todayOnly = LocalStore.setting('todayOnly', false);
+    _hideTracking = LocalStore.setting('hideTracking', false);
     _notesEnabled = LocalStore.setting('notesEnabled', true);
     _trackingOption = LocalStore.setting('trackingOption', false);
     _showTodayProgress = LocalStore.setting('showTodayProgress', true);
@@ -168,6 +169,7 @@ class SettingsController extends ChangeNotifier {
   late int _appStyle;
   late bool _sortCompletedLast;
   late bool _todayOnly;
+  late bool _hideTracking;
   late bool _notesEnabled;
   late bool _islandEnabled;
   late bool _trackingOption;
@@ -377,6 +379,7 @@ class SettingsController extends ChangeNotifier {
 
   bool get sortCompletedLast => _sortCompletedLast;
   bool get todayOnly => _todayOnly;
+  bool get hideTracking => _hideTracking;
   bool get notesEnabled => _notesEnabled;
 
   bool get focusEnabled => _focusEnabled;
@@ -774,6 +777,12 @@ class SettingsController extends ChangeNotifier {
   Future<void> setTodayOnly(bool value) async {
     _todayOnly = value;
     await LocalStore.writeSetting('todayOnly', value);
+    notifyListeners();
+  }
+
+  Future<void> setHideTracking(bool value) async {
+    _hideTracking = value;
+    await LocalStore.writeSetting('hideTracking', value);
     notifyListeners();
   }
 
