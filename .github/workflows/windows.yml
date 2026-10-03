@@ -1,16 +1,17 @@
 name: Windows zip
 
-# Builds the Windows app from whatever branch you launch this on and attaches the
-# zip to a release that already exists. Separate from build-apk.yml on purpose:
-# re-running that one rebuilds and replaces the APKs, and those have to keep
-# matching the commit the tag points at, or F-Droid's reproducible build breaks.
+# Builds the Windows app from whatever branch you launch this on. The zip and the
+# installer are always kept as a run artifact; with a tag they are also attached
+# to that release, which must already exist. Separate from build-apk.yml on
+# purpose: re-running that one rebuilds and replaces the APKs, and those have to
+# keep matching the commit the tag points at, or F-Droid's reproducible build breaks.
 
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Existing release tag to attach the zip to, e.g. v1.8.0'
-        required: true
+        description: 'Existing release tag to attach to, e.g. v1.8.0. Empty = artifact only'
+        required: false
         type: string
 
 permissions:
@@ -44,8 +45,30 @@ jobs:
       - name: Zip the build
         run: Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath Streak-windows-x64.zip
 
-      - name: Add it to the release
+      - name: Install Inno Setup
+        run: choco install innosetup --version=6.7.1 -y --no-progress
+
+      - name: Build the installer
+        run: |
+          $version = '${{ inputs.tag }}'.TrimStart('v')
+          if (-not $version) { $version = ((Select-String -Path pubspec.yaml -Pattern '^version:\s*([^+\s]+)').Matches[0].Groups[1].Value) }
+          $iscc = (Get-ChildItem "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe").FullName
+          & $iscc "/DAppVersion=$version" windows\installer.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Keep them as an artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: streak-windows
+          path: |
+            Streak-windows-x64.zip
+            build/installer/Streak-windows-x64-setup.exe
+
+      - name: Add them to the release
+        if: inputs.tag != ''
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag }}
-          files: Streak-windows-x64.zip
+          files: |
+            Streak-windows-x64.zip
+            build/installer/Streak-windows-x64-setup.exe

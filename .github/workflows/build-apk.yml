@@ -191,11 +191,22 @@ jobs:
       - name: Zip the build
         run: Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath Streak-windows-x64.zip
 
+      - name: Install Inno Setup
+        run: choco install innosetup --version=6.7.1 -y --no-progress
+
+      - name: Build the installer
+        run: |
+          $iscc = (Get-ChildItem "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe").FullName
+          & $iscc "/DAppVersion=$('${{ inputs.tag }}'.TrimStart('v'))" windows\installer.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Add it to the release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag }}
-          files: Streak-windows-x64.zip
+          files: |
+            Streak-windows-x64.zip
+            build/installer/Streak-windows-x64-setup.exe
 
   linux:
     name: Build Linux
