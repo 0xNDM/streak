@@ -278,6 +278,8 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
                 onPressed: _canSave ? _save : null,
                 style: FilledButton.styleFrom(
                   backgroundColor: widget.accent,
+                  disabledBackgroundColor:
+                      widget.accent.withValues(alpha: 0.14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
@@ -287,7 +289,9 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
                   style: sheetActionStyle(
                     context,
                     size: 16,
-                    color: widget.accent.computeLuminance() > 0.6
+                    color: !_canSave
+                        ? widget.accent.withValues(alpha: 0.6)
+                        : widget.accent.computeLuminance() > 0.6
                         ? Colors.black
                         : Colors.white,
                   ),

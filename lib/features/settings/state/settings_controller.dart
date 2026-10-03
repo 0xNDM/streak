@@ -8,6 +8,7 @@ import 'package:streak/core/utils/cover_storage.dart';
 import 'package:streak/core/utils/money_format.dart';
 import 'package:streak/core/widgets/celebration_overlay.dart';
 import 'package:streak/features/focus/state/focus_audio.dart';
+import 'package:streak/features/focus/widgets/focus_backgrounds.dart';
 import 'package:streak/services/app_icon_service.dart';
 import 'package:streak/services/backup_service.dart';
 import 'package:streak/services/home_widget_service.dart';
@@ -69,11 +70,13 @@ class SettingsController extends ChangeNotifier {
       'planContent',
       LocalStore.setting('planTodos', false) ? 1 : 0,
     );
+    _planMonth = LocalStore.setting('planMonth', false);
     _swipeCards = LocalStore.setting('swipeCards', false);
     _cardActivity = LocalStore.setting('cardActivity', true);
     _viewSwitcher = LocalStore.setting('viewSwitcher', true);
     _compactCards = LocalStore.setting('compactCards', false);
     _todosEnabled = LocalStore.setting('todosEnabled', true);
+    _todoPapers = LocalStore.setting('todoPapers', true);
     _sortCompletedLast = LocalStore.setting('sortCompletedLast', true);
     _todayOnly = LocalStore.setting('todayOnly', false);
     _notesEnabled = LocalStore.setting('notesEnabled', true);
@@ -89,7 +92,8 @@ class SettingsController extends ChangeNotifier {
         List<String>.from(LocalStore.setting('customQuotes', const <String>[]));
     _focusEnabled = LocalStore.setting('focusEnabled', true);
     _focusClockStyle = LocalStore.setting('focusClockStyle', 2);
-    _focusScene = LocalStore.setting('focusScene', 3);
+    _focusScene = LocalStore.setting('focusScene', defaultFocusScene);
+    if (_focusScene == 0) _focusScene = defaultFocusScene;
     _focusImage = LocalStore.setting('focusImage', '');
     _focusTracks =
         List<String>.from(LocalStore.setting('focusTracks', const <String>[]));
@@ -151,6 +155,8 @@ class SettingsController extends ChangeNotifier {
   late int _startView;
   late bool _planningEnabled;
   late int _planContent;
+  late bool _planMonth;
+  late bool _todoPapers;
   late bool _swipeCards;
   late bool _cardActivity;
   late bool _viewSwitcher;
@@ -309,6 +315,14 @@ class SettingsController extends ChangeNotifier {
     notifyListeners();
   }
 
+  bool get planMonth => _planMonth;
+
+  Future<void> setPlanMonth(bool value) async {
+    _planMonth = value;
+    notifyListeners();
+    await LocalStore.writeSetting('planMonth', value);
+  }
+
   bool get swipeCards => _swipeCards;
 
   Future<void> setSwipeCards(bool value) async {
@@ -339,6 +353,14 @@ class SettingsController extends ChangeNotifier {
     _compactCards = value;
     await LocalStore.writeSetting('compactCards', value);
     notifyListeners();
+  }
+
+  bool get todoPapers => _todoPapers;
+
+  Future<void> setTodoPapers(bool value) async {
+    _todoPapers = value;
+    notifyListeners();
+    await LocalStore.writeSetting('todoPapers', value);
   }
 
   bool get todosEnabled => _todosEnabled;
@@ -422,8 +444,8 @@ class SettingsController extends ChangeNotifier {
     _hiddenScenes = [..._hiddenScenes, scene];
     await LocalStore.writeSetting('hiddenScenes', _hiddenScenes);
     if (_focusScene == scene) {
-      _focusScene = 0;
-      await LocalStore.writeSetting('focusScene', 0);
+      _focusScene = defaultFocusScene;
+      await LocalStore.writeSetting('focusScene', _focusScene);
     }
     notifyListeners();
   }
@@ -506,8 +528,8 @@ class SettingsController extends ChangeNotifier {
     if (_focusImage == path) {
       _focusImage = '';
       await LocalStore.writeSetting('focusImage', '');
-      _focusScene = 0;
-      await LocalStore.writeSetting('focusScene', 0);
+      _focusScene = defaultFocusScene;
+      await LocalStore.writeSetting('focusScene', _focusScene);
     }
     notifyListeners();
     await CoverStorage.forget(path);

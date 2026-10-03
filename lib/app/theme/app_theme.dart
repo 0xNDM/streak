@@ -16,6 +16,12 @@ class AppTheme {
   static ThemeData dark([Color? accent, int style = 0]) =>
       _build(Brightness.dark, accent ?? AppPalette.brand, style);
 
+  static BorderSide cardEdge(bool isDark) => BorderSide(
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.06)
+            : Colors.black.withValues(alpha: 0.05),
+      );
+
   static Color adaptAccent(Color accent, bool isDark) {
     final luminance = accent.computeLuminance();
     if (isDark && luminance < 0.06) return const Color(0xFFF2F2F2);
@@ -212,10 +218,13 @@ class AppTheme {
       ),
       cardTheme: CardThemeData(
         color: cardColor,
-        elevation: 0,
+        elevation: minimal || isDark ? 0 : 1,
+        shadowColor: Colors.black.withValues(alpha: 0.35),
+        surfaceTintColor: Colors.transparent,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
+          side: minimal ? BorderSide.none : cardEdge(isDark),
         ),
       ),
       bottomSheetTheme: BottomSheetThemeData(

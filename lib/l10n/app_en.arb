@@ -341,6 +341,8 @@
   "every_day": "Every day",
   "no_days": "No days",
   "repeat_hours": "Repeat during the day",
+  "repeat_until": "Until",
+  "end_of_day": "End of the day",
   "every_n_hours": "Every {n} h",
   "@every_n_hours": {
     "placeholders": {
@@ -549,6 +551,10 @@
     "placeholders": { "count": { "type": "int" } }
   },
   "todos": "To-Do",
+  "todo_view_list": "Simple",
+  "todo_view_papers": "Folders",
+  "todo_style": "To-do style",
+  "todo_style_sub": "A simple list, or folders of sheets like Google Keep.",
   "todos_enable_sub": "A quick list beside your habits",
   "todo_new": "New to-do",
   "todo_hint": "What needs doing?",
@@ -633,7 +639,7 @@
   "focus_alert_custom": "Pick a sound",
   "focus_alert_none": "Silent",
   "focus_hold": "Wait until I stop it",
-  "focus_hold_sub": "The next round waits until you tap Continue.",
+  "focus_hold_sub": "The break also waits until you tap Continue. After a break, Focus always waits.",
   "focus_restart": "Restart",
   "focus_restart_title": "Restart this round?",
   "focus_restart_body": "The time you have focused in this round will be lost.",
@@ -655,6 +661,9 @@
   "focus_pause": "Pause",
   "focus_resume": "Resume",
   "focus_sound": "Sound",
+  "focus_options": "Options",
+  "focus_fullscreen": "Full screen",
+  "focus_exit_fullscreen": "Exit full screen",
   "focus_pick_audio": "Choose a track from your phone",
   "focus_no_sound": "No track chosen",
   "focus_tasks": "List subtask",
@@ -707,6 +716,18 @@
   "focus_pomodoro": "Pomodoro",
   "focus_pomodoro_sub": "Chain focus rounds with short breaks",
   "focus_break": "Break",
+  "focus_break_in": "Break in {n}",
+  "@focus_break_in": {
+    "placeholders": {
+      "n": { "type": "String" }
+    }
+  },
+  "focus_back_in": "Focus in {n}",
+  "@focus_back_in": {
+    "placeholders": {
+      "n": { "type": "String" }
+    }
+  },
   "focus_round": "Round {n}",
   "focus_daily_goal": "Focus goal",
   "focus_goal_today": "{done} of {goal} today",
@@ -1048,6 +1069,10 @@
   },
   "a11y_previous_week": "Previous week",
   "a11y_next_week": "Next week",
+  "a11y_previous_month": "Previous month",
+  "a11y_next_month": "Next month",
+  "plan_show_month": "Show the whole month",
+  "plan_show_week": "Show one week",
   "a11y_increase": "Increase",
   "@a11y_increase": {
     "description": "Screen reader label for the plus button of a number stepper"

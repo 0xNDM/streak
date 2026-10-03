@@ -628,6 +628,15 @@ List<Widget> _preferenceTiles(BuildContext context) {
           value: settings.todosEnabled,
           onChanged: settings.setTodosEnabled,
         ),
+        if (settings.todosEnabled)
+          ExpressTile(
+            icon: LucideIcons.stickyNote,
+            title: context.l10n.todo_style,
+            subtitle: context.l10n.todo_style_sub,
+            value: SettingsActions.todoStyles(context)[
+                settings.todoPapers ? 1 : 0],
+            onTap: () => SettingsActions.pickTodoStyle(context),
+          ),
         _Toggle(
           icon: LucideIcons.palmtree,
           title: context.l10n.gamification_beta,

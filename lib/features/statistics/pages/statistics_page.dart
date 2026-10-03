@@ -29,6 +29,7 @@ import 'package:streak/features/statistics/widgets/period_totals.dart';
 import 'package:streak/features/statistics/widgets/stat_kit.dart';
 import 'package:streak/features/statistics/widgets/stat_line_charts.dart';
 import 'package:streak/features/statistics/widgets/year_heatmap.dart';
+import 'package:streak/core/widgets/glass.dart';
 
 class StatisticsPage extends StatefulWidget {
   const StatisticsPage({super.key});
@@ -40,6 +41,13 @@ class StatisticsPage extends StatefulWidget {
 class _StatisticsPageState extends State<StatisticsPage> {
   int _year = AppClock.now().year;
   String? _habitId;
+  final _scrolled = ValueNotifier(false);
+
+  @override
+  void dispose() {
+    _scrolled.dispose();
+    super.dispose();
+  }
 
   ({List<Habit> habits, String? id, int year})? _statsKey;
   HabitStats _stats = HabitStats.empty;
@@ -70,8 +78,20 @@ class _StatisticsPageState extends State<StatisticsPage> {
     if (settings.isMinimalStyle) return const MinimalStatisticsPage();
 
     return Scaffold(
-      appBar: AppBar(title: Text(context.l10n.statistics)),
-      body: Consumer<HabitsController>(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        title: Text(context.l10n.statistics),
+      ),
+      body: Stack(
+        children: [
+          NotificationListener<ScrollUpdateNotification>(
+        onNotification: (note) {
+          if (note.depth == 0 && note.metrics.axis == Axis.vertical) {
+            _scrolled.value = note.metrics.pixels > 2;
+          }
+          return false;
+        },
+        child: Consumer<HabitsController>(
         builder: (context, controller, _) {
           final all = controller.habits;
           if (all.isEmpty) {
@@ -94,7 +114,12 @@ class _StatisticsPageState extends State<StatisticsPage> {
           final currentYear = AppClock.now().year;
 
           return ListView(
-            padding: context.pagePadding(16, 8, 16, 104),
+            padding: context.pagePadding(
+              16,
+              8 + MediaQuery.paddingOf(context).top,
+              16,
+              104,
+            ),
             children: spanned(context, [
               const IslandEntry(),
               HabitFilter(
@@ -110,12 +135,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
               ),
               const SizedBox(height: 16),
               StatReveal(
-                child: Container(
-                decoration: BoxDecoration(
-                  color: context.colors.surfaceContainerHighest
-                      .withValues(alpha: 0.35),
-                  borderRadius: BorderRadius.circular(20),
-                ),
+                child: Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: YearHeatmap(
@@ -312,6 +332,10 @@ class _StatisticsPageState extends State<StatisticsPage> {
             ]),
           );
         },
+        ),
+      ),
+          HeaderBlur(scrolled: _scrolled),
+        ],
       ),
     );
   }

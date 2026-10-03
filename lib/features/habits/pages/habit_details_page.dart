@@ -46,6 +46,7 @@ import 'package:streak/core/express/express_shapes.dart';
 import 'package:streak/core/express/express_streak_row.dart';
 import 'package:streak/core/express/express_tabs.dart';
 import 'package:streak/core/express/express_surface.dart';
+import 'package:streak/core/widgets/glass.dart';
 import 'package:streak/features/habits/widgets/quant_daily_bars.dart';
 import 'package:streak/features/habits/widgets/quantitative_progress.dart';
 import 'package:streak/features/habits/widgets/saved_money.dart';
@@ -175,25 +176,56 @@ class _HabitDetailsPageState extends State<HabitDetailsPage> {
                 ),
               ],
             ),
-            leading: IconButton(
-              icon: const Icon(LucideIcons.x),
-              onPressed: () => AppNavigator.pop(),
-            ),
-            actions: [
-              IconButton(
-                icon: const Icon(LucideIcons.share2),
-                tooltip: context.l10n.share_progress,
-                onPressed: () => showShareCard(context, habit),
-              ),
-              IconButton(
-                icon: const Icon(LucideIcons.pencil),
-                onPressed: () => AppNavigator.push(
-                  HabitFormPage(habit: habit),
-                  fullscreenDialog: true,
-                ),
-              ),
-              const SizedBox(width: 8),
-            ],
+            leadingWidth: minimal || express ? null : 64,
+            leading: minimal || express
+                ? IconButton(
+                    icon: const Icon(LucideIcons.x),
+                    onPressed: () => AppNavigator.pop(),
+                  )
+                : Center(
+                    child: GlassIconButton(
+                      icon: LucideIcons.x,
+                      size: 38,
+                      tooltip: MaterialLocalizations.of(context)
+                          .closeButtonTooltip,
+                      onTap: () => AppNavigator.pop(),
+                    ),
+                  ),
+            actions: minimal || express
+                ? [
+                    IconButton(
+                      icon: const Icon(LucideIcons.share2),
+                      tooltip: context.l10n.share_progress,
+                      onPressed: () => showShareCard(context, habit),
+                    ),
+                    IconButton(
+                      icon: const Icon(LucideIcons.pencil),
+                      onPressed: () => AppNavigator.push(
+                        HabitFormPage(habit: habit),
+                        fullscreenDialog: true,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ]
+                : [
+                    GlassIconButton(
+                      icon: LucideIcons.share2,
+                      size: 38,
+                      tooltip: context.l10n.share_progress,
+                      onTap: () => showShareCard(context, habit),
+                    ),
+                    const SizedBox(width: 8),
+                    GlassIconButton(
+                      icon: LucideIcons.pencil,
+                      size: 38,
+                      tooltip: context.l10n.edit,
+                      onTap: () => AppNavigator.push(
+                        HabitFormPage(habit: habit),
+                        fullscreenDialog: true,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                  ],
           ),
           body: _DetailBackground(
             coverPath: habit.coverPath,

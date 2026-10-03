@@ -520,6 +520,15 @@ class _PreferencesPage extends StatelessWidget {
                 onChanged: settings.setTodosEnabled,
               ),
             ),
+            if (settings.todosEnabled)
+              SoftRow(
+                icon: LucideIcons.stickyNote,
+                title: context.l10n.todo_style,
+                subtitle: context.l10n.todo_style_sub,
+                value: SettingsActions.todoStyles(context)[
+                    settings.todoPapers ? 1 : 0],
+                onTap: () => SettingsActions.pickTodoStyle(context),
+              ),
             SoftRow(
               icon: LucideIcons.palmtree,
               title: context.l10n.gamification_beta,

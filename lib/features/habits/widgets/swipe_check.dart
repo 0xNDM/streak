@@ -50,6 +50,11 @@ class _SwipeCheckState extends State<SwipeCheck>
     super.dispose();
   }
 
+  void _start(DragStartDetails details) {
+    _wasDone = widget.done;
+    _width = context.size?.width ?? 1;
+  }
+
   void _drag(DragUpdateDetails details) {
     final next = _offset.value + details.primaryDelta! / _width;
     final along = (next * _direction).clamp(0.0, 0.6);
@@ -68,12 +73,9 @@ class _SwipeCheckState extends State<SwipeCheck>
   @override
   Widget build(BuildContext context) {
     if (widget.onSwipe == null) return widget.child;
-    return LayoutBuilder(
-      builder: (context, box) {
-        _width = box.maxWidth;
         return GestureDetector(
           behavior: HitTestBehavior.translucent,
-          onHorizontalDragStart: (_) => _wasDone = widget.done,
+          onHorizontalDragStart: _start,
           onHorizontalDragUpdate: _drag,
           onHorizontalDragEnd: _release,
           onHorizontalDragCancel: () => _offset.animateTo(0),
@@ -104,8 +106,6 @@ class _SwipeCheckState extends State<SwipeCheck>
             },
           ),
         );
-      },
-    );
   }
 }
 

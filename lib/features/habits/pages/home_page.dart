@@ -48,7 +48,10 @@ import 'package:streak/features/settings/pages/settings_page.dart';
 import 'package:streak/features/settings/state/settings_controller.dart';
 import 'package:streak/features/statistics/pages/statistics_page.dart';
 import 'package:streak/features/todos/pages/todos_page.dart';
+import 'package:streak/features/focus/state/focus_controller.dart';
 import 'package:streak/core/extensions/date_extensions.dart';
+import 'package:streak/core/widgets/glass.dart';
+import 'package:streak/core/widgets/morph_menu.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -61,6 +64,7 @@ const _sinkDelay = Duration(milliseconds: 2500);
 
 class _HomePageState extends State<HomePage> {
   final _confetti = ValueNotifier(0);
+  final _scrolled = ValueNotifier(false);
   String? _category;
   late HeatmapMode _mode;
   bool _reordering = false;
@@ -85,6 +89,7 @@ class _HomePageState extends State<HomePage> {
       timer.cancel();
     }
     _confetti.dispose();
+    _scrolled.dispose();
     super.dispose();
   }
 
@@ -298,7 +303,9 @@ class _HomePageState extends State<HomePage> {
     final wide = hasSideRail(context);
     final railed = minimal && wide;
     final bigText = MediaQuery.textScalerOf(context).scale(14) > 20;
+    final classic = !minimal && !express;
     return Scaffold(
+      extendBodyBehindAppBar: classic,
       floatingActionButton: express && !_reordering
           ? Padding(
               padding: EdgeInsets.only(bottom: wide ? 0 : 74),
@@ -323,13 +330,140 @@ class _HomePageState extends State<HomePage> {
                     child: Text(context.l10n.today),
                   ),
 
+        leadingWidth: minimal && !railed && !_reordering ? 64 : null,
         leading: minimal && !railed && !_reordering
-            ? IconButton(
-                icon: const Icon(LucideIcons.settings),
-                onPressed: () => AppNavigator.push(const SettingsPage()),
+            ? Padding(
+                padding: const EdgeInsetsDirectional.only(start: 16),
+                child: Center(
+                  child: MorphMenu(
+                    icon: LucideIcons.ellipsis,
+                    tooltip: context.l10n.focus_options,
+                    style: MorphMenuStyle.paper(context),
+                    anchor: Alignment.topLeft,
+                    items: [
+                      if (settings.focusEnabled)
+                        (
+                          icon: LucideIcons.timer,
+                          label: context.l10n.focus,
+                          onTap: () => openFocus(context),
+                        ),
+                      if (settings.planningEnabled)
+                        (
+                          icon: LucideIcons.calendarClock,
+                          label: context.l10n.day_timeline,
+                          onTap: () => AppNavigator.push(const DayTimelinePage()),
+                        ),
+                      if (settings.notesEnabled)
+                        (
+                          icon: LucideIcons.notebookPen,
+                          label: context.l10n.notes_all,
+                          onTap: () => AppNavigator.push(const AllNotesPage()),
+                        ),
+                      if (settings.todosEnabled)
+                        (
+                          icon: LucideIcons.listChecks,
+                          label: context.l10n.todos,
+                          onTap: () => AppNavigator.push(const TodosPage()),
+                        ),
+                      (
+                        icon: LucideIcons.chartColumn,
+                        label: context.l10n.stats,
+                        onTap: () => AppNavigator.push(const StatisticsPage()),
+                      ),
+                      (
+                        icon: LucideIcons.settings,
+                        label: context.l10n.settings,
+                        onTap: () => AppNavigator.push(const SettingsPage()),
+                      ),
+                    ],
+                  ),
+                ),
               )
             : null,
-        actions: [
+        actions: minimal && !railed && !_reordering
+            ? [
+                if (settings.focusEnabled &&
+                    context.watch<FocusController>().isActive) ...[
+                  const FocusPill(compact: true),
+                  const SizedBox(width: 6),
+                ],
+                Builder(
+                  builder: (button) => MorphMenuButton(
+                    icon: LucideIcons.plus,
+                    tooltip: context.l10n.add_habit,
+                    style: MorphMenuStyle.paper(context),
+                    onTap: () => AppNavigator.morph(
+                      const HabitFormPage(),
+                      from: button,
+                      icon: LucideIcons.plus,
+                      ink: context.colors.onSurface,
+                      edge: context.colors.outlineVariant,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+              ]
+            : classic && !_reordering
+            ? [
+                if (settings.notesEnabled) ...[
+                  GlassIconButton(
+                    icon: LucideIcons.notebookPen,
+                    tooltip: context.l10n.notes_all,
+                    onTap: () => AppNavigator.push(const AllNotesPage()),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                GlassIconButton(
+                  icon: settings.compactCards
+                      ? LucideIcons.chevronsUpDown
+                      : LucideIcons.chevronsDownUp,
+                  tooltip: settings.compactCards
+                      ? context.l10n.expand_cards
+                      : context.l10n.collapse_cards,
+                  onTap: () => settings.setCompactCards(!settings.compactCards),
+                ),
+                const SizedBox(width: 8),
+                const FocusPill(glass: true),
+                const SizedBox(width: 8),
+                if (bigText)
+                  GlassIconButton(
+                    icon: LucideIcons.plus,
+                    tooltip: context.l10n.add_habit,
+                    onTap: () => AppNavigator.push(
+                      const HabitFormPage(),
+                      fullscreenDialog: true,
+                    ),
+                  )
+                else
+                  GlassPill(
+                    tint: context.colors.primary,
+                    onTap: () => AppNavigator.push(
+                      const HabitFormPage(),
+                      fullscreenDialog: true,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          LucideIcons.plus,
+                          size: 16,
+                          color: context.colors.onPrimary,
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          context.l10n.new_label,
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700,
+                            color: context.colors.onPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                const SizedBox(width: 16),
+              ]
+            : [
           if (minimal && !railed && !_reordering && settings.planningEnabled)
             IconButton(
               tooltip: context.l10n.day_timeline,
@@ -428,7 +562,14 @@ class _HomePageState extends State<HomePage> {
       ),
       body: Stack(
         children: [
-          Consumer<HabitsController>(
+          NotificationListener<ScrollUpdateNotification>(
+            onNotification: (note) {
+              if (note.depth == 0 && note.metrics.axis == Axis.vertical) {
+                _scrolled.value = note.metrics.pixels > 2;
+              }
+              return false;
+            },
+            child: Consumer<HabitsController>(
             builder: (context, controller, _) {
               if (controller.isEmpty) return const _EmptyState();
 
@@ -521,6 +662,7 @@ class _HomePageState extends State<HomePage> {
                         ? context.colors.surfaceContainerHighest
                         : null,
                 strokeWidth: express ? 3.4 : (minimal ? 2 : 2.5),
+                edgeOffset: classic ? MediaQuery.paddingOf(context).top : 0,
                 displacement: express ? 58 : (minimal ? 32 : 40),
                 onRefresh: () async {
                   await Future<void>.delayed(
@@ -574,6 +716,8 @@ class _HomePageState extends State<HomePage> {
               );
             },
           ),
+          ),
+          if (classic) HeaderBlur(scrolled: _scrolled),
           if (minimal && !_reordering && settings.viewSwitcher)
             Positioned(
               left: 0,
@@ -780,53 +924,68 @@ class _ViewSelector extends StatelessWidget {
       (HeatmapMode.month, context.l10n.month),
       (HeatmapMode.year, context.l10n.year),
     ];
+    final index = options.indexWhere((option) => option.$1 == mode);
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(14),
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(16),
       ),
-      child: Row(
+      child: Stack(
         children: [
-          for (final (value, label) in options)
-            Expanded(
-              child: Semantics(
-                button: true,
-                selected: value == mode,
-                child: GestureDetector(
-                  onTap: () {
-                    onChanged(value);
-                  },
-                  child: AnimatedScale(
-                    scale: value == mode ? 1 : 0.94,
-                    duration: const Duration(milliseconds: 260),
-                    curve: Curves.easeOutBack,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 220),
-                      curve: Curves.easeOutCubic,
-                      padding: const EdgeInsets.symmetric(vertical: 9),
-                      decoration: BoxDecoration(
-                        color: value == mode
-                            ? scheme.primary
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(10),
+          Positioned.fill(
+            child: AnimatedAlign(
+              alignment: Alignment(-1 + index.toDouble(), 0),
+              duration: const Duration(milliseconds: 380),
+              curve: Curves.easeOutBack,
+              child: FractionallySizedBox(
+                widthFactor: 1 / options.length,
+                heightFactor: 1,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: scheme.primary,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: scheme.primary.withValues(alpha: 0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
                       ),
-                      child: AnimatedDefaultTextStyle(
-                        duration: const Duration(milliseconds: 220),
-                        style: DefaultTextStyle.of(context).style.copyWith(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: value == mode
-                              ? scheme.onPrimary
-                              : context.tokens.muted,
-                        ),
-                        child: Text(label, textAlign: TextAlign.center),
-                      ),
-                    ),
+                    ],
                   ),
                 ),
               ),
             ),
+          ),
+          Row(
+            children: [
+              for (final (value, label) in options)
+                Expanded(
+                  child: Semantics(
+                    button: true,
+                    selected: value == mode,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => onChanged(value),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 9),
+                        child: AnimatedDefaultTextStyle(
+                          duration: const Duration(milliseconds: 220),
+                          style: DefaultTextStyle.of(context).style.copyWith(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: value == mode
+                                ? scheme.onPrimary
+                                : context.tokens.muted,
+                          ),
+                          child: Text(label, textAlign: TextAlign.center),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ],
       ),
     );

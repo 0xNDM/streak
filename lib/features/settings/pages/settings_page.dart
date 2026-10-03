@@ -503,6 +503,17 @@ class _ClassicPreferencesPage extends StatelessWidget {
                       onChanged: (i) => settings.setTodosEnabled(i == 1),
                     ),
                   ),
+                  if (settings.todosEnabled) ...[
+                    settingsDivider(context),
+                    PickerRow(
+                      icon: LucideIcons.stickyNote,
+                      title: context.l10n.todo_style,
+                      subtitle: context.l10n.todo_style_sub,
+                      value: SettingsActions.todoStyles(context)[
+                          settings.todoPapers ? 1 : 0],
+                      onTap: () => SettingsActions.pickTodoStyle(context),
+                    ),
+                  ],
                   settingsDivider(context),
                   SettingRow(
                     icon: LucideIcons.palmtree,

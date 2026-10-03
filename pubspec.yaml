@@ -70,6 +70,8 @@ flutter:
     - assets/sounds/
     - assets/backgrounds/
     - assets/island/
+  shaders:
+    - assets/shaders/edge_fade.frag
 
   fonts:
     - family: Figtree

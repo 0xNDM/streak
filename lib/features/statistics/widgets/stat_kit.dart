@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:streak/app/theme/app_tokens.dart';
 import 'package:streak/features/settings/state/settings_controller.dart';
+import 'package:streak/app/theme/app_theme.dart';
 
 TextStyle statNumber(BuildContext context, double size, {Color? color}) =>
     TextStyle(
@@ -261,16 +262,44 @@ class MiniStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final classic = context.watch<SettingsController>().appStyle == 0;
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      decoration: BoxDecoration(
-        color: context.colors.surfaceContainerHighest.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(16),
-      ),
+      decoration: classic
+          ? BoxDecoration(
+              color: Theme.of(context).cardTheme.color,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.fromBorderSide(AppTheme.cardEdge(dark)),
+              boxShadow: [
+                if (!dark)
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+              ],
+            )
+          : BoxDecoration(
+              color:
+                  context.colors.surfaceContainerHighest.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(16),
+            ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 16, color: color),
+          if (classic)
+            Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.14),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 15, color: color),
+            )
+          else
+            Icon(icon, size: 16, color: color),
           const SizedBox(height: 10),
           _StatValue(value: value, unit: unit),
           const SizedBox(height: 4),

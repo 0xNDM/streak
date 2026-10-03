@@ -22,3 +22,43 @@ class FadeThrough extends StatelessWidget {
     );
   }
 }
+
+class SlideThrough extends StatelessWidget {
+  const SlideThrough({
+    super.key,
+    required this.animation,
+    required this.secondaryAnimation,
+    required this.child,
+  });
+
+  final Animation<double> animation;
+  final Animation<double> secondaryAnimation;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final rtl = Directionality.of(context) == TextDirection.rtl ? -1.0 : 1.0;
+    return SlideTransition(
+      position: Tween(begin: Offset.zero, end: Offset(-0.06 * rtl, 0)).animate(
+        CurvedAnimation(parent: secondaryAnimation, curve: Curves.easeOutCubic),
+      ),
+      child: FadeTransition(
+        opacity: CurvedAnimation(
+          parent: animation,
+          curve: const Interval(0, 0.6, curve: Curves.easeOut),
+          reverseCurve: const Interval(0.3, 1, curve: Curves.easeIn),
+        ),
+        child: SlideTransition(
+          position: Tween(begin: Offset(0.1 * rtl, 0), end: Offset.zero).animate(
+            CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutCubic,
+              reverseCurve: Curves.easeInCubic,
+            ),
+          ),
+          child: RepaintBoundary(child: child),
+        ),
+      ),
+    );
+  }
+}

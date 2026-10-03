@@ -28,6 +28,8 @@ import 'package:streak/features/habits/widgets/strength_bar.dart';
 import 'package:streak/features/habits/widgets/unscheduled_day_dialog.dart';
 import 'package:streak/features/habits/widgets/water_cup.dart';
 import 'package:streak/features/settings/state/settings_controller.dart';
+import 'package:streak/app/theme/app_theme.dart';
+import 'package:streak/core/widgets/glass.dart';
 
 class HabitCard extends StatelessWidget {
   const HabitCard({
@@ -61,9 +63,14 @@ class HabitCard extends StatelessWidget {
 
     return _HoverRing(
       corners: corners,
+      child: Pressable(
+      scale: 0.98,
       child: Card(
       clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(borderRadius: corners),
+      shape: RoundedRectangleBorder(
+        borderRadius: corners,
+        side: AppTheme.cardEdge(Theme.of(context).brightness == Brightness.dark),
+      ),
       child: Semantics(
         button: true,
         child: InkWell(
@@ -327,6 +334,7 @@ class HabitCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
       ),
       ),
     );

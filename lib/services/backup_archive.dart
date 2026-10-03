@@ -49,6 +49,8 @@ const backupSettingKeys = {
   'notesEnabled',
   'planTodos',
   'planContent',
+  'planMonth',
+  'todoPapers',
   'planningEnabled',
   'profileName',
   'profilePhoto',

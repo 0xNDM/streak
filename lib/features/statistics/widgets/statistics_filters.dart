@@ -3,6 +3,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:streak/app/theme/app_tokens.dart';
 import 'package:streak/core/i18n/l10n.dart';
 import 'package:streak/features/habits/data/habit.dart';
+import 'package:streak/core/widgets/glass.dart';
 
 class HabitFilter extends StatelessWidget {
   const HabitFilter({
@@ -147,15 +148,13 @@ class _ArrowButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final enabled = onTap != null;
-    return IconButton(
-      onPressed: onTap,
-      icon: Icon(
-        icon,
-        size: 22,
-        color: enabled
-            ? context.colors.onSurface
-            : context.tokens.muted.withValues(alpha: 0.4),
+    final tap = onTap;
+    return AnimatedOpacity(
+      opacity: tap == null ? 0.35 : 1,
+      duration: const Duration(milliseconds: 200),
+      child: IgnorePointer(
+        ignoring: tap == null,
+        child: GlassIconButton(icon: icon, size: 38, onTap: tap ?? () {}),
       ),
     );
   }

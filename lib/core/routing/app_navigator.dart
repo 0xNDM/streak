@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:streak/app/app_background.dart';
+import 'package:streak/core/routing/morph_route.dart';
 import 'package:streak/core/widgets/page_motion.dart';
 
 abstract interface class FullWidthPage {}
@@ -31,6 +32,25 @@ class AppNavigator {
     final target = pane ?? key.currentState!;
     return target.push<T>(
       route(page, fullscreenDialog: fullscreenDialog, fade: fade, name: name),
+    );
+  }
+
+  static Future<T?> morph<T>(
+    Widget page, {
+    required BuildContext from,
+    required IconData icon,
+    required Color ink,
+    required Color edge,
+  }) {
+    final box = from.findRenderObject()! as RenderBox;
+    return key.currentState!.push<T>(
+      MorphRoute<T>(
+        page: page,
+        origin: box.localToGlobal(Offset.zero) & box.size,
+        icon: icon,
+        ink: ink,
+        edge: edge,
+      ),
     );
   }
 
@@ -72,7 +92,7 @@ class AppNavigator {
     return PageRouteBuilder<T>(
       settings: RouteSettings(name: name),
       fullscreenDialog: fullscreenDialog,
-      transitionDuration: const Duration(milliseconds: 300),
+      transitionDuration: const Duration(milliseconds: 340),
       reverseTransitionDuration: const Duration(milliseconds: 250),
       opaque: true,
       pageBuilder: (_, __, ___) => AppBackground(child: page),
@@ -106,12 +126,10 @@ class AppNavigator {
 
         if (fade) return FadeThrough(animation: animation, child: child);
 
-        return const ZoomPageTransitionsBuilder().buildTransitions(
-          route,
-          context,
-          animation,
-          secondaryAnimation,
-          child,
+        return SlideThrough(
+          animation: animation,
+          secondaryAnimation: secondaryAnimation,
+          child: child,
         );
       },
     );

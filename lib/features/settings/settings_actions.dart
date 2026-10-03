@@ -102,6 +102,22 @@ class SettingsActions {
     );
   }
 
+  static List<String> todoStyles(BuildContext context) => [
+        context.l10n.todo_view_list,
+        context.l10n.todo_view_papers,
+      ];
+
+  static Future<void> pickTodoStyle(BuildContext context) {
+    final settings = context.read<SettingsController>();
+    return showOptionSheet(
+      context,
+      title: context.l10n.todo_style,
+      options: todoStyles(context),
+      index: settings.todoPapers ? 1 : 0,
+      onSelected: (i) => settings.setTodoPapers(i == 1),
+    );
+  }
+
   static bool canRefresh(BuildContext context) {
     final settings = context.watch<SettingsController>();
     return settings.autoBackup > 0 && settings.autoBackupFolder.isNotEmpty;

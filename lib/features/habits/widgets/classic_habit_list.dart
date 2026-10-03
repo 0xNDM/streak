@@ -46,7 +46,12 @@ class ClassicHabitList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ReorderableListView.builder(
-      padding: context.pagePadding(16, 8, 16, 104),
+      padding: context.pagePadding(
+        16,
+        8 + MediaQuery.paddingOf(context).top,
+        16,
+        104,
+      ),
       itemCount: habits.length,
       buildDefaultDragHandles: false,
       onReorder: (oldIndex, newIndex) {

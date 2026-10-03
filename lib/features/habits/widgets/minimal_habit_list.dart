@@ -39,16 +39,41 @@ class MinimalHabitList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (mode == HeatmapMode.month) return _monthGrid(context);
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 560),
+      reverseDuration: const Duration(milliseconds: 150),
+      layoutBuilder: (current, previous) => Stack(
+        alignment: Alignment.topCenter,
+        children: [...previous, ?current],
+      ),
+      transitionBuilder: (child, animation) => child.key == ValueKey(mode)
+          ? _SwitchIn(animation: animation, child: child)
+          : FadeTransition(
+              opacity: animation,
+              child: ScaleTransition(
+                scale: Tween(begin: 0.98, end: 1.0).animate(animation),
+                child: child,
+              ),
+            ),
+      child: KeyedSubtree(
+        key: ValueKey(mode),
+        child: mode == HeatmapMode.month ? _monthGrid(context) : _list(context),
+      ),
+    );
+  }
+
+  Widget _list(BuildContext context) {
     return ListView.builder(
       padding: _padding(context),
       itemCount: habits.length + 1,
       itemBuilder: (context, index) {
-        if (index == 0) return header;
+        if (index == 0) return _Cascade(index: 0, child: header);
         final i = index - 1;
         final habit = habits[i];
-        return HabitEntrance(
-          key: ValueKey('$mode-${habit.id}'),
+        return _Cascade(
+          index: index,
+          child: HabitEntrance(
+          key: ValueKey(habit.id),
           index: i,
           child: SlotTransition(
             leaving: leaving.contains(habit.id),
@@ -84,6 +109,7 @@ class MinimalHabitList extends StatelessWidget {
               ),
             ),
           ),
+          ),
         );
       },
     );
@@ -94,10 +120,12 @@ class MinimalHabitList extends StatelessWidget {
       padding: _padding(context),
       itemCount: (habits.length + 1) ~/ 2 + 1,
       itemBuilder: (context, index) {
-        if (index == 0) return header;
+        if (index == 0) return _Cascade(index: 0, child: header);
         final i = (index - 1) * 2;
-        return HabitEntrance(
-          key: ValueKey('month-${habits[i].id}'),
+        return _Cascade(
+          index: index,
+          child: HabitEntrance(
+          key: ValueKey(habits[i].id),
           index: index - 1,
           child: Padding(
             padding: const EdgeInsets.only(bottom: 12),
@@ -115,6 +143,7 @@ class MinimalHabitList extends StatelessWidget {
                 ],
               ),
             ),
+          ),
           ),
         );
       },
@@ -140,6 +169,45 @@ class MinimalHabitList extends StatelessWidget {
           onToggleDay: (d) => onToggleDay(habit, d),
           onLongPress: () => onLongPress(habit),
         ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SwitchIn extends InheritedWidget {
+  const _SwitchIn({required this.animation, required super.child});
+
+  final Animation<double> animation;
+
+  @override
+  bool updateShouldNotify(_SwitchIn old) => old.animation != animation;
+}
+
+class _Cascade extends StatelessWidget {
+  const _Cascade({required this.index, required this.child});
+
+  final int index;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final parent =
+        context.dependOnInheritedWidgetOfExactType<_SwitchIn>()?.animation;
+    if (parent == null) return child;
+    final start = 0.1 + 0.07 * index.clamp(0, 7);
+    final curve = CurvedAnimation(
+      parent: parent,
+      curve: Interval(start, start + 0.4, curve: Curves.easeOutCubic),
+    );
+    return FadeTransition(
+      opacity: curve,
+      child: SlideTransition(
+        position: Tween(begin: const Offset(0, 0.16), end: Offset.zero)
+            .animate(curve),
+        child: ScaleTransition(
+          scale: Tween(begin: 0.97, end: 1.0).animate(curve),
+          child: child,
         ),
       ),
     );
