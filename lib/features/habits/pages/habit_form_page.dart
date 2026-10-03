@@ -108,13 +108,14 @@ class _HabitFormPageState extends State<HabitFormPage> {
         _unitLabel.text.trim().isEmpty) {
       return false;
     }
-    if (_kind != HabitKind.negative &&
-        _interval == HabitInterval.weekdays &&
-        _scheduleWeekdays.isEmpty) {
-      return false;
-    }
+    if (_noDays) return false;
     return true;
   }
+
+  bool get _noDays =>
+      _kind != HabitKind.negative &&
+      _interval == HabitInterval.weekdays &&
+      _scheduleWeekdays.isEmpty;
 
   @override
   void initState() {
@@ -592,6 +593,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
           start: _startShown,
           onStartChanged: (day) => setState(() => _scheduleStart = day),
         ),
+        if (_noDays) const _NoDaysHint(),
       ],
       if (_kind != HabitKind.negative && _planning) ...[
         const SizedBox(height: 26),
@@ -940,6 +942,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
             selected: _scheduleWeekdays,
             onChanged: (days) => setState(() => _scheduleWeekdays = days),
           ),
+          if (_noDays) const _NoDaysHint(),
         ],
       ],
       if (_kind != HabitKind.negative && _planning) ...[
@@ -1201,6 +1204,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
                 start: _startShown,
                 onStartChanged: (day) => setState(() => _scheduleStart = day),
               ),
+              if (_noDays) const _NoDaysHint(),
             ],
             if (_kind != HabitKind.negative && _planning) ...[
               const SizedBox(height: 20),
@@ -1231,6 +1235,34 @@ class _HabitFormPageState extends State<HabitFormPage> {
             const SizedBox(height: 24),
           ],
         ),
+    );
+  }
+}
+
+class _NoDaysHint extends StatelessWidget {
+  const _NoDaysHint();
+
+  @override
+  Widget build(BuildContext context) {
+    final color = context.tokens.danger;
+    return Padding(
+      padding: const EdgeInsets.only(top: 10, left: 4),
+      child: Row(
+        children: [
+          Icon(LucideIcons.circleAlert, size: 15, color: color),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              context.l10n.pick_one_day,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
