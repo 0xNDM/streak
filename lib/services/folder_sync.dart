@@ -79,7 +79,7 @@ class FolderSync {
     }
 
     for (final category in data.categories) {
-      await LocalStore.writeCategory(category);
+      await LocalStore.mergeCategory(category);
     }
     for (final note in data.notes) {
       await LocalStore.writeNote(note);

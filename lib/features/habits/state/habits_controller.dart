@@ -541,7 +541,10 @@ class HabitsController extends ChangeNotifier {
     final todos = known(LocalStore.readTodos(), (t) => t.id);
     final tags = known(LocalStore.readTodoTags(), (t) => t.id);
     for (final category in data.categories) {
-      if (!categories.contains(category.id)) await LocalStore.writeCategory(category);
+      if (categories.contains(category.id)) continue;
+      replace
+          ? await LocalStore.writeCategory(category)
+          : await LocalStore.mergeCategory(category);
     }
     for (final note in data.notes) {
       if (!notes.contains(note.id)) await LocalStore.writeNote(note);

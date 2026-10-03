@@ -240,6 +240,33 @@ class LocalStore {
 
   static Future<void> removeCategory(String id) => _categories.delete(id);
 
+  static String categoryKey(String name) => name.trim().toLowerCase();
+
+  static Future<void> mergeCategory(Category category) async {
+    final key = categoryKey(category.name);
+    final taken = readCategories()
+        .any((c) => c.id != category.id && categoryKey(c.name) == key);
+    if (!taken) await writeCategory(category);
+  }
+
+  static Future<List<Category>> readCategoriesOnce() async {
+    final kept = <String, Category>{};
+    final all = readCategories()
+      ..sort((a, b) {
+        final byOrder = a.order.compareTo(b.order);
+        return byOrder != 0 ? byOrder : a.id.compareTo(b.id);
+      });
+    for (final category in all) {
+      final key = categoryKey(category.name);
+      if (kept.containsKey(key)) {
+        await removeCategory(category.id);
+      } else {
+        kept[key] = category;
+      }
+    }
+    return kept.values.toList();
+  }
+
   static bool get hasCategories => _categories.isNotEmpty;
 
   static T setting<T>(String key, T fallback) {
