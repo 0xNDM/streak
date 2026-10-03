@@ -16,25 +16,26 @@ class ReminderSchedule {
     return (habit * 100 + reminder) * slotsPerReminder + slot;
   }
 
-  static const maxHourlyPerDay = 8;
+  static const _dayMinutes = 24 * 60;
+
+  static int hourlyCap(int days) => slotsPerReminder ~/ (days < 1 ? 1 : days);
 
   static List<int> hourlySlots({
     required int hour,
     required int minute,
     required int everyHours,
+    int? until,
+    int cap = 24,
   }) {
-    if (everyHours < 1) return [hour * 60 + minute];
     final start = hour * 60 + minute;
-    final step = everyHours * 60;
+    if (everyHours < 1) return [start];
+    final end = until != null && until > start ? until : _dayMinutes - 1;
     final slots = <int>[];
-    for (var at = start; at < 24 * 60 && slots.length < maxHourlyPerDay; at += step) {
+    for (var at = start; at <= end && slots.length < cap; at += everyHours * 60) {
       slots.add(at);
     }
     return slots;
   }
-
-  static int hourlyId(String habitId, String reminderId, int day, int slot) =>
-      notificationId(habitId, reminderId, (day - 1) * maxHourlyPerDay + slot);
 
   static const todoIdBase = 1000000000;
 

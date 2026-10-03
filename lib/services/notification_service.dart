@@ -318,17 +318,23 @@ class NotificationService {
   Future<Set<int>> _scheduleHourly(Habit habit, Reminder reminder, String body,
       AppLocalizations strings) async {
     final ids = <int>{};
+    final daily = reminder.days.length == 7 &&
+        Iterable<int>.generate(7, (i) => i + 1).every(habit.ringsOnWeekday);
+    final days = daily
+        ? const [1]
+        : [for (final day in reminder.days) if (habit.ringsOnWeekday(day)) day];
+    final cap = ReminderSchedule.hourlyCap(days.length);
     final slots = ReminderSchedule.hourlySlots(
       hour: reminder.hour,
       minute: reminder.minute,
       everyHours: reminder.everyHours,
+      until: reminder.untilMinute,
+      cap: cap,
     );
     final now = tz.TZDateTime.now(tz.local);
     final from = _firstMoment(habit);
-    final daily = _repeatsDaily(habit, reminder);
 
-    for (final day in daily ? const [1] : reminder.days) {
-      if (!habit.ringsOnWeekday(day)) continue;
+    for (final (index, day) in days.indexed) {
       for (var slot = 0; slot < slots.length; slot++) {
         final next = daily
             ? ReminderSchedule.nextDaily(
@@ -343,7 +349,7 @@ class NotificationService {
                 minute: slots[slot] % 60,
               );
         ids.addAll(await _scheduleRepeating(
-          ReminderSchedule.hourlyId(habit.id, reminder.id, day, slot),
+          _notificationId(habit.id, reminder.id, index * cap + slot),
           habit,
           body,
           strings,

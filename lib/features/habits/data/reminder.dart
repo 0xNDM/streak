@@ -7,6 +7,7 @@ class Reminder {
     this.message = '',
     this.everyDays = 1,
     this.everyHours = 0,
+    this.untilMinute,
     this.anchorEpochDay,
     this.snoozeMinutes = defaultSnoozeMinutes,
   });
@@ -26,6 +27,8 @@ class Reminder {
 
   final int everyHours;
 
+  final int? untilMinute;
+
   final int? anchorEpochDay;
 
   final int snoozeMinutes;
@@ -34,7 +37,15 @@ class Reminder {
 
   bool get isHourly => everyHours >= 1;
 
-  String get timeLabel {
+  String get timeLabel => _clock(hour, minute);
+
+  String get spanLabel {
+    final until = untilMinute;
+    if (!isHourly || until == null) return timeLabel;
+    return '$timeLabel - ${_clock(until ~/ 60, until % 60)}';
+  }
+
+  static String _clock(int hour, int minute) {
     final period = hour >= 12 ? 'PM' : 'AM';
     final display = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
     return '$display:${minute.toString().padLeft(2, '0')} $period';
@@ -48,6 +59,7 @@ class Reminder {
         'message': message,
         'everyDays': everyDays,
         'everyHours': everyHours,
+        'untilMinute': untilMinute,
         'anchorEpochDay': anchorEpochDay,
         'snoozeMinutes': snoozeMinutes,
       };
@@ -60,6 +72,7 @@ class Reminder {
         message: (map['message'] ?? '') as String,
         everyDays: (map['everyDays'] ?? 1) as int,
         everyHours: (map['everyHours'] ?? 0) as int,
+        untilMinute: map['untilMinute'] as int?,
         anchorEpochDay: map['anchorEpochDay'] as int?,
         snoozeMinutes:
             (map['snoozeMinutes'] ?? defaultSnoozeMinutes) as int,

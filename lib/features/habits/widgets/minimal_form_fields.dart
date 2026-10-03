@@ -399,6 +399,12 @@ class CompactReminderRow extends StatelessWidget {
   final VoidCallback onDelete;
 
   String _daysLabel(BuildContext context) {
+    final days = _dayNames(context);
+    if (!reminder.isHourly) return days;
+    return '$days · ${context.l10n.every_n_hours('${reminder.everyHours}')}';
+  }
+
+  String _dayNames(BuildContext context) {
     if (reminder.isInterval) {
       return context.l10n.every_n_days(reminder.everyDays);
     }
@@ -432,7 +438,7 @@ class CompactReminderRow extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      reminder.timeLabel,
+                      reminder.spanLabel,
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
