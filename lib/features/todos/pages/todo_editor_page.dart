@@ -29,7 +29,7 @@ import 'package:streak/features/todos/widgets/todo_tag_sheet.dart';
 Color notePageColor(BuildContext context, int paper) {
   if (paper < 0) return Colors.transparent;
   if (Theme.of(context).brightness == Brightness.light) return paperColor(paper);
-  return Color.lerp(context.colors.surface, paperColor(paper), 0.3)!;
+  return sheetColor(context, paper);
 }
 
 Future<bool?> openTodoEditor(

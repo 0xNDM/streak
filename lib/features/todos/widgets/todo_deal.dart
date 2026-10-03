@@ -230,6 +230,8 @@ class _Dealt extends InheritedWidget {
 class TodoWrite extends StatelessWidget {
   const TodoWrite({super.key, required this.child});
 
+  static final _frozen = SnapshotController(allowSnapshotting: true);
+
   final Widget child;
 
   @override
@@ -252,7 +254,7 @@ class TodoWrite extends StatelessWidget {
             stops: [math.max(0, edge - 0.35), math.min(1, edge)],
             colors: const [Colors.white, Colors.transparent],
           ).createShader(rect, textDirection: direction),
-          child: child,
+          child: SnapshotWidget(controller: _frozen, child: child),
         );
       },
     );

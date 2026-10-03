@@ -116,7 +116,7 @@ class _TodoProjectsState extends State<TodoProjects>
     for (final section in todos.sections) {
       for (final todo in section.todos) {
         final tint = papers.putIfAbsent(todo.project, () => []);
-        if (tint.length < 3) tint.add(paperColor(todo.paper));
+        if (tint.length < 3) tint.add(sheetColor(context, todo.paper));
       }
     }
     List<Color> tints(String id) => papers[id] ?? const [];

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:streak/core/express/express_shapes.dart';
 import 'package:streak/features/settings/state/settings_controller.dart';
+import 'package:streak/features/todos/widgets/todo_paper.dart';
 
 const _sheets = [
   (left: 0.12, top: 0.0, width: 0.5, turn: -0.075, lines: 8),
@@ -63,7 +64,7 @@ class FolderShape extends StatelessWidget {
     final style = context.watch<SettingsController>().appStyle;
     final dark = Theme.of(context).brightness == Brightness.dark;
     final panel = dark
-        ? const [Color(0xFF3C3C41), Color(0xFF28282C)]
+        ? const [Color(0xFF26262A), Color(0xFF18181B)]
         : const [Color(0xFF303033), Color(0xFF1C1C1E)];
     final sheets = _sheets.take(papers.clamp(0, _sheets.length)).toList();
 
@@ -129,7 +130,10 @@ class FolderShape extends StatelessWidget {
                   angle: sheet.turn,
                   child: _Paper(
                     lines: sheet.lines,
-                    color: index < tints.length ? tints[index] : Colors.white,
+                    color: index < tints.length
+                        ? tints[index]
+                        : (dark ? darkSheet : Colors.white),
+                    dark: dark,
                   ),
                 ),
               ),
@@ -204,10 +208,11 @@ class FolderShape extends StatelessWidget {
 }
 
 class _Paper extends StatelessWidget {
-  const _Paper({required this.lines, required this.color});
+  const _Paper({required this.lines, required this.color, required this.dark});
 
   final int lines;
   final Color color;
+  final bool dark;
 
   @override
   Widget build(BuildContext context) {
@@ -215,7 +220,7 @@ class _Paper extends StatelessWidget {
       builder: (context, box) {
         final width = box.maxWidth;
         final inner = width * 0.74;
-        const ink = Color(0xFFCFCFD4);
+        final ink = dark ? const Color(0xFF5E5E66) : const Color(0xFFCFCFD4);
         return DecoratedBox(
           decoration: BoxDecoration(
             color: color,

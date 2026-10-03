@@ -31,7 +31,7 @@ Future<void> showTodoPaperPicker(
                 child: Row(
                   children: [
                     _Swatch(
-                      color: Colors.white,
+                      color: sheetColor(sheet, -1),
                       picked: selected < 0,
                       auto: true,
                       onTap: () {
@@ -39,9 +39,9 @@ Future<void> showTodoPaperPicker(
                         onPicked(-1);
                       },
                     ),
-                    for (final (index, paper) in todoPapers.indexed)
+                    for (var index = 0; index < todoPapers.length; index++)
                       _Swatch(
-                        color: paper,
+                        color: sheetColor(sheet, index),
                         picked: selected == index,
                         onTap: () {
                           Navigator.of(sheet).pop();
@@ -139,7 +139,7 @@ class _Swatch extends StatelessWidget {
                   ? LucideIcons.check
                   : (auto ? LucideIcons.dropletOff : null),
               size: 18,
-              color: paperInk.withValues(alpha: picked ? 0.75 : 0.4),
+              color: inkOf(context).withValues(alpha: picked ? 0.75 : 0.4),
             ),
           ),
         ),

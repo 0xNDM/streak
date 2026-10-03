@@ -30,7 +30,8 @@ void main() {
   testWidgets('the list splits into the groups their dates ask for',
       (tester) async {
     await seedFour(tester);
-    await pumpScreen(tester, const TodosPage());
+    await pumpScreen(tester, const TodosPage(),
+        settings: {'todoPapers': false});
 
     expect(find.text('OVERDUE'), findsOneWidget);
     expect(find.text('TODAY'), findsOneWidget);
@@ -90,7 +91,8 @@ void main() {
   });
 
   testWidgets('writing a to-do adds it to the list', (tester) async {
-    await pumpScreen(tester, const TodosPage());
+    await pumpScreen(tester, const TodosPage(),
+        settings: {'todoPapers': false});
 
     expect(find.text('Nothing on the list'), findsOneWidget);
 
@@ -215,12 +217,12 @@ void main() {
     });
     await pumpScreen(tester, const TodosPage());
 
-    await tester.tap(find.widgetWithIcon(IconButton, LucideIcons.list));
+    await tester.tap(find.byTooltip('Tags'));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(TodoTagChip, 'urgent'), findsOneWidget);
     expect(find.widgetWithText(TodoTagChip, 'later'), findsOneWidget);
 
-    await tester.tap(find.widgetWithIcon(IconButton, LucideIcons.folder));
+    await tester.tap(find.byTooltip('Tags'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('School'));
     await tester.pumpAndSettle();

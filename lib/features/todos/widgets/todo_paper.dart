@@ -28,8 +28,24 @@ const todoPapers = [
 const paperInk = Color(0xFF1F1F22);
 const paperInkSoft = Color(0xFF5B5B63);
 
+const darkSheet = Color(0xFF36363C);
+
 Color paperColor(int paper) =>
     paper < 0 ? Colors.white : todoPapers[paper % todoPapers.length];
+
+bool _dark(BuildContext context) =>
+    Theme.of(context).brightness == Brightness.dark;
+
+Color sheetColor(BuildContext context, int paper) {
+  if (!_dark(context)) return paperColor(paper);
+  return paper < 0 ? darkSheet : Color.lerp(darkSheet, paperColor(paper), 0.3)!;
+}
+
+Color inkOf(BuildContext context) =>
+    _dark(context) ? const Color(0xFFEDEDF0) : paperInk;
+
+Color softInkOf(BuildContext context) =>
+    _dark(context) ? const Color(0xFFA4A4AD) : paperInkSoft;
 
 double paperWeight(Todo todo) {
   var height = 96.0;
@@ -61,7 +77,9 @@ class TodoPaper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final paper = paperColor(todo.paper);
+    final paper = sheetColor(context, todo.paper);
+    final ink = inkOf(context);
+    final soft = softInkOf(context);
     final done = todo.done || checking;
     final dark = Theme.of(context).brightness == Brightness.dark;
     final tags = context.watch<TodoTagsController>().resolve(todo.tags);
@@ -103,6 +121,8 @@ class TodoPaper extends StatelessWidget {
                   CustomPaint(
                 painter: _Sheet(
                   paper: paper,
+                  blank: dark ? darkSheet : Colors.white,
+                  ink: ink,
                   reveal: TodoDeal.progress(context),
                   edged: !dark,
                   covered: cover != null,
@@ -151,10 +171,10 @@ class TodoPaper extends StatelessWidget {
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,
                                 height: 1.3,
-                                color: done ? paperInkSoft : paperInk,
+                                color: done ? soft : ink,
                                 decoration:
                                     done ? TextDecoration.lineThrough : null,
-                                decorationColor: paperInkSoft,
+                                decorationColor: soft,
                               ),
                             ),
                             if (todo.body.isNotEmpty) ...[
@@ -163,10 +183,10 @@ class TodoPaper extends StatelessWidget {
                                 todo.body,
                                 maxLines: 3,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12.5,
                                   height: 1.35,
-                                  color: paperInkSoft,
+                                  color: soft,
                                 ),
                               ),
                             ],
@@ -186,10 +206,10 @@ class TodoPaper extends StatelessWidget {
                                       const EdgeInsets.only(top: 4, left: 24),
                                   child: Text(
                                     '+$hidden',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w700,
-                                      color: paperInkSoft,
+                                      color: soft,
                                     ),
                                   ),
                                 ),
@@ -205,7 +225,7 @@ class TodoPaper extends StatelessWidget {
                                         style: TextStyle(
                                           color: Color.lerp(
                                             tag.color,
-                                            paperInk,
+                                            ink,
                                             0.35,
                                           ),
                                         ),
@@ -228,8 +248,8 @@ class TodoPaper extends StatelessWidget {
                                 TodoCheck(
                                   title: todo.title,
                                   done: done,
-                                  ring: paperInkSoft.withValues(alpha: 0.65),
-                                  fill: paperInk,
+                                  ring: soft.withValues(alpha: 0.65),
+                                  fill: ink,
                                   tick: paper,
                                   onToggle: onToggle,
                                 ),
@@ -250,25 +270,25 @@ class TodoPaper extends StatelessWidget {
               ),
             ),
           ),
-          if (todo.pinned)
-            PositionedDirectional(
-              top: -9,
-              start: -7,
-              child: _Stuck(
-                progress: TodoDeal.progress(context),
-                child: const TodoPin(),
-              ),
-            ),
           if (sticker)
             PositionedDirectional(
               top: -7,
-              end: 10,
+              end: todo.pinned ? 40 : 10,
               child: _Stuck(
                 progress: TodoDeal.progress(context),
                 child: TodoSticker(
                   priority: todo.priority,
                   turn: TodoSticker.turnFor(todo.id),
                 ),
+              ),
+            ),
+          if (todo.pinned)
+            PositionedDirectional(
+              top: -11,
+              end: -8,
+              child: _Stuck(
+                progress: TodoDeal.progress(context),
+                child: const TodoPin(scale: 1.25),
               ),
             ),
         ],
@@ -335,12 +355,16 @@ class _Stuck extends StatelessWidget {
 class _Sheet extends CustomPainter {
   _Sheet({
     required this.paper,
+    required this.blank,
+    required this.ink,
     required this.reveal,
     required this.edged,
     required this.covered,
   }) : super(repaint: reveal);
 
   final Color paper;
+  final Color blank;
+  final Color ink;
   final Animation<double>? reveal;
   final bool edged;
   final bool covered;
@@ -354,7 +378,7 @@ class _Sheet extends CustomPainter {
     canvas.drawRect(
       sheet,
       Paint()
-        ..color = Color.lerp(Colors.white, paper, tint)!
+        ..color = Color.lerp(blank, paper, tint)!
             .withValues(alpha: covered ? 0.12 : 1),
     );
     canvas.drawRect(
@@ -370,20 +394,20 @@ class _Sheet extends CustomPainter {
           ],
         ).createShader(sheet),
     );
-    final rule = Paint()..color = paperInk.withValues(alpha: 0.045);
+    final rule = Paint()..color = ink.withValues(alpha: 0.045);
     for (var y = 36.0; y < size.height - 6; y += 21) {
       canvas.drawRect(Rect.fromLTWH(13, y, size.width - 26, 1), rule);
     }
     canvas.drawRect(
       Rect.fromLTWH(0, size.height - 1.5, size.width, 1.5),
-      Paint()..color = paperInk.withValues(alpha: 0.1),
+      Paint()..color = ink.withValues(alpha: 0.1),
     );
     if (edged) {
       canvas.drawRRect(
         RRect.fromRectAndRadius(sheet.deflate(0.5), const Radius.circular(8)),
         Paint()
           ..style = PaintingStyle.stroke
-          ..color = paperInk.withValues(alpha: 0.07),
+          ..color = ink.withValues(alpha: 0.07),
       );
     }
   }
@@ -391,6 +415,8 @@ class _Sheet extends CustomPainter {
   @override
   bool shouldRepaint(_Sheet old) =>
       old.paper != paper ||
+      old.blank != blank ||
+      old.ink != ink ||
       old.reveal != reveal ||
       old.edged != edged ||
       old.covered != covered;
@@ -410,6 +436,8 @@ class _StepRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final done = step.done || forced;
+    final ink = inkOf(context);
+    final soft = softInkOf(context);
     return GestureDetector(
       onTap: forced ? null : onTap,
       behavior: HitTestBehavior.opaque,
@@ -421,7 +449,7 @@ class _StepRow extends StatelessWidget {
             Icon(
               done ? LucideIcons.squareCheck : LucideIcons.square,
               size: 15,
-              color: done ? paperInkSoft : paperInk.withValues(alpha: 0.55),
+              color: done ? soft : ink.withValues(alpha: 0.55),
             ),
             const SizedBox(width: 9),
             Expanded(
@@ -432,9 +460,9 @@ class _StepRow extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12.5,
                   height: 1.25,
-                  color: done ? paperInkSoft : paperInk,
+                  color: done ? soft : ink,
                   decoration: done ? TextDecoration.lineThrough : null,
-                  decorationColor: paperInkSoft,
+                  decorationColor: soft,
                 ),
               ),
             ),
@@ -458,9 +486,9 @@ class _Meta extends StatelessWidget {
       _ when due != null => (
           todo.time == null ? LucideIcons.calendar : LucideIcons.clock,
           todoDueLabel(context, todo),
-          overdue ? context.tokens.danger : paperInkSoft,
+          overdue ? context.tokens.danger : softInkOf(context),
         ),
-      _ => (null, '', paperInkSoft),
+      _ => (null, '', softInkOf(context)),
     };
     if (icon == null) return const SizedBox.shrink();
 

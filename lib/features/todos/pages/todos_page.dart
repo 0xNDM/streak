@@ -30,6 +30,7 @@ import 'package:streak/features/todos/widgets/todo_empty_folder.dart';
 import 'package:streak/features/todos/widgets/todo_select_bar.dart';
 import 'package:streak/features/todos/widgets/todo_trash.dart';
 import 'package:streak/core/widgets/hold_menu.dart';
+import 'package:streak/core/widgets/glass.dart';
 import 'package:streak/features/todos/widgets/todo_paper.dart';
 import 'package:streak/features/todos/widgets/todo_labels.dart';
 import 'package:streak/features/todos/widgets/todo_projects.dart';
@@ -48,7 +49,8 @@ class _TodosPageState extends State<TodosPage>
     with SingleTickerProviderStateMixin {
   bool _showCompleted = false;
   bool _searching = false;
-  late bool _folders = context.read<TodoTagsController>().projects.isNotEmpty;
+  late bool _folders = context.read<TodoTagsController>().projects.isNotEmpty &&
+      context.read<SettingsController>().todoPapers;
   String _query = '';
   String? _tagFilter;
   String? _projectFilter;
@@ -67,6 +69,7 @@ class _TodosPageState extends State<TodosPage>
   final _shown = <String>{};
   final _spots = <String, Offset>{};
   bool _collapsing = false;
+  final _scrolled = ValueNotifier(false);
   late final AnimationController _ghost;
 
   void _toggleSearch() {
@@ -103,6 +106,7 @@ class _TodosPageState extends State<TodosPage>
     BackHandlers.remove(_backOut);
     _dealTimer?.cancel();
     _ghost.dispose();
+    _scrolled.dispose();
     super.dispose();
   }
 
@@ -344,7 +348,7 @@ class _TodosPageState extends State<TodosPage>
   }
 
   Future<void> _trash(List<Todo> todos) async {
-    final paper = _projectFilter != null;
+    final paper = context.read<SettingsController>().todoPapers;
     final cards = <TrashCard>[
       for (final todo in todos)
         if (_rectOf(_card(todo.id).currentContext) case final rect?)
@@ -678,6 +682,9 @@ class _TodosPageState extends State<TodosPage>
     final express = style.isExpressStyle;
     final todos = context.watch<TodosController>();
     final tags = context.watch<TodoTagsController>();
+    final papers = style.todoPapers;
+    final classic = !minimal && !express;
+    if (!papers) _folders = false;
     if (_projectFilter case final id? when id.isNotEmpty && tags.byId(id) == null) {
       _projectFilter = null;
       _tagFilter = null;
@@ -717,11 +724,13 @@ class _TodosPageState extends State<TodosPage>
               )
             : null,
         actions: [
-          IconButton(
+          if (papers)
+          _HeaderAction(
+            glass: classic,
             tooltip: context.l10n.todo_tags,
             icon: Icon(_folders ? LucideIcons.list : LucideIcons.folder,
                 size: 20),
-            onPressed: () => !_folders && _projectFilter != null
+            onTap: () => !_folders && _projectFilter != null
                 ? _closeFolder()
                 : setState(() {
               _folders = !_folders;
@@ -734,23 +743,26 @@ class _TodosPageState extends State<TodosPage>
             }),
           ),
           if (searchable && !_folders)
-            IconButton(
+            _HeaderAction(
+            glass: classic,
               tooltip: context.l10n.todo_sort,
               icon: const Icon(LucideIcons.arrowDownUp, size: 20),
-              onPressed: () => _pickOrder(todos),
+              onTap: () => _pickOrder(todos),
             ),
           if (searchable && !_folders)
-            IconButton(
+            _HeaderAction(
+            glass: classic,
               tooltip: context.l10n.todo_search,
               icon: Icon(_searching ? LucideIcons.x : LucideIcons.search,
                   size: 20),
-              onPressed: _toggleSearch,
+              onTap: _toggleSearch,
             ),
           if (completed.isNotEmpty && !_searching && !_folders)
-            IconButton(
+            _HeaderAction(
+            glass: classic,
               tooltip: context.l10n.todo_clear_completed,
               icon: const Icon(LucideIcons.eraser, size: 20),
-              onPressed: () => _clearCompleted(completed.length),
+              onTap: () => _clearCompleted(completed.length),
             ),
           const SizedBox(width: 4),
         ],
@@ -794,7 +806,16 @@ class _TodosPageState extends State<TodosPage>
                 ),
                 ),
               Expanded(
-                child: IgnorePointer(
+                child: NotificationListener<ScrollUpdateNotification>(
+                  onNotification: (note) {
+                    if (note.depth == 0 && note.metrics.axis == Axis.vertical) {
+                      _scrolled.value = note.metrics.pixels > 2;
+                    }
+                    return false;
+                  },
+                  child: Stack(
+                    children: [
+                IgnorePointer(
                   ignoring: _closing,
                   child: AnimatedSwitcher(
                   duration: _returning == null && _home == null
@@ -842,9 +863,14 @@ class _TodosPageState extends State<TodosPage>
                                 : LucideIcons.search,
                             title: context.l10n.todo_search_empty,
                           ))
-                    : _projectFilter != null
+                    : papers
                     ? _papers(sections, completed)
                     : _list(todos, sections, completed, minimal, express)),
+                ),
+                      if (classic && !_folders)
+                        HeaderBlur(scrolled: _scrolled, height: 30),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -852,7 +878,7 @@ class _TodosPageState extends State<TodosPage>
           _ghostLayer(tags, FolderLayer.front),
           Positioned(
             right: (minimal ? 20 : 16) + context.safeInsets.right,
-            bottom: (minimal ? 20 : 78) + context.bottomInset,
+            bottom: (minimal ? 20 : 98) + context.bottomInset,
             child: AnimatedScale(
               scale: _selected.isEmpty ? 1 : 0,
               duration: const Duration(milliseconds: 220),
@@ -905,6 +931,38 @@ class _TodosPageState extends State<TodosPage>
         ],
       ),
     ),
+    );
+  }
+}
+
+class _HeaderAction extends StatelessWidget {
+  const _HeaderAction({
+    required this.glass,
+    required this.tooltip,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final bool glass;
+  final String tooltip;
+  final Widget icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final icon = this.icon;
+    if (!glass) {
+      return IconButton(tooltip: tooltip, icon: icon, onPressed: onTap);
+    }
+    final glyph = icon is Icon ? icon.icon : null;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: GlassIconButton(
+        icon: glyph ?? LucideIcons.circle,
+        tooltip: tooltip,
+        size: 38,
+        onTap: onTap,
+      ),
     );
   }
 }
