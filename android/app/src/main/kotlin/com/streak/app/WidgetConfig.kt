@@ -58,6 +58,13 @@ object WidgetConfig {
         prefs(context).edit().putBoolean("todosAll_$id", value).commit()
     }
 
+    fun habits(context: Context, id: Int): Set<String> =
+        prefs(context).getStringSet("habits_$id", null)?.toSet() ?: emptySet()
+
+    fun setHabits(context: Context, id: Int, value: Set<String>) {
+        prefs(context).edit().putStringSet("habits_$id", value.toSet()).commit()
+    }
+
     fun exists(context: Context, id: Int): Boolean =
         prefs(context).contains("bg_$id")
 
@@ -99,6 +106,7 @@ object WidgetConfig {
             .remove("image_$id")
             .remove("todosAll_$id")
             .remove("round_$id")
+            .remove("habits_$id")
             .apply()
     }
 

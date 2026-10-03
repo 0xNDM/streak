@@ -55,13 +55,13 @@ class HabitWidget : GlanceAppWidget() {
         provideContent {
             currentState(GlanceWidgets.REVISION)
             val style = WidgetStyle.loadFor(context, appWidgetId)
-            WidgetSurface(style) { Body(context, style) }
+            WidgetSurface(style) { Body(context, style, appWidgetId) }
         }
     }
 
     @Composable
-    private fun Body(context: Context, style: WidgetStyle) {
-        val data = WidgetPayload.aligned(context)
+    private fun Body(context: Context, style: WidgetStyle, appWidgetId: Int) {
+        val data = WidgetPayload.forWidget(context, appWidgetId)
         Column(
             modifier = GlanceModifier
                 .fillMaxSize()

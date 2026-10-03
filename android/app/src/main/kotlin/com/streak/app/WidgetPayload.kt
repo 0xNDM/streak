@@ -39,6 +39,69 @@ object WidgetPayload {
 
     fun aligned(context: Context): JSONObject? = raw(context)?.let { align(it, todayKey(context)) }
 
+    fun forWidget(context: Context, appWidgetId: Int): JSONObject? {
+        val root = aligned(context) ?: return null
+        val chosen = WidgetConfig.habits(context, appWidgetId)
+        val all = root.optJSONArray("habits") ?: return root
+        if (chosen.isEmpty()) return root
+        val kept = JSONArray()
+        for (i in 0 until all.length()) {
+            val habit = all.optJSONObject(i) ?: continue
+            if (habit.optString("id") in chosen) kept.put(habit)
+        }
+        if (kept.length() == 0) return root
+        root.put("habits", kept)
+        root.put("summary", summaryOf(kept, todayIndex(root)))
+        return root
+    }
+
+    fun single(context: Context, appWidgetId: Int, root: JSONObject?): JSONObject? {
+        if (WidgetConfig.habits(context, appWidgetId).isEmpty()) return null
+        val habits = root?.optJSONArray("habits") ?: return null
+        return if (habits.length() == 1) habits.optJSONObject(0) else null
+    }
+
+    private fun todayIndex(root: JSONObject): Int {
+        val days = root.optJSONArray("days") ?: return TODAY
+        for (i in 0 until days.length()) {
+            if (days.optJSONObject(i)?.optBoolean("isToday", false) == true) return i
+        }
+        return TODAY
+    }
+
+    private fun summaryOf(habits: JSONArray, today: Int): JSONObject {
+        var due = 0
+        var done = 0
+        var weight = 0
+        var doneWeight = 0
+        var best = 0
+        var weekDone = 0
+        for (i in 0 until habits.length()) {
+            val habit = habits.optJSONObject(i) ?: continue
+            if (habit.optBoolean("tracking", false)) continue
+            val completions = habit.optJSONArray("completions")
+            best = maxOf(best, habit.optInt("streak", 0))
+            for (day in 0 until WEEK) {
+                if (completions?.optBoolean(day, false) == true) weekDone++
+            }
+            val scheduled = habit.optJSONArray("scheduled")
+            if (scheduled != null && !scheduled.optBoolean(today, false)) continue
+            val share = habit.optInt("weight", 1).coerceAtLeast(1)
+            due++
+            weight += share
+            if (completions?.optBoolean(today, false) == true) {
+                done++
+                doneWeight += share
+            }
+        }
+        return JSONObject()
+            .put("total", due)
+            .put("doneToday", done)
+            .put("ratio", if (weight == 0) 0.0 else doneWeight.toDouble() / weight)
+            .put("bestStreak", best)
+            .put("weekDone", weekDone)
+    }
+
     fun isStale(context: Context): Boolean {
         val root = raw(context) ?: return false
         val stored = root.optString("todayKey", "")

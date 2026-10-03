@@ -113,7 +113,7 @@ class WidgetConfigActivity : ComponentActivity() {
 
         setContent {
             Screen(
-                habits = if (type == WType.HEATMAP) loadOptions() else emptyList(),
+                habits = if (type == WType.TODOS) emptyList() else loadOptions(),
                 initialBg = WidgetConfig.bg(this, appWidgetId),
                 initialOpacity = WidgetConfig.opacity(this, appWidgetId),
                 initialBorder = WidgetConfig.border(this, appWidgetId),
@@ -125,6 +125,7 @@ class WidgetConfigActivity : ComponentActivity() {
                 initialBgLight = WidgetConfig.bgLight(this, appWidgetId),
                 initialTodosAll = WidgetConfig.todosAll(this, appWidgetId),
                 initialRound = WidgetConfig.round(this, appWidgetId),
+                initialChosen = WidgetConfig.habits(this, appWidgetId),
                 isEdit = WidgetConfig.exists(this, appWidgetId),
             )
         }
@@ -165,6 +166,7 @@ class WidgetConfigActivity : ComponentActivity() {
         bg: Int, opacity: Int, border: Boolean, borderWidth: Int,
         habitId: String?, allColor: Int, layout: Int,
         followSystem: Boolean, bgLight: Int, todosAll: Boolean, round: Boolean,
+        chosen: Set<String>,
     ) {
         val image = if (bgModeState.value == 1) imageState.value else null
         WidgetConfig.set(
@@ -174,6 +176,7 @@ class WidgetConfigActivity : ComponentActivity() {
         if (image != originalImage) WidgetConfig.deleteImage(this, originalImage)
         if (type == WType.TODOS) WidgetConfig.setTodosAll(this, appWidgetId, todosAll)
         WidgetConfig.setRound(this, appWidgetId, round)
+        if (filters) WidgetConfig.setHabits(this, appWidgetId, chosen)
         if (type == WType.HEATMAP) {
             HeatmapConfig.setHabit(this, appWidgetId, habitId)
             HeatmapConfig.setColor(this, appWidgetId, if (habitId == null) allColor else null)
@@ -200,6 +203,8 @@ class WidgetConfigActivity : ComponentActivity() {
             finish()
         }
     }
+
+    private val filters get() = type == WType.HABIT || type == WType.TODAY || type == WType.STATS
 
     private fun widgetFor(t: WType): GlanceAppWidget = when (t) {
         WType.TODOS -> TodosWidget()
@@ -267,6 +272,7 @@ class WidgetConfigActivity : ComponentActivity() {
         initialBgLight: Int,
         initialTodosAll: Boolean,
         initialRound: Boolean,
+        initialChosen: Set<String>,
         isEdit: Boolean,
     ) {
         var bg by remember { mutableStateOf(initialBg) }
@@ -282,6 +288,7 @@ class WidgetConfigActivity : ComponentActivity() {
         var lightCustom by remember { mutableStateOf(false) }
         var todosAll by remember { mutableStateOf(initialTodosAll) }
         var round by remember { mutableStateOf(initialRound) }
+        var chosen by remember { mutableStateOf(initialChosen) }
         val mode by bgModeState
         val image by imageState
 
@@ -450,7 +457,31 @@ class WidgetConfigActivity : ComponentActivity() {
                     }
                 }
 
-                if (habits.isNotEmpty()) {
+                if (filters && habits.size > 1) {
+                    Spacer(Modifier.height(14.dp))
+                    Section(tr("cfg_show_habits", "Habits to show")) {
+                        habits.forEachIndexed { index, o ->
+                            if (index > 0) Spacer(Modifier.height(8.dp))
+                            val id = o.id
+                            HabitRow(o, if (id == null) chosen.isEmpty() else id in chosen) {
+                                chosen = when {
+                                    id == null -> emptySet()
+                                    id in chosen -> chosen - id
+                                    else -> chosen + id
+                                }
+                            }
+                        }
+                        if (type == WType.STATS) {
+                            Spacer(Modifier.height(10.dp))
+                            Text(
+                                tr("cfg_show_habits_hint", "With one habit, the summary shows its streak."),
+                                color = Color(0xFF9CA3AF), fontSize = 12.sp,
+                            )
+                        }
+                    }
+                }
+
+                if (type == WType.HEATMAP && habits.isNotEmpty()) {
                     Spacer(Modifier.height(14.dp))
                     Section(tr("cfg_show_activity", "Show activity of")) {
                         habits.forEachIndexed { index, o ->
@@ -483,7 +514,7 @@ class WidgetConfigActivity : ComponentActivity() {
                 ) {
                     save(
                         bg, opacity, border, borderWidth, habitId, allColor, layout,
-                        followSystem, bgLight, todosAll, round,
+                        followSystem, bgLight, todosAll, round, chosen,
                     )
                 }
                 Box(
@@ -500,6 +531,7 @@ class WidgetConfigActivity : ComponentActivity() {
                             allColor = brand.toArgb()
                             layout = HeatmapConfig.LAYOUT_CLASSIC
                             round = false
+                            chosen = emptySet()
                             bgModeState.value = 0
                             imageState.value = null
                         }

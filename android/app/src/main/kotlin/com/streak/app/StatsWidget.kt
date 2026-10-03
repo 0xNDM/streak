@@ -38,17 +38,18 @@ class StatsWidget : GlanceAppWidget() {
         val appWidgetId = GlanceAppWidgetManager(context).getAppWidgetId(id)
         provideContent {
             currentState(GlanceWidgets.REVISION)
-            Content(context, WidgetStyle.loadFor(context, appWidgetId))
+            Content(context, WidgetStyle.loadFor(context, appWidgetId), appWidgetId)
         }
     }
 
     @Composable
-    private fun Content(context: Context, style: WidgetStyle) {
-        val data = WidgetPayload.aligned(context)
+    private fun Content(context: Context, style: WidgetStyle, appWidgetId: Int) {
+        val data = WidgetPayload.forWidget(context, appWidgetId)
+        val single = WidgetPayload.single(context, appWidgetId, data)
         val summary = data?.optJSONObject("summary")
-        val done = summary?.optInt("doneToday") ?: 0
+        val done = single?.optInt("streak") ?: summary?.optInt("doneToday") ?: 0
         val total = summary?.optInt("total") ?: 0
-        val best = summary?.optInt("bestStreak") ?: 0
+        val best = single?.optInt("best") ?: summary?.optInt("bestStreak") ?: 0
 
         val size = LocalSize.current
         val full = size.width.value >= 200f && size.height.value >= 150f
@@ -70,7 +71,11 @@ class StatsWidget : GlanceAppWidget() {
                     Flame(if (full) 44.dp else 36.dp)
                     Spacer(GlanceModifier.width(10.dp))
                     Column(modifier = GlanceModifier.defaultWeight()) {
-                        Caps(WidgetText.get(context, "done_today", "done today"), style)
+                        Caps(
+                            single?.optString("name")
+                                ?: WidgetText.get(context, "done_today", "done today"),
+                            style,
+                        )
                         Row(verticalAlignment = Alignment.Bottom) {
                             Text(
                                 text = WidgetText.compact(done),
@@ -81,6 +86,7 @@ class StatsWidget : GlanceAppWidget() {
                                 ),
                                 maxLines = 1,
                             )
+                            if (single == null) {
                             Spacer(GlanceModifier.width(3.dp))
                             Text(
                                 text = "/${WidgetText.compact(total)}",
@@ -92,6 +98,7 @@ class StatsWidget : GlanceAppWidget() {
                                 maxLines = 1,
                                 modifier = GlanceModifier.padding(bottom = if (full) 4.dp else 3.dp),
                             )
+                            }
                         }
                     }
                     if (full) Best(context, style, best)
