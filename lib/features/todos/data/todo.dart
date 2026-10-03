@@ -12,6 +12,7 @@ class Todo {
     this.done = false,
     this.date = '',
     this.minutes,
+    this.estimate,
     this.priority = TodoPriority.none,
     this.photos = const [],
     this.tags = const [],
@@ -28,6 +29,7 @@ class Todo {
   final bool done;
   final String date;
   final int? minutes;
+  final int? estimate;
   final TodoPriority priority;
   final List<String> photos;
   final List<String> tags;
@@ -66,6 +68,7 @@ class Todo {
     bool? done,
     String? date,
     int? minutes,
+    int? estimate,
     TodoPriority? priority,
     List<String>? photos,
     List<String>? tags,
@@ -77,6 +80,7 @@ class Todo {
     DateTime? doneAt,
     bool clearDoneAt = false,
     bool clearMinutes = false,
+    bool clearEstimate = false,
   }) =>
       Todo(
         id: id,
@@ -84,6 +88,7 @@ class Todo {
         done: done ?? this.done,
         date: date ?? this.date,
         minutes: clearMinutes ? null : (minutes ?? this.minutes),
+        estimate: clearEstimate ? null : (estimate ?? this.estimate),
         priority: priority ?? this.priority,
         photos: photos ?? this.photos,
         tags: tags ?? this.tags,
@@ -102,6 +107,7 @@ class Todo {
         'done': done,
         'date': date,
         'minutes': minutes,
+        'estimate': estimate,
         'priority': priority.index,
         'photos': photos,
         'tags': tags,
@@ -120,6 +126,7 @@ class Todo {
         done: (map['done'] ?? false) as bool,
         date: (map['date'] ?? '') as String,
         minutes: (map['minutes'] as num?)?.toInt(),
+        estimate: (map['estimate'] as num?)?.toInt(),
         priority: TodoPriority.values[((map['priority'] ?? 0) as num)
             .toInt()
             .clamp(0, TodoPriority.values.length - 1)],

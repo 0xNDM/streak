@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:streak/core/utils/amount_format.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
@@ -372,7 +373,10 @@ class _DayTimelinePageState extends State<DayTimelinePage> {
                                       padding: EdgeInsets.only(
                                         top: plan.isEmpty ? 0 : 22,
                                       ),
-                                      child: SectionLabel(context.l10n.todos),
+                                      child: SectionLabel(
+                                        context.l10n.todos,
+                                        trailing: _EstimateTotal(todos: todos),
+                                      ),
                                     ),
                                   ),
                                   _todos(todos, rows.length),
@@ -486,6 +490,36 @@ class _AnytimeRow extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _EstimateTotal extends StatelessWidget {
+  const _EstimateTotal({required this.todos});
+
+  final List<Todo> todos;
+
+  @override
+  Widget build(BuildContext context) {
+    final total = todos
+        .where((todo) => !todo.done)
+        .fold<int>(0, (sum, todo) => sum + (todo.estimate ?? 0));
+    if (total == 0) return const SizedBox.shrink();
+    final muted = context.tokens.muted;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(LucideIcons.hourglass, size: 13, color: muted),
+        const SizedBox(width: 4),
+        Text(
+          formatMinutes(total.toDouble()),
+          style: TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w700,
+            color: muted,
+          ),
+        ),
+      ],
     );
   }
 }

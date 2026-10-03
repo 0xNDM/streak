@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:streak/core/utils/amount_format.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:streak/app/theme/app_tokens.dart';
@@ -482,11 +483,18 @@ class _Meta extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final due = todo.due;
+    final estimate = todo.estimate;
+    final length = estimate == null ? '' : formatMinutes(estimate.toDouble());
     final (icon, label, color) = switch (todo) {
       _ when due != null => (
           todo.time == null ? LucideIcons.calendar : LucideIcons.clock,
-          todoDueLabel(context, todo),
+          [todoDueLabel(context, todo), if (length.isNotEmpty) length].join(' · '),
           overdue ? context.tokens.danger : softInkOf(context),
+        ),
+      _ when estimate != null => (
+          LucideIcons.hourglass,
+          length,
+          softInkOf(context),
         ),
       _ => (null, '', softInkOf(context)),
     };

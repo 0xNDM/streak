@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:streak/core/utils/amount_format.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:streak/app/theme/app_tokens.dart';
@@ -102,6 +103,7 @@ class TodoTile extends StatelessWidget {
                     ),
                   ],
                   if (todo.pinned ||
+                          todo.estimate != null ||
                           due != null ||
                           project != null ||
                           todo.tags.isNotEmpty ||
@@ -122,6 +124,12 @@ class TodoTile extends StatelessWidget {
                                 : LucideIcons.clock,
                             label: todoDueLabel(context, todo),
                             color: overdue ? context.tokens.danger : muted,
+                          ),
+                        if (todo.estimate != null)
+                          _MetaLabel(
+                            icon: LucideIcons.hourglass,
+                            label: formatMinutes(todo.estimate!.toDouble()),
+                            color: muted,
                           ),
                         if (todo.priority != TodoPriority.none)
                           TodoSticker(
