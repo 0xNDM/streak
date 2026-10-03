@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:streak/core/i18n/l10n.dart';
 import 'package:streak/features/focus/widgets/focus_video_scene.dart';
 import 'package:streak/features/focus/widgets/linux_video_scene.dart';
@@ -17,6 +18,8 @@ const focusSceneAssets = <String>[
 const focusSceneCount = 7;
 const kCustomScene = focusSceneCount;
 const kFirstVideoScene = focusSceneCount + 1;
+
+int get defaultFocusScene => hasVideoScenes ? kFirstVideoScene : 3;
 
 int videoSceneIndex(int scene) {
   final index = scene - kFirstVideoScene;
@@ -53,11 +56,29 @@ class FocusBackground extends StatelessWidget {
     );
   }
 
+  Widget _video(File file, Widget poster) => Platform.isLinux
+      ? LinuxVideoScene(file: file, poster: poster)
+      : FocusVideoScene(file: file, poster: poster);
+
   @override
   Widget build(BuildContext context) {
     final hasImage = scene == kCustomScene &&
         imagePath.isNotEmpty &&
         File(imagePath).existsSync();
+
+    if (hasImage && isFocusVideo(imagePath)) {
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          if (thumbnail)
+            const FocusVideoTile()
+          else
+            _video(File(imagePath), const ColoredBox(color: Colors.black)),
+          ColoredBox(color: Colors.black.withValues(alpha: 0.32)),
+          child,
+        ],
+      );
+    }
 
     if (hasImage) {
       return Stack(
@@ -79,10 +100,10 @@ class FocusBackground extends StatelessWidget {
       return Stack(
         fit: StackFit.expand,
         children: [
-          if (Platform.isLinux)
-            LinuxVideoScene(name: focusVideoScenes[video])
-          else
-            FocusVideoScene(name: focusVideoScenes[video]),
+          _video(
+            focusVideoFile(focusVideoScenes[video]),
+            FocusVideoPoster(name: focusVideoScenes[video]),
+          ),
           ColoredBox(color: Colors.black.withValues(alpha: 0.32)),
           child,
         ],
@@ -135,7 +156,11 @@ class FocusScenePreview extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         onLongPress: onLongPress,
-        child: AspectRatio(
+        child: AnimatedScale(
+          scale: selected ? 1 : 0.94,
+          duration: const Duration(milliseconds: 320),
+          curve: Curves.easeOutBack,
+          child: AspectRatio(
           aspectRatio: 0.78,
           child: Container(
             padding: EdgeInsets.all(selected ? 2.5 : 0),
@@ -147,23 +172,61 @@ class FocusScenePreview extends StatelessWidget {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(selected ? 12 : 14),
-              child: video >= 0
-                  ? Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        FocusVideoPoster(name: focusVideoScenes[video]),
-                        ColoredBox(color: Colors.black.withValues(alpha: 0.32)),
-                      ],
-                    )
-                  : FocusBackground(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  if (video >= 0) ...[
+                    FocusVideoPoster(name: focusVideoScenes[video]),
+                    ColoredBox(color: Colors.black.withValues(alpha: 0.32)),
+                  ] else
+                    FocusBackground(
                       scene: scene,
                       imagePath: imagePath,
                       thumbnail: true,
                       child: const SizedBox.expand(),
                     ),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: AnimatedScale(
+                      scale: selected ? 1 : 0,
+                      duration: const Duration(milliseconds: 280),
+                      curve: Curves.easeOutBack,
+                      child: Container(
+                        width: 22,
+                        height: 22,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          LucideIcons.check,
+                          size: 14,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
+        ),
+      ),
+    );
+  }
+}
+
+class FocusVideoTile extends StatelessWidget {
+  const FocusVideoTile({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const ColoredBox(
+      color: Color(0xFF1C1C22),
+      child: Center(
+        child: Icon(LucideIcons.clapperboard, size: 22, color: Colors.white70),
       ),
     );
   }

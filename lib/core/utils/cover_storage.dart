@@ -19,8 +19,9 @@ class CoverStorage {
   static Future<String?> store({
     required String folder,
     bool fromCamera = false,
+    List<String> extensions = imageExtensions,
   }) async {
-    final source = fromCamera ? await _shoot() : await _browse();
+    final source = fromCamera ? await _shoot() : await _browse(extensions);
     if (source == null) return null;
 
     final dir = await appDataDir();
@@ -28,7 +29,7 @@ class CoverStorage {
     if (!target.existsSync()) target.createSync(recursive: true);
 
     final extension = source.split('.').last.toLowerCase();
-    final name = imageExtensions.contains(extension) ? extension : 'jpg';
+    final name = extensions.contains(extension) ? extension : 'jpg';
     final dest = '${target.path}/${DateTime.now().millisecondsSinceEpoch}.$name';
     await File(source).copy(dest);
     await _dropTemporary(source);
@@ -132,10 +133,10 @@ class CoverStorage {
     return picked?.path;
   }
 
-  static Future<String?> _browse() async {
+  static Future<String?> _browse(List<String> extensions) async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: imageExtensions,
+      allowedExtensions: extensions,
     );
     return result?.files.single.path;
   }

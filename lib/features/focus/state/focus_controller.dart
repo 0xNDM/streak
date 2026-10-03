@@ -77,6 +77,7 @@ class FocusController extends ChangeNotifier {
   int _round = 1;
   bool _open = false;
   bool _awaiting = false;
+  int _switchIn = 0;
   int _accumulated = 0;
   DateTime? _since;
   Timer? _ticker;
@@ -165,6 +166,10 @@ class FocusController extends ChangeNotifier {
   bool get isRunning => _since != null;
   bool get isAwaiting => _awaiting;
 
+  static const switchDelay = 5;
+
+  int get switchIn => _switchIn;
+
   int elapsedAt(DateTime at) {
     final live = _since == null ? 0 : at.difference(_since!).inSeconds;
     final total = _accumulated + live;
@@ -246,6 +251,7 @@ class FocusController extends ChangeNotifier {
 
   void reset() {
     _awaiting = false;
+    _switchIn = 0;
     unawaited(FocusAudio.stopAlert());
     _accumulated = 0;
     _since = isRunning ? DateTime.now() : null;
@@ -259,6 +265,7 @@ class FocusController extends ChangeNotifier {
   void addMinute() {
     if (!_open || isFlow) return;
     _awaiting = false;
+    _switchIn = 0;
     unawaited(FocusAudio.stopAlert());
     if (reachedTarget) {
       _accumulated = targetSeconds;
@@ -327,6 +334,7 @@ class FocusController extends ChangeNotifier {
     final target = _focusMinutes;
     _stopTicker();
     _awaiting = false;
+    _switchIn = 0;
     unawaited(FocusAudio.stopAlert());
     if (FocusAudio.current.value.isNotEmpty) unawaited(FocusAudio.stop());
     _accumulated = 0;
@@ -390,6 +398,7 @@ class FocusController extends ChangeNotifier {
     }
     _isBreak = !_isBreak;
     _awaiting = false;
+    _switchIn = 0;
     _targetMinutes = _isBreak ? _breakMinutes : _focusMinutes;
     _accumulated = 0;
     _since = DateTime.now();
@@ -418,15 +427,21 @@ class FocusController extends ChangeNotifier {
   void _startTicker() {
     _ticker?.cancel();
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (_switchIn > 0) {
+        if (--_switchIn == 0) return _advancePhase();
+        _sync();
+        return _tick();
+      }
       if (!_celebrated && reachedTarget) {
         _celebrated = true;
         completedTick.value++;
         if (!isMobile) unawaited(_announceEnd(breakEnded: _isBreak));
-        final hold = isPomodoro && LocalStore.setting('focusHold', false);
+        final always = isPomodoro && LocalStore.setting('focusHold', false);
+        final hold = always || (isPomodoro && _isBreak);
         unawaited(
           FocusAudio.alert(
             LocalStore.setting('focusAlert', ''),
-            loop: hold,
+            loop: always,
           ),
         );
         if (hold) {
@@ -436,8 +451,8 @@ class FocusController extends ChangeNotifier {
           _sync();
           notifyListeners();
         } else if (isPomodoro) {
-          _advancePhase();
-          return;
+          _switchIn = switchDelay;
+          _sync();
         } else {
           _stopTicker();
           _sync();
@@ -507,9 +522,11 @@ class FocusController extends ChangeNotifier {
         return;
       }
       final name = _habitId.isEmpty ? null : LocalStore.habitName(_habitId);
-      final done = _awaiting || (reachedTarget && !isPomodoro);
+      final done = _awaiting || _switchIn > 0 || (reachedTarget && !isPomodoro);
       final label = _awaiting
           ? strings.focus_continue
+          : _switchIn > 0
+          ? (_isBreak ? strings.focus_back_in : strings.focus_break_in)('$_switchIn')
           : done
           ? strings.focus_target_reached
           : _isBreak
