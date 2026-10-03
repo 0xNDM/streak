@@ -382,7 +382,7 @@
       }
     }
   },
-  "every_n_weeks": "Ogni {n} settimane",
+  "every_n_weeks": "{n, plural, =1{Ogni settimana} other{Ogni {n} settimane}}",
   "@every_n_weeks": {
     "placeholders": {
       "n": {
@@ -390,7 +390,7 @@
       }
     }
   },
-  "every_n_months": "Ogni {n} mesi",
+  "every_n_months": "{n, plural, =1{Ogni mese} other{Ogni {n} mesi}}",
   "@every_n_months": {
     "placeholders": {
       "n": {

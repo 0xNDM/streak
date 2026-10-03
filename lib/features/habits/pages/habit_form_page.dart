@@ -177,10 +177,17 @@ class _HabitFormPageState extends State<HabitFormPage> {
   void _pickUnit(ScheduleUnit unit) {
     setState(() {
       _scheduleUnit = unit;
-      final max = scheduleEveryMax(unit);
-      if (_scheduleEvery > max) _scheduleEvery = max;
+      _scheduleEvery = _scheduleEvery.clamp(
+        scheduleEveryMin(unit),
+        scheduleEveryMax(unit),
+      );
     });
   }
+
+  bool _sheetOpen = false;
+
+  bool get _remindersFollowHabit =>
+      _kind != HabitKind.negative && _interval == HabitInterval.everyXDays;
 
   void _applyQuantPreset(QuantKind preset) {
     setState(() {
@@ -329,22 +336,29 @@ class _HabitFormPageState extends State<HabitFormPage> {
       return;
     }
     if (!mounted) return;
-    final reminder = await showModalBottomSheet<Reminder>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (_) => const ReminderEditorSheet(),
-    );
+    final reminder = await _reminderSheet(null);
     if (reminder != null) setState(() => _reminders.add(reminder));
   }
 
+  Future<Reminder?> _reminderSheet(Reminder? initial) async {
+    setState(() => _sheetOpen = true);
+    try {
+      return await showModalBottomSheet<Reminder>(
+        context: context,
+        isScrollControlled: true,
+        showDragHandle: true,
+        builder: (_) => ReminderEditorSheet(
+          initial: initial,
+          followsHabit: _remindersFollowHabit,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _sheetOpen = false);
+    }
+  }
+
   Future<void> _editReminder(Reminder reminder) async {
-    final updated = await showModalBottomSheet<Reminder>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (_) => ReminderEditorSheet(initial: reminder),
-    );
+    final updated = await _reminderSheet(reminder);
     if (updated == null) return;
     setState(() {
       final index = _reminders.indexWhere((r) => r.id == reminder.id);
@@ -408,10 +422,12 @@ class _HabitFormPageState extends State<HabitFormPage> {
         ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: ExpressSaveBar(
-        label: context.l10n.save,
-        onPressed: _canSave ? _submit : null,
-      ),
+      floatingActionButton: _sheetOpen
+          ? null
+          : ExpressSaveBar(
+              label: context.l10n.save,
+              onPressed: _canSave ? _submit : null,
+            ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 760),
@@ -615,6 +631,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
           padding: const EdgeInsets.only(bottom: 8),
           child: ReminderTile(
             reminder: reminder,
+            followsHabit: _remindersFollowHabit,
             onEdit: () => _editReminder(reminder),
             onDelete: () => setState(() => _reminders.remove(reminder)),
           ),
@@ -927,7 +944,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
           CompactStepperRow(
             label: scheduleEveryLabel(context, _scheduleEvery, _scheduleUnit),
             value: _scheduleEvery.toDouble(),
-            min: 2,
+            min: scheduleEveryMin(_scheduleUnit).toDouble(),
             max: scheduleEveryMax(_scheduleUnit).toDouble(),
             onChanged: (v) => setState(() => _scheduleEvery = v.round()),
           ),
@@ -966,6 +983,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
           padding: const EdgeInsets.only(bottom: 7),
           child: CompactReminderRow(
             reminder: reminder,
+            followsHabit: _remindersFollowHabit,
             onEdit: () => _editReminder(reminder),
             onDelete: () => setState(() => _reminders.remove(reminder)),
           ),
@@ -1226,6 +1244,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
                 padding: const EdgeInsets.only(bottom: 8),
                 child: ReminderTile(
                   reminder: reminder,
+                  followsHabit: _remindersFollowHabit,
                   onEdit: () => _editReminder(reminder),
                   onDelete: () =>
                       setState(() => _reminders.remove(reminder)),

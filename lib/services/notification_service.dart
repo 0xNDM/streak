@@ -106,12 +106,32 @@ class NotificationService {
     onOpenHabit?.call(id);
   }
 
+  static tz.Location _localZone(String reported) {
+    final names = [if (Platform.isLinux) _linkedZone(), reported];
+    for (final name in names.whereType<String>()) {
+      try {
+        return tz.getLocation(name);
+      } catch (_) {}
+    }
+    return tz.UTC;
+  }
+
+  static String? _linkedZone() {
+    try {
+      final target = Link('/etc/localtime').targetSync();
+      final at = target.indexOf('zoneinfo/');
+      return at < 0 ? null : target.substring(at + 'zoneinfo/'.length);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> initialize() async {
     if (_ready) return;
 
     tz.initializeTimeZones();
     final zone = await FlutterTimezone.getLocalTimezone();
-    tz.setLocalLocation(tz.getLocation(zone.identifier));
+    tz.setLocalLocation(_localZone(zone.identifier));
 
     const android = AndroidInitializationSettings('ic_stat_notify');
     final darwin = DarwinInitializationSettings(
@@ -217,6 +237,9 @@ class NotificationService {
   Future<Set<int>> _schedule(Habit habit, Reminder reminder) async {
     final strings = await localizations();
     final body = _bodyFor(habit, reminder, strings);
+    if (habit.interval == HabitInterval.everyXDays) {
+      return _scheduleOnHabitDays(habit, reminder, body, strings);
+    }
     if (reminder.isHourly) {
       return _scheduleHourly(habit, reminder, body, strings);
     }
@@ -442,6 +465,38 @@ class NotificationService {
           ),
           tz.local,
         ),
+        _details(habit, body, strings),
+        payload: habit.id,
+      );
+    }
+    return ids;
+  }
+
+  Future<Set<int>> _scheduleOnHabitDays(Habit habit, Reminder reminder,
+      String body, AppLocalizations strings) async {
+    final slots = reminder.isHourly
+        ? ReminderSchedule.hourlySlots(
+            hour: reminder.hour,
+            minute: reminder.minute,
+            everyHours: reminder.everyHours,
+            until: reminder.untilMinute,
+          )
+        : [reminder.hour * 60 + reminder.minute];
+    final moments = ReminderSchedule.onHabitDays(
+      from: _firstMoment(habit),
+      due: (day) => !habit.isOffDay(day),
+      slots: slots,
+      limit: Platform.isIOS ? 8 : ReminderSchedule.slotsPerReminder,
+    );
+    final ids = <int>{};
+    for (final (index, at) in moments.indexed) {
+      final id = _notificationId(habit.id, reminder.id, index);
+      ids.add(id);
+      await _zonedSchedule(
+        id,
+        habit.name,
+        body,
+        tz.TZDateTime.from(at, tz.local),
         _details(habit, body, strings),
         payload: habit.id,
       );
@@ -721,7 +776,11 @@ class NotificationService {
         when: when,
         details: details,
         payload: payload,
-        weekly: matchDateTimeComponents != null,
+        repeatDays: switch (matchDateTimeComponents) {
+          null => 0,
+          DateTimeComponents.time => 1,
+          _ => 7,
+        },
       );
       return;
     }

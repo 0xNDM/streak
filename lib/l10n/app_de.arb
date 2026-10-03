@@ -1263,7 +1263,7 @@
       }
     }
   },
-  "every_n_weeks": "Alle {n} Wochen",
+  "every_n_weeks": "{n, plural, =1{Jede Woche} other{Alle {n} Wochen}}",
   "@every_n_weeks": {
     "placeholders": {
       "n": {
@@ -1271,7 +1271,7 @@
       }
     }
   },
-  "every_n_months": "Alle {n} Monate",
+  "every_n_months": "{n, plural, =1{Jeden Monat} other{Alle {n} Monate}}",
   "@every_n_months": {
     "placeholders": {
       "n": {

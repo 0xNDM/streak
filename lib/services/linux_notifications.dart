@@ -19,9 +19,9 @@ class LinuxNotifications {
     required tz.TZDateTime when,
     required NotificationDetails details,
     String? payload,
-    bool weekly = false,
+    int repeatDays = 0,
   }) {
-    _queue[id] = _Queued(title, body, when, details, payload, weekly);
+    _queue[id] = _Queued(title, body, when, details, payload, repeatDays);
     _tick ??= Timer.periodic(_tickEvery, (_) => _showDue());
   }
 
@@ -44,7 +44,7 @@ class LinuxNotifications {
     for (final entry in _queue.entries.toList()) {
       final item = entry.value;
       if (item.when.isAfter(now)) continue;
-      if (item.weekly) {
+      if (item.repeatDays > 0) {
         _queue[entry.key] = item.nextAfter(now);
       } else {
         _queue.remove(entry.key);
@@ -67,7 +67,7 @@ class _Queued {
     this.when,
     this.details,
     this.payload,
-    this.weekly,
+    this.repeatDays,
   );
 
   final String title;
@@ -75,7 +75,7 @@ class _Queued {
   final tz.TZDateTime when;
   final NotificationDetails details;
   final String? payload;
-  final bool weekly;
+  final int repeatDays;
 
   _Queued nextAfter(tz.TZDateTime now) {
     var next = when;
@@ -84,11 +84,11 @@ class _Queued {
         tz.local,
         next.year,
         next.month,
-        next.day + 7,
+        next.day + repeatDays,
         next.hour,
         next.minute,
       );
     }
-    return _Queued(title, body, next, details, payload, weekly);
+    return _Queued(title, body, next, details, payload, repeatDays);
   }
 }

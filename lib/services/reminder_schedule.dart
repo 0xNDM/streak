@@ -68,6 +68,28 @@ class ReminderSchedule {
     return when.isBefore(now) ? when.add(const Duration(days: 7)) : when;
   }
 
+  static const habitDaysHorizon = 800;
+
+  static List<DateTime> onHabitDays({
+    required DateTime from,
+    required bool Function(DateTime day) due,
+    required List<int> slots,
+    required int limit,
+  }) {
+    final moments = <DateTime>[];
+    for (var offset = 0; offset < habitDaysHorizon; offset++) {
+      final day = DateTime(from.year, from.month, from.day + offset);
+      if (!due(day)) continue;
+      for (final slot in slots) {
+        final at = DateTime(day.year, day.month, day.day, slot ~/ 60, slot % 60);
+        if (at.isBefore(from)) continue;
+        moments.add(at);
+        if (moments.length >= limit) return moments;
+      }
+    }
+    return moments;
+  }
+
   static DateTime nextDaily({
     required DateTime now,
     required int hour,

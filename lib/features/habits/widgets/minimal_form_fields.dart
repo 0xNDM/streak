@@ -392,11 +392,13 @@ class CompactReminderRow extends StatelessWidget {
     required this.reminder,
     required this.onEdit,
     required this.onDelete,
+    this.followsHabit = false,
   });
 
   final Reminder reminder;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final bool followsHabit;
 
   String _daysLabel(BuildContext context) {
     final days = _dayNames(context);
@@ -405,6 +407,7 @@ class CompactReminderRow extends StatelessWidget {
   }
 
   String _dayNames(BuildContext context) {
+    if (followsHabit) return context.l10n.reminder_habit_days;
     if (reminder.isInterval) {
       return context.l10n.every_n_days(reminder.everyDays);
     }

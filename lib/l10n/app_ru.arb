@@ -328,7 +328,7 @@
       }
     }
   },
-  "every_n_weeks": "Каждые {n} нед.",
+  "every_n_weeks": "{n, plural, =1{Каждую неделю} other{Каждые {n} нед.}}",
   "@every_n_weeks": {
     "placeholders": {
       "n": {
@@ -336,7 +336,7 @@
       }
     }
   },
-  "every_n_months": "Каждые {n} мес.",
+  "every_n_months": "{n, plural, =1{Каждый месяц} other{Каждые {n} мес.}}",
   "@every_n_months": {
     "placeholders": {
       "n": {

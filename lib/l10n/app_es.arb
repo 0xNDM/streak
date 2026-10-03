@@ -159,6 +159,20 @@
   "quant_stats_empty": "Anota una cantidad y se suma aquí, aunque ese día te quedes lejos del objetivo.",
   "frequency": "Frecuencia",
   "pick_one_day": "Elige al menos un día",
+  "reminder_habit_days": "Los días del hábito",
+  "reminder_habit_days_hint": "Suena los días que toca el hábito.",
+  "focus_label": "Etiqueta",
+  "focus_label_none": "Sin etiqueta",
+  "focus_label_new": "Nueva etiqueta",
+  "focus_label_hint": "Mates, lectura, trabajo...",
+  "focus_label_remove": "Quitar etiqueta",
+  "focus_label_remove_body": "{label} sale de la lista. Tus sesiones de antes la conservan.",
+  "@focus_label_remove_body": {"placeholders": {"label": {"type": "String"}}},
+  "focus_label_remove_confirm": "Quitar",
+  "by_label": "Por etiqueta",
+  "tracking_hide": "Ocultar seguimiento",
+  "tracking_show": "Mostrar seguimiento ({count})",
+  "@tracking_show": {"placeholders": {"count": {"type": "int"}}},
   "daily": "Diario",
   "weekly": "Semanal",
   "monthly": "Mensual",
@@ -299,7 +313,7 @@
       }
     }
   },
-  "every_n_weeks": "Cada {n} semanas",
+  "every_n_weeks": "{n, plural, =1{Cada semana} other{Cada {n} semanas}}",
   "@every_n_weeks": {
     "placeholders": {
       "n": {
@@ -307,7 +321,7 @@
       }
     }
   },
-  "every_n_months": "Cada {n} meses",
+  "every_n_months": "{n, plural, =1{Cada mes} other{Cada {n} meses}}",
   "@every_n_months": {
     "placeholders": {
       "n": {

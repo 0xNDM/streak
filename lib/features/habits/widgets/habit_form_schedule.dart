@@ -110,7 +110,7 @@ class IntervalSelector extends StatelessWidget {
             context,
             label: scheduleEveryLabel(context, every, unit),
             value: every,
-            min: 2,
+            min: scheduleEveryMin(unit),
             max: scheduleEveryMax(unit),
             onChanged: onEveryChanged,
           ),
@@ -286,6 +286,9 @@ class ScheduleStartRow extends StatelessWidget {
     );
   }
 }
+
+int scheduleEveryMin(ScheduleUnit unit) =>
+    unit == ScheduleUnit.days ? 2 : 1;
 
 int scheduleEveryMax(ScheduleUnit unit) => switch (unit) {
       ScheduleUnit.days => 90,

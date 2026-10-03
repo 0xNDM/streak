@@ -385,7 +385,7 @@
       }
     }
   },
-  "every_n_weeks": "كل {n} أسابيع",
+  "every_n_weeks": "{n, plural, =1{كل أسبوع} other{كل {n} أسابيع}}",
   "@every_n_weeks": {
     "placeholders": {
       "n": {
@@ -393,7 +393,7 @@
       }
     }
   },
-  "every_n_months": "كل {n} أشهر",
+  "every_n_months": "{n, plural, =1{كل شهر} other{كل {n} أشهر}}",
   "@every_n_months": {
     "placeholders": {
       "n": {
