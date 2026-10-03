@@ -492,6 +492,9 @@ class HabitsController extends ChangeNotifier {
           await _notifications.scheduleFor(placed);
         }
       }
+      for (final note in outcome.notes) {
+        await LocalStore.writeNote(note);
+      }
     });
     notifyListeners();
     await HomeWidgetService.sync(asMap);

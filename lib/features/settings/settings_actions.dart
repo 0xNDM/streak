@@ -149,6 +149,7 @@ class SettingsActions {
     try {
       final outcome = await controller.importFromApp();
       if (!context.mounted || outcome == null) return;
+      if (outcome.notes.isNotEmpty) context.read<NotesController>().reload();
       AppSnackbar.success(
         context,
         context.l10n.import_from_app_done(
