@@ -53,9 +53,9 @@
   "auto_backup_off": "꺼짐",
   "auto_backup_daily": "매일",
   "auto_backup_weekly": "매주",
-  "auto_backup_where": "앱을 열 때 모든 데이터를 백업해요. 최근 5개를 저장해요.",
+  "auto_backup_where": "앱을 열 때 모든 데이터를 백업해요. 사진, 음악, .json이 든 .zip 파일을 만들어요. 또 어떤 편집기에서도 열 수 있는 사본을 생성해요. 최근 백업 몇 개를 저장해요.",
   "auto_backup_folder": "폴더",
-  "auto_backup_folder_default": "앱 폴더",
+  "auto_backup_folder_default": "앱 내부 (앱 제거 시 지워짐)",
   "auto_backup_folder_set": "폴더를 저장했어요",
   "auto_backup_folder_failed": "해당 폴더로는 쓸 수 없어요",
   "auto_backup_no_permission": "저장소 권한이 거부되었어요",
@@ -1167,7 +1167,7 @@
   "last_check": "최근 체크",
   "heatmap_rolling_sub": "이 연간 표는 12월 31일 대신 오늘 끝나요",
   "island_reset_go": "처음부터 재시작",
-  "island_how_focus": "집중 시간 1분마다 1, 하루에 최대 60",
+  "island_how_focus": "집중 시간 1분마다 1",
   "island_p_stone_basin": "석조",
   "check_marks": "{count}회",
   "@check_marks": {
@@ -1368,5 +1368,90 @@
       }
     }
   },
-  "today_progress_option_sub": "일일 목표 고리와 각 습관의 진행 막대"
+  "today_progress_option_sub": "일일 목표 고리와 각 습관의 진행 막대",
+  "focus_countdown": "3초 카운트다운",
+  "focus_skip_break": "휴식 건너뛰기",
+  "focus_continue": "계속",
+  "onb_free_title": "영원히, 무료",
+  "onb_free_body": "광고도, 구독도, 잠긴 기능도 없어요.",
+  "onb_blurb": "매일 조금씩 확인하며 습관을 만들어요.",
+  "onb_private_body": "모두 기기에만 저장돼요. 계정이 필요하지 않아요.",
+  "onb_private_title": "비공개, 오프라인",
+  "onb_yours_title": "데이터의 주인은 나",
+  "onb_yours_body": "원할 때 언제든 백업하거나 이동할 수 있어요.",
+  "onb_step": "{step} / {total} 단계",
+  "@onb_step": {
+    "placeholders": {
+      "step": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "todo_paper": "색상",
+  "todo_add": "추가",
+  "todo_title_hint": "제목",
+  "todo_body_hint": "노트",
+  "todo_background": "배경",
+  "todo_background_pick": "사진 선택",
+  "todo_deleted": "노트를 삭제했어요",
+  "todo_pin": "고정",
+  "todo_unpin": "고정 해제",
+  "todo_select": "선택",
+  "todo_selected": "{count, plural, other{{count}개 선택}}",
+  "@todo_selected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "todo_deleted_many": "{count, plural, other{노트 {count}개를 삭제했어요}}",
+  "@todo_deleted_many": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "focus_alert": "회차 종료 알림",
+  "focus_alert_chime": "차임",
+  "focus_alert_custom": "소리 선택",
+  "focus_alert_none": "무음",
+  "focus_hold": "내가 정지할 때까지 대기",
+  "focus_restart": "재시작",
+  "focus_restart_title": "이번 회차를 재시작할까요?",
+  "focus_restart_body": "이번 회차에 집중한 시간이 사라져요.",
+  "swipe_cards": "습관 카드 밀기",
+  "swipe_cards_sub": "왼쪽으로 밀어 습관을 완료하고 오른쪽으로 밀어 되돌리세요.",
+  "widget_cfg_square": "사각형",
+  "widget_cfg_circle": "원",
+  "widget_cfg_checks": "체크",
+  "focus_hold_sub": "계속 버튼을 누르기 전까지 다음 회차로 넘어가지 않아요.",
+  "duplicate_habit": "습관 복제",
+  "habit_duplicated": "{name} 습관을 추가했어요",
+  "@habit_duplicated": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "about_legal": "© InlitX. Streak는 GNU GPLv3 하에 배포되는 자유 소프트웨어이고, 해당 라이선스 내 제7조의 추가 조항이 적용되며, 보증 책임을 지지 않습니다. 눌러서 라이선스를 확인할 수 있습니다.",
+  "category_order": "분류 순서",
+  "category_order_sub": "원하는 순서대로 드래그",
+  "category_order_empty": "습관에 분류를 추가하면 여기에 나타나요",
+  "plan_todos_sub": "해당 날짜의 할 일을 습관 밑에 표시해요.",
+  "plan_todos": "계획된 작업",
+  "todo_mark_done": "완료 표시",
+  "todo_mark_open": "미완료 표시",
+  "todo_project_empty": "아직 이 폴더에 아무것도 없어요",
+  "onb_kicker": "환영해요",
+  "focus_track_fire": "불",
+  "todo_sort": "우선순위 순서",
+  "todo_sort_high_first": "높은 우선순위 먼저",
+  "todo_sort_low_first": "낮은 우선순위 먼저",
+  "todo_list_item": "목록 항목"
 }
