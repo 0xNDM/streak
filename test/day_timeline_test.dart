@@ -132,6 +132,9 @@ void main() {
       settings: {'planningEnabled': true, 'appStyle': 1},
     );
 
+    await tester.tap(find.byIcon(LucideIcons.ellipsis));
+    await tester.pumpAndSettle();
+
     expect(find.byIcon(LucideIcons.calendarClock), findsOneWidget);
   });
 

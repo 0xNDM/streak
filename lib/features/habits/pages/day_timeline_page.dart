@@ -15,6 +15,7 @@ import 'package:streak/core/widgets/app_empty_state.dart';
 import 'package:streak/core/widgets/celebration_overlay.dart';
 import 'package:streak/core/widgets/entrance.dart';
 import 'package:streak/core/widgets/section_label.dart';
+import 'package:streak/core/widgets/glass.dart';
 import 'package:streak/features/habits/data/day_plan.dart';
 import 'package:streak/features/habits/data/habit.dart';
 import 'package:streak/features/habits/pages/habit_details_page.dart';
@@ -43,24 +44,41 @@ class DayTimelinePage extends StatefulWidget {
 class _DayTimelinePageState extends State<DayTimelinePage> {
   late DateTime _day = AppClock.today();
   final _celebration = ValueNotifier(0);
+  final _scrolled = ValueNotifier(false);
   final _completing = <String>{};
   int _direction = 0;
+  int _flip = 0;
   Widget? _page;
 
   @override
   void dispose() {
     _celebration.dispose();
+    _scrolled.dispose();
     super.dispose();
   }
 
   bool get _isToday => _day.isSameDay(AppClock.today());
 
+  DateTime _anchor(DateTime day) {
+    final settings = context.read<SettingsController>();
+    return settings.planMonth
+        ? DateTime(day.year, day.month)
+        : day.startOfWeek(settings.weekStart);
+  }
+
   void _select(DateTime day) => setState(() {
         _direction = day.atMidnight.compareTo(_day).sign;
+        if (_anchor(day) != _anchor(_day)) _flip++;
         _day = day.atMidnight;
       });
 
-  void _shiftWeek(int weeks) => _select(_day.addDays(weeks * 7));
+  void _shift(int by) {
+    if (!context.read<SettingsController>().planMonth) {
+      return _select(_day.addDays(by * 7));
+    }
+    final last = DateTime(_day.year, _day.month + by + 1, 0).day;
+    _select(DateTime(_day.year, _day.month + by, _day.day.clamp(1, last)));
+  }
 
   Future<void> _toggleTodo(Todo todo) async {
     final todos = context.read<TodosController>();
@@ -267,10 +285,19 @@ class _DayTimelinePageState extends State<DayTimelinePage> {
                       onPressed: () => _select(AppClock.now()),
                     )),
                   )
-                : IconButton(
+                : minimal
+                ? IconButton(
                     tooltip: context.l10n.today,
                     icon: const Icon(LucideIcons.calendarCheck),
                     onPressed: () => _select(AppClock.now()),
+                  )
+                : Padding(
+                    padding: const EdgeInsets.only(right: 16),
+                    child: GlassIconButton(
+                      icon: LucideIcons.calendarCheck,
+                      tooltip: context.l10n.today,
+                      onTap: () => _select(AppClock.now()),
+                    ),
                   ),
         ],
       ),
@@ -299,11 +326,23 @@ class _DayTimelinePageState extends State<DayTimelinePage> {
                 habits: habits,
                 style: style.appStyle,
                 direction: _direction,
+                page: _flip,
+                month: style.planMonth,
                 onSelected: _select,
-                onShift: _shiftWeek,
+                onShift: _shift,
+                onFold: () => style.setPlanMonth(!style.planMonth),
               ),
               Expanded(
-                child: plan.isEmpty && todos.isEmpty
+                child: NotificationListener<ScrollUpdateNotification>(
+                  onNotification: (note) {
+                    if (note.depth == 0 && note.metrics.axis == Axis.vertical) {
+                      _scrolled.value = note.metrics.pixels > 2;
+                    }
+                    return false;
+                  },
+                  child: Stack(
+                    children: [
+                plan.isEmpty && todos.isEmpty
                     ? AppEmptyState(
                         icon: LucideIcons.calendarClock,
                         title: context.l10n.day_timeline_empty,
@@ -343,6 +382,11 @@ class _DayTimelinePageState extends State<DayTimelinePage> {
                           ),
                         ],
                       ),
+                      if (!express && !minimal)
+                        HeaderBlur(scrolled: _scrolled, height: 30),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
