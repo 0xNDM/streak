@@ -16,6 +16,8 @@ bool get hasHomeWidgets =>
 
 bool get hasBiometricLock => !Platform.isLinux;
 
+bool get isFlatpak => Platform.environment.containsKey('FLATPAK_ID');
+
 Future<Directory>? _dataDir;
 
 String _dataPath = '';
