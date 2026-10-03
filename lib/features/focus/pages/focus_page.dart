@@ -44,11 +44,13 @@ class FocusPage extends StatefulWidget implements FullWidthPage {
     this.startHabitId,
     this.startMinutes,
     this.breakMinutes,
+    this.startLabel = '',
   });
 
   final String? startHabitId;
   final int? startMinutes;
   final int? breakMinutes;
+  final String startLabel;
 
   static const routeName = 'focus';
 
@@ -87,6 +89,7 @@ class _FocusPageState extends State<FocusPage> {
         habitId: widget.startHabitId ?? '',
         targetMinutes: widget.startMinutes!,
         breakMinutes: widget.breakMinutes ?? 0,
+        label: widget.startLabel,
       );
       unawaited(_startSavedTrack());
     });
@@ -259,6 +262,12 @@ class _FocusPageState extends State<FocusPage> {
     final starting = leading && !focus.isActive;
     final habitId = starting ? (widget.startHabitId ?? '') : focus.habitId;
     final habit = habitId.isEmpty ? null : habits.byId(habitId);
+    final tag = starting ? widget.startLabel : focus.label;
+    final title = tag.isEmpty
+        ? (habit?.name ?? context.l10n.focus)
+        : habit == null
+        ? tag
+        : '${habit.name} · $tag';
     final leadMinutes =
         starting ? (widget.startMinutes ?? focus.targetMinutes) : focus.targetMinutes;
     final inset = MediaQuery.viewInsetsOf(context).bottom;
@@ -280,7 +289,7 @@ class _FocusPageState extends State<FocusPage> {
           )
         : onBreak
         ? context.l10n.focus_break
-        : (habit?.name ?? context.l10n.focus);
+        : title;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: AppTheme.systemBars(Brightness.dark),

@@ -172,6 +172,26 @@ class _MinimalFocusStatsPageState extends State<MinimalFocusStatsPage> {
                           ],
                         ),
                       ),
+                    if (stats.perLabel.isNotEmpty)
+                      MinimalSection(
+                        title: context.l10n.by_label,
+                        gap: 0,
+                        child: MinimalList(
+                          children: [
+                            for (final (i, entry) in stats.labelRanking.indexed)
+                              MinimalRow(
+                                label: entry.key,
+                                value: formatHoursShort(entry.value),
+                                leading: Icon(
+                                  LucideIcons.tag,
+                                  size: 14,
+                                  color: context.tokens.muted,
+                                ),
+                                last: i == stats.labelRanking.length - 1,
+                              ),
+                          ],
+                        ),
+                      ),
                   ],
                 ),
               ),

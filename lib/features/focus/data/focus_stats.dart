@@ -16,6 +16,7 @@ class FocusStats {
     required this.series,
     required this.perHabit,
     required this.rangeCount,
+    this.perLabel = const {},
   });
 
   final int todaySeconds;
@@ -26,7 +27,13 @@ class FocusStats {
   final List<DateTime> buckets;
   final List<int> series;
   final Map<String, int> perHabit;
+  final Map<String, int> perLabel;
   final int rangeCount;
+
+  List<MapEntry<String, int>> get labelRanking =>
+      (perLabel.entries.toList()..sort((a, b) => b.value.compareTo(a.value)))
+          .take(8)
+          .toList();
 
   int get averageSeconds =>
       sessionCount == 0 ? 0 : totalSeconds ~/ sessionCount;
@@ -82,6 +89,7 @@ class FocusStats {
     final buckets = _bucketsFor(range, today, weekStart, offset);
     final series = List<int>.filled(buckets.length, 0);
     final perHabit = <String, int>{};
+    final perLabel = <String, int>{};
 
     final todayIndex = today.epochDay;
     final weekIndex = weekFrom.epochDay;
@@ -113,6 +121,10 @@ class FocusStats {
       series[index] += session.seconds;
       perHabit[session.habitId] =
           (perHabit[session.habitId] ?? 0) + session.seconds;
+      if (session.label.isNotEmpty) {
+        perLabel[session.label] =
+            (perLabel[session.label] ?? 0) + session.seconds;
+      }
     }
 
     return FocusStats(
@@ -124,6 +136,7 @@ class FocusStats {
       buckets: buckets,
       series: series,
       perHabit: perHabit,
+      perLabel: perLabel,
       rangeCount: rangeCount,
     );
   }

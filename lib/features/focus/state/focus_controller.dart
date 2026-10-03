@@ -31,6 +31,7 @@ class FocusController extends ChangeNotifier {
     final map = LocalStore.settingMap('focusActive');
     if (map.isEmpty) return;
     _habitId = (map['habitId'] ?? '') as String;
+    _label = map['label'] is String ? map['label'] as String : '';
     _targetMinutes = ((map['target'] ?? 25) as num).toInt();
     _focusMinutes = ((map['focus'] ?? _targetMinutes) as num).toInt();
     _breakMinutes = ((map['break'] ?? 0) as num).toInt();
@@ -52,6 +53,7 @@ class FocusController extends ChangeNotifier {
   void _persist() {
     LocalStore.writeSetting('focusActive', {
       'habitId': _habitId,
+      'label': _label,
       'target': _targetMinutes,
       'focus': _focusMinutes,
       'break': _breakMinutes,
@@ -67,6 +69,7 @@ class FocusController extends ChangeNotifier {
   final List<FocusTask> _tasks = [];
 
   String _habitId = '';
+  String _label = '';
   int _targetMinutes = 25;
   int _focusMinutes = 25;
   int _breakMinutes = 0;
@@ -125,6 +128,7 @@ class FocusController extends ChangeNotifier {
     required String habitId,
     required DateTime startedAt,
     required int minutes,
+    String label = '',
   }) async {
     final session = FocusSession(
       id: const Uuid().v4(),
@@ -133,6 +137,7 @@ class FocusController extends ChangeNotifier {
       seconds: minutes * 60,
       completed: true,
       startedAt: startedAt,
+      label: label,
     );
     await _keep(session);
     notifyListeners();
@@ -156,6 +161,7 @@ class FocusController extends ChangeNotifier {
   int get pendingTasks => _tasks.where((t) => !t.done).length;
 
   String get habitId => _habitId;
+  String get label => _label;
   bool get isBreak => _isBreak;
   int get round => _round;
   bool get isPomodoro => _breakMinutes > 0;
@@ -199,8 +205,11 @@ class FocusController extends ChangeNotifier {
     required String habitId,
     required int targetMinutes,
     int breakMinutes = 0,
+    String label = '',
   }) {
     _habitId = habitId;
+    _label = label;
+    if (label.isNotEmpty) unawaited(rememberLabel(habitId, label));
     _targetMinutes = targetMinutes;
     _focusMinutes = targetMinutes;
     _breakMinutes = targetMinutes <= 0 ? 0 : breakMinutes;
@@ -331,6 +340,7 @@ class FocusController extends ChangeNotifier {
     final endedAt = at ?? DateTime.now();
     final seconds = _isBreak ? 0 : elapsedAt(endedAt);
     final habitId = _habitId;
+    final label = _label;
     final target = _focusMinutes;
     _stopTicker();
     _awaiting = false;
@@ -340,6 +350,7 @@ class FocusController extends ChangeNotifier {
     _accumulated = 0;
     _since = null;
     _habitId = '';
+    _label = '';
     _tasks.clear();
     _celebrated = false;
     _isBreak = false;
@@ -363,6 +374,7 @@ class FocusController extends ChangeNotifier {
       seconds: seconds,
       completed: completed,
       startedAt: endedAt.subtract(Duration(seconds: seconds)),
+      label: label,
     );
     await _keep(session);
     notifyListeners();
@@ -389,6 +401,7 @@ class FocusController extends ChangeNotifier {
               seconds: seconds,
               completed: true,
               startedAt: endedAt.subtract(Duration(seconds: seconds)),
+              label: _label,
             ),
           ),
         );
@@ -521,7 +534,12 @@ class FocusController extends ChangeNotifier {
         await FocusService.hide();
         return;
       }
-      final name = _habitId.isEmpty ? null : LocalStore.habitName(_habitId);
+      final habit = _habitId.isEmpty ? null : LocalStore.habitName(_habitId);
+      final name = _label.isEmpty
+          ? habit
+          : habit == null
+          ? _label
+          : '$habit · $_label';
       final done = _awaiting || _switchIn > 0 || (reachedTarget && !isPomodoro);
       final label = _awaiting
           ? strings.focus_continue
@@ -569,6 +587,32 @@ class FocusController extends ChangeNotifier {
     } catch (e) {
       debugPrint('Focus notification sync failed: $e');
     }
+  }
+
+  static const _labelsKey = 'focusLabels';
+  static const maxLabels = 20;
+
+  List<String> labelsFor(String habitId) {
+    final saved = LocalStore.settingMap(_labelsKey)[habitId];
+    return saved is List ? List<String>.from(saved) : const [];
+  }
+
+  Future<void> rememberLabel(String habitId, String label) async {
+    final all = LocalStore.settingMap(_labelsKey);
+    final labels = [
+      label,
+      ...labelsFor(habitId).where((l) => l != label),
+    ].take(maxLabels).toList();
+    all[habitId] = labels;
+    await LocalStore.writeSetting(_labelsKey, all);
+    notifyListeners();
+  }
+
+  Future<void> forgetLabel(String habitId, String label) async {
+    final all = LocalStore.settingMap(_labelsKey);
+    all[habitId] = labelsFor(habitId).where((l) => l != label).toList();
+    await LocalStore.writeSetting(_labelsKey, all);
+    notifyListeners();
   }
 
   int get totalSeconds =>

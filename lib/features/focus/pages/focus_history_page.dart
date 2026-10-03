@@ -401,9 +401,11 @@ class _SessionTile extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        habit == null
-                            ? context.l10n.focus_free_session
-                            : habit.name,
+                        session.label.isEmpty
+                            ? (habit?.name ?? context.l10n.focus_free_session)
+                            : habit == null
+                            ? session.label
+                            : '${habit.name} · ${session.label}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: express

@@ -191,6 +191,23 @@ class _FocusStatsPageState extends State<FocusStatsPage> {
                     ),
                   ),
                 ],
+                if (stats.perLabel.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  StatReveal(
+                    child: StatCard(
+                      title: context.l10n.by_label,
+                      icon: LucideIcons.tag,
+                      color: accent,
+                      child: HabitRanking(
+                        entries: [
+                          for (final entry in stats.labelRanking)
+                            (name: entry.key, color: accent, count: entry.value),
+                        ],
+                        format: formatHoursShort,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             );
 

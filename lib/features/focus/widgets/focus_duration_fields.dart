@@ -219,15 +219,23 @@ class FocusChip extends StatelessWidget {
     required this.selected,
     required this.onTap,
     this.icon,
+    this.onLongPress,
   });
 
   final String label;
   final bool selected;
   final VoidCallback onTap;
   final IconData? icon;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
+    final chip = _chip(context);
+    if (onLongPress == null) return chip;
+    return GestureDetector(onLongPress: onLongPress, child: chip);
+  }
+
+  Widget _chip(BuildContext context) {
     final style = context.watch<SettingsController>();
     if (style.isExpressStyle) {
       return ExpressChip(

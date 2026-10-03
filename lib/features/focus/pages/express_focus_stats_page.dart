@@ -137,6 +137,22 @@ class _ExpressFocusStatsPageState extends State<ExpressFocusStatsPage> {
           ),
         ),
       ],
+      if (stats.perLabel.isNotEmpty) ...[
+        const SizedBox(height: 12),
+        ExpressStatPanel(
+          title: context.l10n.by_label,
+          icon: LucideIcons.tag,
+          tint: accent,
+          shape: ExpressShape.cookie,
+          child: ExpressRanking(
+            entries: [
+              for (final entry in stats.labelRanking)
+                (name: entry.key, color: accent, count: entry.value),
+            ],
+            format: formatHoursShort,
+          ),
+        ),
+      ],
     ];
 
     return Scaffold(
