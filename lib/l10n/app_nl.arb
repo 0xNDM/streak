@@ -631,7 +631,7 @@
   "focus_shuffle": "Shuffle",
   "focus_loop": "In volgorde",
   "focus_track_too_long": "Nummer moet minder dan 20 minuten zijn",
-  "focus_track_limit": "Maximaal 10 nummers",
+  "focus_track_limit": "Maximaal 30 nummers",
   "focus_done_title": "Sessie voltooid",
   "focus_your_tracks": "Jouw nummers",
   "focus_built_in": "Inbegrepen",

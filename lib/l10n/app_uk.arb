@@ -860,7 +860,7 @@
   "app_lock_unavailable": "На цьому телефоні не додано жодної біометрії",
   "auto_backup_folder_set": "Теку збережено",
   "archive_habit": "Архівна звичка",
-  "focus_track_limit": "До 10 треків",
+  "focus_track_limit": "До 30 треків",
   "style_minimal_desc": "Сітка звичок і налаштування згруповані у чотири розділи.",
   "focus_keep_awake": "Не вимикати екран",
   "data_sub": "Резервні копії та імпорт",

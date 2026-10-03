@@ -137,6 +137,8 @@ class _MusicSheet extends StatelessWidget {
             ),
             const SizedBox(height: 14),
             _NowPlaying(tracks: tracks),
+            _VolumeRow(onDone: settings.setFocusVolume),
+            const SizedBox(height: 10),
             _TrackList(
                 count: tracks.length,
                 children: [
@@ -195,6 +197,58 @@ class _MusicSheet extends StatelessWidget {
               ),
               child: _AlertRow(settings: settings),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _VolumeRow extends StatelessWidget {
+  const _VolumeRow({required this.onDone});
+
+  final ValueChanged<double> onDone;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 4, 6, 4),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: ValueListenableBuilder<double>(
+        valueListenable: FocusAudio.volume,
+        builder: (context, volume, _) => Row(
+          children: [
+            Icon(
+              volume == 0
+                  ? LucideIcons.volumeX
+                  : volume < 0.5
+                      ? LucideIcons.volume1
+                      : LucideIcons.volume2,
+              size: 19,
+              color: context.colors.onSurface,
+            ),
+            Expanded(
+              child: Semantics(
+                label: context.l10n.focus_volume,
+                child: Slider(
+                  value: volume,
+                  onChanged: FocusAudio.setVolume,
+                  onChangeEnd: onDone,
+                ),
+              ),
+            ),
+            SizedBox(
+              width: 38,
+              child: Text(
+                '${(volume * 100).round()}%',
+                textAlign: TextAlign.end,
+                style: sheetLabelStyle(context, size: 12),
+              ),
+            ),
+            const SizedBox(width: 10),
           ],
         ),
       ),

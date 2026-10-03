@@ -99,6 +99,9 @@ class SettingsController extends ChangeNotifier {
         List<String>.from(LocalStore.setting('focusTracks', const <String>[]));
     _focusShuffle = LocalStore.setting('focusShuffle', false);
     _focusRepeatOne = LocalStore.setting('focusRepeatOne', false);
+    _focusVolume =
+        LocalStore.setting<num>('focusVolume', 1.0).toDouble().clamp(0.0, 1.0);
+    FocusAudio.volume.value = _focusVolume;
     _focusMinutes = LocalStore.setting('focusMinutes', 25);
     _focusBreakMinutes = LocalStore.setting('focusBreakMinutes', 0);
     _focusTrack = builtInTrackId(LocalStore.setting('focusTrack', ''));
@@ -181,6 +184,7 @@ class SettingsController extends ChangeNotifier {
   late List<String> _focusTracks;
   late bool _focusShuffle;
   late bool _focusRepeatOne;
+  late double _focusVolume;
   late int _focusMinutes;
   late int _focusBreakMinutes;
   late String _focusTrack;
@@ -406,6 +410,12 @@ class SettingsController extends ChangeNotifier {
   List<String> get focusTracks => List.unmodifiable(_focusTracks);
   bool get focusShuffle => _focusShuffle;
   bool get focusRepeatOne => _focusRepeatOne;
+  double get focusVolume => _focusVolume;
+
+  Future<void> setFocusVolume(double value) async {
+    _focusVolume = value.clamp(0.0, 1.0);
+    await LocalStore.writeSetting('focusVolume', _focusVolume);
+  }
   int get focusMinutes => _focusMinutes;
   int get focusBreakMinutes => _focusBreakMinutes;
   String get focusTrack => _focusTrack;

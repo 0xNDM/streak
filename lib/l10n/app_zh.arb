@@ -890,7 +890,7 @@
   "auto_backup_folder_set": "文件夹已保存",
   "widget_open_to_sync": "打开 Streak 进行同步",
   "archive_habit": "归档习惯",
-  "focus_track_limit": "最多 10 首音频",
+  "focus_track_limit": "最多 30 首音频",
   "style_minimal_desc": "习惯网格和设置被分为四个板块。",
   "focus_keep_awake": "保持屏幕常亮",
   "data_sub": "备份与导入",

@@ -82,13 +82,14 @@ class FocusAudio {
   static final ValueNotifier<bool> playing = ValueNotifier(false);
   static final ValueNotifier<Duration> position = ValueNotifier(Duration.zero);
   static final ValueNotifier<Duration> length = ValueNotifier(Duration.zero);
+  static final ValueNotifier<double> volume = ValueNotifier(1);
 
   static List<FocusTrack> _queue = const [];
   static bool _shuffle = false;
   static bool _repeatOne = false;
   static bool _wired = false;
 
-  static const maxTracks = 10;
+  static const maxTracks = 30;
 
   static final trackExtensions = [
     'mp3',
@@ -140,7 +141,7 @@ class FocusAudio {
     );
     current.value = track.id;
     try {
-      await _player.play(track.source);
+      await _player.play(track.source, volume: volume.value);
       playing.value = true;
     } catch (e) {
       debugPrint('Could not play the track: $e');
@@ -192,6 +193,11 @@ class FocusAudio {
     await _player.setReleaseMode(
       repeatOne ? ReleaseMode.loop : ReleaseMode.stop,
     );
+  }
+
+  static Future<void> setVolume(double value) async {
+    volume.value = value.clamp(0.0, 1.0);
+    await _player.setVolume(volume.value);
   }
 
   static Future<void> pause() async {

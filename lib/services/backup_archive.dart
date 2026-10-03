@@ -34,6 +34,7 @@ const backupSettingKeys = {
   'focusRepeatOne',
   'focusScene',
   'focusShuffle',
+  'focusVolume',
   'focusTrack',
   'focusTracks',
   'heatmapMode',

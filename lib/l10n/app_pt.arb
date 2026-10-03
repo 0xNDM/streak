@@ -670,7 +670,7 @@
   "app_lock_unavailable": "A biometria não está ativada neste aparelho",
   "auto_backup_folder_set": "Pasta salva",
   "archive_habit": "Arquivar hábito",
-  "focus_track_limit": "Até 10 faixas",
+  "focus_track_limit": "Até 30 faixas",
   "style_minimal_desc": "Grade de hábitos e configurações agrupadas em quatro seções.",
   "focus_keep_awake": "Mantenha a tela ligada",
   "data_sub": "Backup e importação",
