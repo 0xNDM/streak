@@ -39,11 +39,22 @@ Future<void> main() async {
   } catch (e, s) {
     debugPrint('Streak could not start: $e');
     debugPrintStack(stackTrace: s);
-    runApp(StartupFailure(error: '$e', logPath: _writeStartupLog(e, s)));
+    runApp(
+      StartupFailure(
+        error: '$e',
+        logPath: _writeStartupLog(e, s),
+        blocked: _blockedByWindows(e),
+      ),
+    );
     return;
   }
   _run();
 }
+
+bool _blockedByWindows(Object error) =>
+    Platform.isWindows &&
+    error is FileSystemException &&
+    error.osError?.errorCode == 5;
 
 String? _writeStartupLog(Object error, StackTrace stack) {
   if (isMobile) return null;

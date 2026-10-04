@@ -43,10 +43,12 @@ Future<Directory> _resolveDataDir() async {
 
   final fallback = File('${support.path}/.documents-unavailable');
   final used = File('${support.path}/.documents-used');
-  if (fallback.existsSync()) return support;
+  if (fallback.existsSync() || DataLocation.holdsData(support)) return support;
 
   final documents = await _documentsFolder(wait);
-  if (documents != null) {
+  if (documents != null &&
+      (used.existsSync() || DataLocation.holdsData(documents))) {
+    if (!documents.existsSync()) documents.createSync(recursive: true);
     if (!used.existsSync()) used.createSync(recursive: true);
     return documents;
   }
@@ -55,7 +57,6 @@ Future<Directory> _resolveDataDir() async {
       'Your Streak data lives in Documents\\$appDataFolder, which Windows is not letting the app open right now',
     );
   }
-  fallback.createSync(recursive: true);
   return support;
 }
 
@@ -63,9 +64,7 @@ Future<Directory?> _documentsFolder(Duration wait) async {
   for (var attempt = 0; attempt < 3; attempt++) {
     try {
       final root = await getApplicationDocumentsDirectory().timeout(wait);
-      final dir = Directory('${root.path}/$appDataFolder');
-      if (!dir.existsSync()) dir.createSync(recursive: true);
-      return dir;
+      return Directory('${root.path}/$appDataFolder');
     } catch (error) {
       debugPrint('Documents folder unavailable: $error');
       await Future<void>.delayed(const Duration(milliseconds: 400));
