@@ -28,3 +28,7 @@ bool hasSideRail(BuildContext context) =>
 
 bool isCompactRail(BuildContext context) =>
     MediaQuery.sizeOf(context).width < wideWidth;
+
+bool stackedRows(BuildContext context) =>
+    MediaQuery.sizeOf(context).width <
+    360 * MediaQuery.textScalerOf(context).scale(1);

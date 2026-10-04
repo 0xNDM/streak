@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:streak/app/theme/app_tokens.dart';
 import 'package:streak/core/express/express_motion.dart';
 import 'package:streak/core/express/express_type.dart';
+import 'package:streak/core/utils/responsive.dart';
 
 Color expressSurface(BuildContext context, {double level = 1}) {
   final scheme = context.colors;
@@ -185,6 +186,7 @@ class ExpressTile extends StatelessWidget {
     final scheme = context.colors;
     final accent = tint ?? scheme.primary;
     final radius = ExpressSlot.of(context, BorderRadius.circular(20));
+    final stacked = stackedRows(context) && value != null;
 
     return ExpressSquish(
       onTap: onTap,
@@ -233,10 +235,22 @@ class ExpressTile extends StatelessWidget {
                         ),
                       ),
                     ),
+                  if (stacked)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text(
+                        value!,
+                        style: ExpressType.headline.at(
+                          14.5,
+                          weight: 800,
+                          color: accent,
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
-            if (value != null) ...[
+            if (value != null && !stacked) ...[
               const SizedBox(width: 10),
               Flexible(
                 flex: 0,

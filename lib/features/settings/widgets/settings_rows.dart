@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:streak/app/theme/app_tokens.dart';
+import 'package:streak/core/utils/responsive.dart';
 
 Widget settingsDivider(BuildContext context) => Divider(
       height: 1,
@@ -32,10 +33,6 @@ class IconBadge extends StatelessWidget {
   }
 }
 
-bool _stackedRows(BuildContext context) =>
-    MediaQuery.sizeOf(context).width <
-    360 * MediaQuery.textScalerOf(context).scale(1);
-
 class SettingRow extends StatelessWidget {
   const SettingRow({
     super.key,
@@ -54,7 +51,7 @@ class SettingRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final stacked = _stackedRows(context);
+    final stacked = stackedRows(context);
     final row = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
@@ -118,6 +115,17 @@ class NavRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final stacked = stackedRows(context) && value != null;
+    final shown = value == null
+        ? null
+        : Text(
+            value!,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: context.tokens.muted,
+            ),
+          );
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       leading: IconBadge(icon: icon, tint: tint),
@@ -135,21 +143,23 @@ class NavRow extends StatelessWidget {
           ],
         ],
       ),
-      subtitle: subtitle == null
+      subtitle: stacked
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (subtitle != null)
+                  Text(subtitle!, style: TextStyle(color: context.tokens.muted)),
+                const SizedBox(height: 4),
+                shown!,
+              ],
+            )
+          : subtitle == null
           ? null
           : Text(subtitle!, style: TextStyle(color: context.tokens.muted)),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (value != null)
-            Text(
-              value!,
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: context.tokens.muted,
-              ),
-            ),
+          if (!stacked && shown != null) shown,
           const SizedBox(width: 6),
           Icon(LucideIcons.chevronRight,
               size: 18, color: context.tokens.muted),
@@ -241,7 +251,7 @@ class PickerRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final stacked = _stackedRows(context);
+    final stacked = stackedRows(context);
     final shown = value == null
         ? null
         : Text(

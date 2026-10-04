@@ -77,6 +77,7 @@ class SoftRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final muted = context.tokens.muted;
+    final stacked = stackedRows(context) && value != null;
 
     return Semantics(
       button: true,
@@ -108,10 +109,21 @@ class SoftRow extends StatelessWidget {
                         style: TextStyle(fontSize: 12.5, color: muted),
                       ),
                     ],
+                    if (stacked) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        value!,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: muted,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
-              if (value != null)
+              if (value != null && !stacked)
                 Padding(
                   padding: const EdgeInsets.only(left: 10),
                   child: ConstrainedBox(
