@@ -5,6 +5,7 @@ import 'package:streak/core/database/local_store.dart';
 import 'package:streak/features/habits/data/habit.dart';
 import 'package:streak/features/habits/data/reminder.dart';
 import 'package:streak/features/habits/data/substep.dart';
+import 'package:streak/features/habits/pages/habit_form_page.dart';
 import 'package:streak/features/habits/pages/home_page.dart';
 import 'package:streak/features/habits/state/habits_controller.dart';
 import 'package:streak/features/habits/widgets/habit_card.dart';
@@ -38,25 +39,26 @@ Future<void> _tapSheetAction(WidgetTester tester, String label) async {
   await tester.pumpAndSettle();
 }
 
-Future<void> _tapUndo(WidgetTester tester) async {
-  final action = tester.widget<SnackBarAction>(find.byType(SnackBarAction));
+Future<void> _save(WidgetTester tester) async {
+  final button = tester.widget<TextButton>(
+    find.ancestor(of: find.text('Save'), matching: find.byType(TextButton)).first,
+  );
+  final before = LocalStore.readHabits().length;
   await tester.runAsync(() async {
-    action.onPressed();
-    await Future<void>.delayed(const Duration(milliseconds: 200));
+    button.onPressed!();
+    for (var wait = 0; wait < 50; wait++) {
+      if (LocalStore.readHabits().length > before) break;
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 300));
   });
   await tester.pumpAndSettle();
 }
 
-Future<void> _dismissSnackbar(WidgetTester tester) async {
-  for (var round = 0; round < 5; round++) {
-    final messenger = find.byType(ScaffoldMessenger);
-    if (messenger.evaluate().isEmpty) return;
-    tester.state<ScaffoldMessengerState>(messenger.first).clearSnackBars();
-    await tester.pump(const Duration(seconds: 6));
-    await tester.pumpAndSettle();
-    if (find.byType(SnackBar).evaluate().isEmpty) return;
-  }
-}
+EditableText _nameField(WidgetTester tester, String name) =>
+    tester.widgetList<EditableText>(find.byType(EditableText)).firstWhere(
+      (field) => field.controller.text == name,
+    );
 
 Habit _scheduled() =>
     testHabit(
@@ -69,7 +71,6 @@ Habit _scheduled() =>
       category: 'Fitness',
       startMinute: 7 * 60,
       durationMinutes: 30,
-      substeps: const [Substep(id: 's1', title: 'Stretch')],
       done: lastDays(3),
     ).copyWith(
       icon: 'run',
@@ -86,13 +87,26 @@ Habit _scheduled() =>
 void main() {
   useEmptyStore();
 
-  testWidgets('duplicating a habit copies its settings but not its history', (
+  testWidgets('duplicating opens the form ready to rename', (tester) async {
+    await seedHabits(tester, [testHabit(id: 'a', name: 'Run')]);
+    await pumpScreen(tester, const HomePage());
+
+    await _duplicateFirstHabit(tester);
+
+    expect(find.byType(HabitFormPage), findsOneWidget);
+    final field = _nameField(tester, 'Run');
+    expect(field.focusNode.hasFocus, isTrue);
+    expect(field.controller.selection, const TextSelection.collapsed(offset: 3));
+  });
+
+  testWidgets('saving the copy keeps its settings but not its history', (
     tester,
   ) async {
     await seedHabits(tester, [_scheduled()]);
     await pumpScreen(tester, const HomePage());
 
     await _duplicateFirstHabit(tester);
+    await _save(tester);
 
     final habits = _controller(tester).habits;
     expect(habits.length, 2);
@@ -100,7 +114,7 @@ void main() {
     final copy = habits.last;
 
     expect(copy.id, isNot(source.id));
-    expect(copy.name, 'Run (2)');
+    expect(copy.name, source.name);
     expect(copy.icon, source.icon);
     expect(copy.color, source.color);
     expect(copy.category, source.category);
@@ -115,14 +129,29 @@ void main() {
     expect(copy.difficulty, source.difficulty);
     expect(copy.restDays, source.restDays);
     expect(copy.reminders.length, source.reminders.length);
-    expect(
-      [for (final step in copy.substeps) step.title],
-      [for (final step in source.substeps) step.title],
-    );
 
     expect(copy.completions, isEmpty);
     expect(source.completions.length, 3);
-    await _dismissSnackbar(tester);
+  });
+
+  testWidgets('the checklist comes along', (tester) async {
+    await seedHabits(tester, [
+      testHabit(
+        id: 'a',
+        name: 'Gym',
+        substeps: const [
+          Substep(id: 's1', title: 'Stretch'),
+          Substep(id: 's2', title: 'Lift'),
+        ],
+      ),
+    ]);
+    await pumpScreen(tester, const HomePage());
+
+    await _duplicateFirstHabit(tester);
+    await _save(tester);
+
+    final copy = _controller(tester).habits.last;
+    expect([for (final step in copy.substeps) step.title], ['Stretch', 'Lift']);
   });
 
   testWidgets('the copy lands at the bottom of the list', (tester) async {
@@ -133,35 +162,23 @@ void main() {
     await pumpScreen(tester, const HomePage());
 
     await _duplicateFirstHabit(tester);
+    await _save(tester);
 
-    expect(_names(tester), ['Run', 'Water', 'Run (2)']);
-    await _dismissSnackbar(tester);
+    expect(_names(tester), ['Run', 'Water', 'Run']);
   });
 
-  testWidgets('duplicating the same habit twice never collides', (
+  testWidgets('closing the form without saving creates nothing', (
     tester,
   ) async {
     await seedHabits(tester, [testHabit(id: 'a', name: 'Run')]);
     await pumpScreen(tester, const HomePage());
 
     await _duplicateFirstHabit(tester);
-    await _dismissSnackbar(tester);
-    await _duplicateFirstHabit(tester);
-
-    expect(_names(tester), ['Run', 'Run (2)', 'Run (3)']);
-    await _dismissSnackbar(tester);
-  });
-
-  testWidgets('undo removes the copy', (tester) async {
-    await seedHabits(tester, [testHabit(id: 'a', name: 'Run')]);
-    await pumpScreen(tester, const HomePage());
-
-    await _duplicateFirstHabit(tester);
-    expect(_names(tester).length, 2);
-
-    await _tapUndo(tester);
+    tester.state<NavigatorState>(find.byType(Navigator).last).pop();
+    await tester.pumpAndSettle();
 
     expect(_names(tester), ['Run']);
+    expect(LocalStore.readHabits().length, 1);
   });
 
   testWidgets('the copy is written to the store, without the history', (
@@ -171,9 +188,10 @@ void main() {
     await pumpScreen(tester, const HomePage());
 
     await _duplicateFirstHabit(tester);
+    await _save(tester);
 
     final stored = LocalStore.readHabits().values
-        .where((habit) => habit.name == 'Run (2)')
+        .where((habit) => habit.id != 'a')
         .toList();
     expect(stored.length, 1);
     expect(stored.single.completions, isEmpty);

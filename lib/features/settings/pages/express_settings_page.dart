@@ -582,6 +582,13 @@ List<Widget> _preferenceTiles(BuildContext context) {
           value: settings.todayOnly,
           onChanged: settings.setTodayOnly,
         ),
+        _Toggle(
+          icon: LucideIcons.listChecks,
+          title: context.l10n.hide_done,
+          subtitle: context.l10n.hide_done_sub,
+          value: settings.hideDone,
+          onChanged: settings.setHideDone,
+        ),
       ],
     ),
     const SizedBox(height: 24),

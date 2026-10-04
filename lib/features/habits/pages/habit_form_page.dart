@@ -40,9 +40,10 @@ import 'package:streak/features/settings/state/settings_controller.dart';
 import 'package:streak/services/notification_service.dart';
 
 class HabitFormPage extends StatefulWidget {
-  const HabitFormPage({super.key, this.habit});
+  const HabitFormPage({super.key, this.habit, this.template});
 
   final Habit? habit;
+  final Habit? template;
 
   bool get isEditing => habit != null;
 
@@ -93,6 +94,8 @@ class _HabitFormPageState extends State<HabitFormPage> {
   DateTime get _startShown =>
       (_scheduleStart ?? widget.habit?.createdAt ?? AppClock.today()).atMidnight;
 
+  bool get _copying => widget.template != null;
+
   bool get _planning => context.watch<SettingsController>().planningEnabled;
 
   bool get _offersTracking =>
@@ -120,8 +123,9 @@ class _HabitFormPageState extends State<HabitFormPage> {
   @override
   void initState() {
     super.initState();
-    final habit = widget.habit;
+    final habit = widget.habit ?? widget.template;
     _name = TextEditingController(text: habit?.name ?? '');
+    _name.selection = TextSelection.collapsed(offset: _name.text.length);
     _description = TextEditingController(text: habit?.description ?? '');
     _unitLabel = TextEditingController(text: habit?.unitLabel ?? '');
     _dailyCost = TextEditingController(
@@ -138,6 +142,9 @@ class _HabitFormPageState extends State<HabitFormPage> {
       }
       _scheduleEvery = habit.scheduleEvery;
       _scheduleStart = habit.scheduleStart;
+      if (_copying && habit.interval == HabitInterval.everyXDays) {
+        _scheduleStart ??= habit.createdAt.atMidnight;
+      }
       _scheduleUnit = habit.scheduleUnit;
       _cover = habit.coverPath;
       _coverClarity = habit.coverClarity;
@@ -268,6 +275,13 @@ class _HabitFormPageState extends State<HabitFormPage> {
         ),
       );
     } else {
+      final template = widget.template;
+      final cover = template != null && _cover == template.coverPath
+          ? await CoverStorage.clone(_cover)
+          : _cover;
+      final bookCover = template != null && _bookCover == template.bookCoverPath
+          ? await CoverStorage.clone(_bookCover)
+          : _bookCover;
       await controller.create(
         name: name,
         icon: _icon,
@@ -281,7 +295,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
         scheduleUnit: negative ? ScheduleUnit.days : _scheduleUnit,
         scheduleStart: _scheduleStart,
         reminders: _reminders,
-        coverPath: _cover,
+        coverPath: cover,
         coverClarity: _coverClarity,
         kind: _kind,
         dailyCost: dailyCost,
@@ -289,7 +303,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
         unitLabel: quantitative ? _quantUnit : '',
         incrementAmount: quantitative ? _quantIncrement : 1,
         quantKind: quantitative ? _quantKind : QuantKind.generic,
-        bookCoverPath: quantitative ? _bookCover : '',
+        bookCoverPath: quantitative ? bookCover : '',
         focusOnly: focusOnly,
         tracking: _tracking,
         anyAmount: quantitative && _anyAmount,
@@ -300,6 +314,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
         startMinute: negative ? -1 : _startMinute,
         durationMinutes: negative ? 0 : _durationMinutes,
         substeps: substeps,
+        restDays: template?.restDays ?? const [],
       );
     }
     AppNavigator.pop();
@@ -454,6 +469,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
         cover: _cover,
         clarity: _coverClarity,
         controller: _name,
+        autofocus: _copying,
         onChanged: () => setState(() {}),
         onShuffleIcon: _revealLook,
       ),
@@ -701,6 +717,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
       AppTextField(
         hint: context.l10n.name_hint,
         controller: _name,
+        autofocus: _copying,
         onChanged: (_) => setState(() {}),
       ),
       const SizedBox(height: 16),
@@ -1051,6 +1068,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
             AppTextField(
               hint: context.l10n.name_hint,
               controller: _name,
+              autofocus: _copying,
               onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 20),

@@ -13,6 +13,7 @@ import 'package:streak/features/habits/widgets/category_editor_sheet.dart';
 import 'package:streak/features/habits/data/habit.dart';
 import 'package:streak/features/habits/widgets/daily_quote.dart';
 import 'package:streak/features/habits/widgets/habit_heatmap.dart';
+import 'package:streak/features/habits/widgets/today_filter_sheet.dart';
 import 'package:streak/features/habits/widgets/today_intro.dart';
 
 class ExpressTodayHero extends StatelessWidget {
@@ -322,6 +323,9 @@ class ExpressTodayHeader extends StatelessWidget {
     required this.tracked,
     required this.hideTracking,
     required this.onTracking,
+    required this.filtered,
+    required this.onFilter,
+    required this.allDone,
   });
 
   final List<Habit> habits;
@@ -338,6 +342,9 @@ class ExpressTodayHeader extends StatelessWidget {
   final int tracked;
   final bool hideTracking;
   final VoidCallback onTracking;
+  final bool filtered;
+  final VoidCallback onFilter;
+  final bool allDone;
 
   @override
   Widget build(BuildContext context) {
@@ -363,9 +370,10 @@ class ExpressTodayHeader extends StatelessWidget {
             onChanged: (i) => onMode(HeatmapMode.values[i]),
           ),
         ],
-        if (categories.isNotEmpty || tracked > 0) ...[
-          const SizedBox(height: 12),
-          ExpressChipBar(
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(child: ExpressChipBar(
             children: [
               if (categories.isNotEmpty)
               ExpressChip(
@@ -389,9 +397,21 @@ class ExpressTodayHeader extends StatelessWidget {
                   onTap: onTracking,
                 ),
             ],
-          ),
-        ],
+          )),
+            const SizedBox(width: 8),
+            Semantics(
+              label: context.l10n.today_filter,
+              child: ExpressChip(
+                label: '',
+                icon: LucideIcons.listFilter,
+                active: filtered,
+                onTap: onFilter,
+              ),
+            ),
+          ],
+        ),
         const SizedBox(height: 16),
+        if (allDone) const TodayAllDone(),
       ],
     );
   }

@@ -435,6 +435,17 @@ class _ClassicPreferencesPage extends StatelessWidget {
                       onChanged: (i) => settings.setTodayOnly(i == 1),
                     ),
                   ),
+                  settingsDivider(context),
+                  SettingRow(
+                    icon: LucideIcons.listChecks,
+                    title: context.l10n.hide_done,
+                    subtitle: context.l10n.hide_done_sub,
+                    trailing: Segmented(
+                      options: [context.l10n.off, context.l10n.on],
+                      index: settings.hideDone ? 1 : 0,
+                      onChanged: (i) => settings.setHideDone(i == 1),
+                    ),
+                  ),
                 ],
               ),
             ),

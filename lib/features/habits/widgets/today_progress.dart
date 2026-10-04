@@ -139,6 +139,8 @@ class _TodayProgressState extends State<TodayProgress>
                     child: Center(
                       child: Text(
                         '${(ratio * 100).round()}%',
+                        textScaler: MediaQuery.textScalerOf(context)
+                            .clamp(maxScaleFactor: 1),
                         style: TextStyle(
                           color: scheme.onSurface,
                           fontSize: 15,

@@ -35,6 +35,7 @@ import 'package:streak/features/habits/widgets/classic_habit_list.dart';
 import 'package:streak/features/habits/widgets/daily_quote.dart';
 import 'package:streak/features/habits/widgets/express_habit_list.dart';
 import 'package:streak/features/habits/widgets/express_today_hero.dart';
+import 'package:streak/features/habits/widgets/today_filter_sheet.dart';
 import 'package:streak/features/habits/widgets/grid_habit_cards.dart';
 import 'package:streak/features/habits/widgets/relapse_dialog.dart';
 import 'package:streak/features/habits/widgets/habit_heatmap.dart';
@@ -122,6 +123,7 @@ class _HomePageState extends State<HomePage> {
     showModalBottomSheet(
       context: context,
       showDragHandle: true,
+      isScrollControlled: true,
       builder: (sheetContext) {
         void run(VoidCallback action) {
           Navigator.of(sheetContext).pop();
@@ -177,7 +179,10 @@ class _HomePageState extends State<HomePage> {
           (
             LucideIcons.copy,
             context.l10n.duplicate_habit,
-            () => run(() => _duplicate(controller, habit)),
+            () => run(() => AppNavigator.push(
+                  HabitFormPage(template: habit),
+                  fullscreenDialog: true,
+                )),
             false,
           ),
           (
@@ -189,7 +194,7 @@ class _HomePageState extends State<HomePage> {
         ];
 
         return SafeArea(
-          child: switch (sheetStyle(sheetContext)) {
+          child: SingleChildScrollView(child: switch (sheetStyle(sheetContext)) {
             1 => Padding(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
                 child: Column(
@@ -256,20 +261,9 @@ class _HomePageState extends State<HomePage> {
                   const SizedBox(height: 8),
                 ],
               ),
-          },
+          }),
         );
       },
-    );
-  }
-
-  Future<void> _duplicate(HabitsController controller, Habit habit) async {
-    final copy = await controller.duplicate(habit);
-    if (!mounted) return;
-    AppSnackbar.action(
-      context,
-      context.l10n.habit_duplicated(copy.name),
-      label: context.l10n.undo,
-      onPressed: () => controller.remove(copy.id),
     );
   }
 
@@ -322,7 +316,7 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         title: _reordering
             ? Text(context.l10n.reorder)
-            : minimal || express
+            : minimal || express || stackedRows(context)
                 ? null
                 : FittedBox(
                     fit: BoxFit.scaleDown,
@@ -608,10 +602,20 @@ class _HomePageState extends State<HomePage> {
                   ? listed
                   : listed.where((h) => h.category == _category).toList();
 
-              final visible = _reordering || !sortCompletedLast
+              final hidingDone = settings.hideDone && !_reordering;
+              final shown = hidingDone
                   ? filtered
-                  : _completedLast(filtered);
+                      .where((h) => !(_frozen[h.id] ?? h.isDoneForNow))
+                      .where((h) => !h.isPausedOn(today))
+                      .toList()
+                  : filtered;
+              final visible = _reordering || !sortCompletedLast
+                  ? shown
+                  : _completedLast(shown);
               _visible = visible;
+              final allDone =
+                  hidingDone && visible.isEmpty && filtered.isNotEmpty;
+              void openFilter() => showTodayFilterSheet(context);
 
               final header = _reordering
                   ? _ReorderBanner(text: context.l10n.reorder_hint)
@@ -632,6 +636,9 @@ class _HomePageState extends State<HomePage> {
                       tracked: tracked,
                       hideTracking: settings.hideTracking,
                       onTracking: toggleTracking,
+                      filtered: todayFiltered(settings),
+                      onFilter: openFilter,
+                      allDone: allDone,
                     )
                   : Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -646,18 +653,19 @@ class _HomePageState extends State<HomePage> {
                           SizedBox(height: settings.showTodayProgress ? 20 : 6),
                           _ViewSelector(mode: _mode, onChanged: _changeMode),
                         ],
-                        if (categories.isNotEmpty || tracked > 0) ...[
-                          const SizedBox(height: 14),
-                          _CategoryBar(
-                            categories: categories,
-                            selected: _category,
-                            onSelected: (c) => setState(() => _category = c),
-                            tracked: tracked,
-                            hideTracking: settings.hideTracking,
-                            onTracking: toggleTracking,
-                          ),
-                        ],
                         const SizedBox(height: 14),
+                        _CategoryBar(
+                          categories: categories,
+                          selected: _category,
+                          onSelected: (c) => setState(() => _category = c),
+                          tracked: tracked,
+                          hideTracking: settings.hideTracking,
+                          onTracking: toggleTracking,
+                          filtered: todayFiltered(settings),
+                          onFilter: openFilter,
+                        ),
+                        const SizedBox(height: 14),
+                        if (allDone) const TodayAllDone(),
                       ],
                     );
 
@@ -842,7 +850,9 @@ class _HomePageState extends State<HomePage> {
   }
 
   bool _changesSlot(String id, bool settled) {
-    if (!context.read<SettingsController>().sortCompletedLast) return false;
+    final settings = context.read<SettingsController>();
+    if (settings.hideDone) return true;
+    if (!settings.sortCompletedLast) return false;
     final before = _completedLast(_visible);
     final after = _completedLast(_visible, id: id, settled: settled);
     return before.indexWhere((h) => h.id == id) !=
@@ -1012,6 +1022,8 @@ class _CategoryBar extends StatelessWidget {
     required this.tracked,
     required this.hideTracking,
     required this.onTracking,
+    required this.filtered,
+    required this.onFilter,
   });
 
   final List<String> categories;
@@ -1020,10 +1032,15 @@ class _CategoryBar extends StatelessWidget {
   final int tracked;
   final bool hideTracking;
   final VoidCallback onTracking;
+  final bool filtered;
+  final VoidCallback onFilter;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    final scheme = context.colors;
+    return Row(
+      children: [
+        Expanded(child: SizedBox(
       height: 36,
       child: ListView(
         scrollDirection: Axis.horizontal,
@@ -1050,6 +1067,32 @@ class _CategoryBar extends StatelessWidget {
             ),
         ],
       ),
+        )),
+        const SizedBox(width: 8),
+        Semantics(
+          button: true,
+          selected: filtered,
+          label: context.l10n.today_filter,
+          child: GestureDetector(
+            onTap: onFilter,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: filtered ? scheme.primary : scheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                LucideIcons.listFilter,
+                size: 16,
+                color: filtered ? scheme.onPrimary : context.tokens.muted,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

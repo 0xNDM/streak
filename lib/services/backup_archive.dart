@@ -65,6 +65,7 @@ const backupSettingKeys = {
   'swipeCards',
   'themeMode',
   'todayOnly',
+  'hideDone',
   'hideTracking',
   'todoLowFirst',
   'todosEnabled',

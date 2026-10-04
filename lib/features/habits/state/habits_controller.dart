@@ -132,6 +132,7 @@ class HabitsController extends ChangeNotifier {
     int startMinute = -1,
     int durationMinutes = 0,
     List<Substep> substeps = const [],
+    List<int> restDays = const [],
   }) async {
     final id = _uuid.v4();
     final habit = Habit(
@@ -168,11 +169,18 @@ class HabitsController extends ChangeNotifier {
       startMinute: startMinute,
       durationMinutes: durationMinutes,
       substeps: substeps,
+      restDays: restDays,
     );
     _habits[id] = habit;
     await LocalStore.writeHabit(habit);
     notifyListeners();
-    if (reminders.isNotEmpty) await _notifications.scheduleFor(habit);
+    if (reminders.isNotEmpty) {
+      try {
+        await _notifications.scheduleFor(habit);
+      } catch (e) {
+        debugPrint('Scheduling ${habit.name} failed: $e');
+      }
+    }
     HomeWidgetService.syncSoon(() => asMap);
   }
 
@@ -182,46 +190,6 @@ class HabitsController extends ChangeNotifier {
     notifyListeners();
     await _notifications.scheduleFor(habit);
     HomeWidgetService.syncSoon(() => asMap);
-  }
-
-  Future<Habit> duplicate(Habit source) async {
-    final copy = source
-        .copyWith(
-          name: _duplicateName(source.name),
-          completions: const {},
-          vacations: const [],
-          clearArchived: true,
-          createdAt: AppClock.now(),
-          coverPath: await CoverStorage.clone(source.coverPath),
-          bookCoverPath: await CoverStorage.clone(source.bookCoverPath),
-        )
-        .rebuildId(_uuid.v4(), order: habits.length);
-
-    _habits[copy.id] = copy;
-    await LocalStore.writeHabit(copy);
-    notifyListeners();
-    try {
-      await _notifications.scheduleFor(copy);
-    } catch (e) {
-      debugPrint('Scheduling ${copy.name} failed: $e');
-    }
-    HomeWidgetService.syncSoon(() => asMap);
-    return copy;
-  }
-
-  static final _copySuffix = RegExp(r'^(.*) \((\d+)\)$');
-
-  String _duplicateName(String name) {
-    final match = _copySuffix.firstMatch(name);
-    final base = match?.group(1) ?? name;
-    var next = match == null ? 1 : int.parse(match.group(2)!);
-
-    final taken = {for (final habit in _habits.values) habit.name};
-    String candidate(int n) => '$base ($n)';
-    while (taken.contains(candidate(next + 1))) {
-      next++;
-    }
-    return candidate(next + 1);
   }
 
   Future<void> toggle(String id, DateTime date, {bool fromFocus = false}) async {
