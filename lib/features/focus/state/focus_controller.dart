@@ -165,6 +165,10 @@ class FocusController extends ChangeNotifier {
   bool get isBreak => _isBreak;
   int get round => _round;
   bool get isPomodoro => _breakMinutes > 0;
+  static const longBreakEvery = 4;
+  int get _longBreakMinutes => LocalStore.setting('focusLongBreak', 0);
+  bool get isLongBreak =>
+      _isBreak && _longBreakMinutes > 0 && _round % longBreakEvery == 0;
   int get targetMinutes => _targetMinutes;
   int get targetSeconds => _targetMinutes * 60;
 
@@ -338,7 +342,10 @@ class FocusController extends ChangeNotifier {
 
   Future<FocusSession?> stop({required bool completed, DateTime? at}) async {
     final endedAt = at ?? DateTime.now();
-    final seconds = _isBreak ? 0 : elapsedAt(endedAt);
+    final dropped = isPomodoro &&
+        !completed &&
+        LocalStore.setting('focusWholeRounds', false);
+    final seconds = _isBreak || dropped ? 0 : elapsedAt(endedAt);
     final habitId = _habitId;
     final label = _label;
     final target = _focusMinutes;
@@ -412,7 +419,11 @@ class FocusController extends ChangeNotifier {
     _isBreak = !_isBreak;
     _awaiting = false;
     _switchIn = 0;
-    _targetMinutes = _isBreak ? _breakMinutes : _focusMinutes;
+    _targetMinutes = !_isBreak
+        ? _focusMinutes
+        : isLongBreak
+        ? _longBreakMinutes
+        : _breakMinutes;
     _accumulated = 0;
     _since = DateTime.now();
     _celebrated = false;
@@ -548,7 +559,7 @@ class FocusController extends ChangeNotifier {
           : done
           ? strings.focus_target_reached
           : _isBreak
-              ? strings.focus_break
+              ? (isLongBreak ? strings.focus_long_break : strings.focus_break)
               : !isRunning
                   ? strings.focus_paused
                   : isFlow

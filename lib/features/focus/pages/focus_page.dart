@@ -198,6 +198,7 @@ class _FocusPageState extends State<FocusPage> {
   Future<void> _confirmStop() async {
     final focus = context.read<FocusController>();
     final habits = context.read<HabitsController>();
+    final settings = context.read<SettingsController>();
     final habit = focus.habitId.isEmpty ? null : habits.byId(focus.habitId);
     final reached = focus.reachedTarget || focus.isFlow;
     final checked =
@@ -214,6 +215,8 @@ class _FocusPageState extends State<FocusPage> {
       else
         context.l10n.focus_end_short(formatHoursShort(focus.remainingSeconds)),
       if (pending > 0) context.l10n.focus_end_tasks(pending),
+      if (!reached && focus.isPomodoro && !focus.isBreak && settings.focusWholeRounds)
+        context.l10n.focus_end_drop,
     ];
 
     final result = await showDialog<String>(
@@ -283,13 +286,14 @@ class _FocusPageState extends State<FocusPage> {
     final style = ClockStyle
         .values[settings.focusClockStyle.clamp(0, ClockStyle.values.length - 1)];
     final onBreak = context.select<FocusController, bool>((f) => f.isBreak);
+    final longBreak = context.select<FocusController, bool>((f) => f.isLongBreak);
     final switchIn = context.select<FocusController, int>((f) => f.switchIn);
     final label = switchIn > 0
         ? (onBreak ? context.l10n.focus_back_in : context.l10n.focus_break_in)(
             '$switchIn',
           )
         : onBreak
-        ? context.l10n.focus_break
+        ? (longBreak ? context.l10n.focus_long_break : context.l10n.focus_break)
         : title;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
