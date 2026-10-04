@@ -542,7 +542,11 @@ class TimelineCheck extends StatelessWidget {
                               ? LucideIcons.plus
                               : LucideIcons.check,
                   size: _quant ? 15 : 18,
-                  color: done ? context.colors.surface : color,
+                  color: done
+                      ? context.colors.surface
+                      : _quant || habit.needsFocusSession
+                          ? color
+                          : color.withValues(alpha: 0.3),
                 ),
               ),
             ],

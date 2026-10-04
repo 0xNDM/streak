@@ -684,7 +684,9 @@ class _TodayButtonState extends State<_TodayButton>
           child: Icon(
             LucideIcons.check,
             size: 22,
-            color: widget.done ? widget.color.ink : widget.color,
+            color: widget.done
+                ? widget.color.ink
+                : widget.color.withValues(alpha: 0.3),
           ),
         ),
       ),

@@ -388,6 +388,7 @@ class ExpressAction extends StatelessWidget {
         icon: icon,
         size: size,
         circle: context.watch<SettingsController>().isCircleCheck,
+        restAlpha: habit.kind == HabitKind.positive ? 0.3 : 0.7,
         onTap: onTap,
         onLongPress: habit.kind == HabitKind.quantitative
             ? () => unawaited(addCustomAmount(context, habit))
