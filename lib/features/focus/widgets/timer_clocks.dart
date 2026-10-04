@@ -29,6 +29,7 @@ class FocusClock extends StatelessWidget {
     required this.label,
     required this.size,
     this.row = false,
+    this.paused = false,
   });
 
   final ClockStyle style;
@@ -38,6 +39,7 @@ class FocusClock extends StatelessWidget {
   final String label;
   final double size;
   final bool row;
+  final bool paused;
 
   static String clockText(int seconds) => formatDuration(seconds);
 
@@ -50,6 +52,7 @@ class FocusClock extends StatelessWidget {
           color: color,
           label: label,
           size: size,
+          paused: paused,
         ),
       ClockStyle.flip => _FlipClock(seconds: seconds, size: size, row: row),
       ClockStyle.dots => _DotsClock(seconds: seconds, size: size),
@@ -64,6 +67,7 @@ class _RingClock extends StatelessWidget {
     required this.color,
     required this.label,
     required this.size,
+    required this.paused,
   });
 
   final int seconds;
@@ -71,10 +75,23 @@ class _RingClock extends StatelessWidget {
   final Color color;
   final String label;
   final double size;
+  final bool paused;
 
   @override
   Widget build(BuildContext context) {
     final text = FocusClock.clockText(seconds);
+    final caption = Text(
+      label.toUpperCase(),
+      maxLines: 1,
+      textAlign: TextAlign.center,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(
+        fontSize: size * 0.048,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 3,
+        color: Colors.white.withValues(alpha: paused ? 0.9 : 0.55),
+      ),
+    );
     final stroke = size * 0.052;
 
     return SizedBox(
@@ -114,18 +131,7 @@ class _RingClock extends StatelessWidget {
               SizedBox(height: size * 0.045),
               SizedBox(
                 width: size * 0.6,
-                child: Text(
-                  label.toUpperCase(),
-                  maxLines: 1,
-                  textAlign: TextAlign.center,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: size * 0.048,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 3,
-                    color: Colors.white.withValues(alpha: 0.55),
-                  ),
-                ),
+                child: paused ? _Pulse(child: caption) : caption,
               ),
             ],
           ),
@@ -133,6 +139,33 @@ class _RingClock extends StatelessWidget {
       ),
     );
   }
+}
+
+class _Pulse extends StatefulWidget {
+  const _Pulse({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_Pulse> createState() => _PulseState();
+}
+
+class _PulseState extends State<_Pulse> with SingleTickerProviderStateMixin {
+  late final _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+    lowerBound: 0.35,
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      FadeTransition(opacity: _controller, child: widget.child);
 }
 
 class _RingPainter extends CustomPainter {

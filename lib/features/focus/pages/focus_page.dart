@@ -343,7 +343,7 @@ class _FocusPageState extends State<FocusPage> {
                     final paused = !leading && focus.isActive && !focus.isRunning;
                     final accent = habit?.color ?? context.colors.primary;
                     return AnimatedOpacity(
-                      opacity: paused && style != ClockStyle.ring ? 0.55 : 1,
+                      opacity: paused ? (style == ClockStyle.ring ? 0.7 : 0.55) : 1,
                       duration: const Duration(milliseconds: 300),
                       child: TweenAnimationBuilder<Color?>(
                         tween: ColorTween(
@@ -358,8 +358,9 @@ class _FocusPageState extends State<FocusPage> {
                               : focus.displaySeconds,
                           progress: leading ? 0 : focus.progress,
                           color: color ?? accent,
-                          label: label,
+                          label: paused ? context.l10n.focus_paused : label,
                           size: _clockSize(constraints, landscape),
+                          paused: paused,
                         ),
                       ),
                     );
