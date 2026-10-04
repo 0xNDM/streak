@@ -140,10 +140,17 @@ class NotificationService {
       requestSoundPermission: false,
       notificationCategories: _categories(await localizations()),
     );
-    const windows = WindowsInitializationSettings(
+    final windows = WindowsInitializationSettings(
       appName: 'Streak',
       appUserModelId: 'com.streak.app',
       guid: 'cfb32a7d-9c06-495b-8afa-df8829d33edc',
+      iconPath: [
+        File(Platform.resolvedExecutable).parent.path,
+        'data',
+        'flutter_assets',
+        'assets',
+        'icon.png',
+      ].join(Platform.pathSeparator),
     );
     final linux = LinuxInitializationSettings(
       defaultActionName: 'Open',
@@ -193,7 +200,7 @@ class NotificationService {
   }
 
   Future<bool> requestNotifications() async {
-    if (Platform.isLinux) return true;
+    if (Platform.isLinux || Platform.isWindows) return true;
     try {
       if (await Permission.notification.isGranted) return true;
       return (await Permission.notification.request()).isGranted;

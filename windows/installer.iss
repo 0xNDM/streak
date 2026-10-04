@@ -45,8 +45,8 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Source: "..\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{autoprograms}\Streak"; Filename: "{app}\Streak.exe"
-Name: "{autodesktop}\Streak"; Filename: "{app}\Streak.exe"; Tasks: desktopicon
+Name: "{autoprograms}\Streak"; Filename: "{app}\Streak.exe"; AppUserModelID: "com.streak.app"
+Name: "{autodesktop}\Streak"; Filename: "{app}\Streak.exe"; Tasks: desktopicon; AppUserModelID: "com.streak.app"
 
 [Run]
 Filename: "{app}\Streak.exe"; Description: "{cm:LaunchProgram,Streak}"; Flags: nowait postinstall skipifsilent

@@ -360,7 +360,7 @@ class SettingsActions {
     await context.read<SettingsController>().reloadFromStore();
     if (!context.mounted) return;
     AppSnackbar.success(context, context.l10n.wipe_data_done);
-    if (!Platform.isLinux) await openAppSettings();
+    if (isMobile) await openAppSettings();
   }
 
   static Future<void> toggleAppLock(BuildContext context, bool value) async {
