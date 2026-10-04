@@ -94,7 +94,6 @@ class SettingsController extends ChangeNotifier {
     _focusEnabled = LocalStore.setting('focusEnabled', true);
     _focusClockStyle = LocalStore.setting('focusClockStyle', 2);
     _focusScene = LocalStore.setting('focusScene', defaultFocusScene);
-    if (_focusScene == 0) _focusScene = defaultFocusScene;
     _focusImage = LocalStore.setting('focusImage', '');
     _focusTracks =
         List<String>.from(LocalStore.setting('focusTracks', const <String>[]));

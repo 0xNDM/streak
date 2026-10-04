@@ -168,6 +168,8 @@ class FocusScenePreview extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
               border: selected
                   ? Border.all(color: Colors.white, width: 2.5)
+                  : scene == 0
+                  ? Border.all(color: Colors.white.withValues(alpha: 0.18))
                   : null,
             ),
             child: ClipRRect(

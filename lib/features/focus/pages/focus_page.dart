@@ -17,6 +17,7 @@ import 'package:streak/core/routing/app_navigator.dart';
 import 'package:streak/core/utils/app_snackbar.dart';
 import 'package:streak/core/widgets/app_confirm_dialog.dart';
 import 'package:streak/core/utils/cover_storage.dart';
+import 'package:streak/core/utils/app_dirs.dart';
 import 'package:streak/core/utils/responsive.dart';
 import 'package:streak/core/widgets/delete_sheet.dart';
 import 'package:streak/features/focus/data/focus_session.dart';
@@ -318,7 +319,9 @@ class _FocusPageState extends State<FocusPage> {
 
                 final listHeight = typing
                     ? (constraints.maxHeight * 0.32).clamp(110.0, 240.0)
-                    : 156.0;
+                    : isMobile
+                    ? 156.0
+                    : 232.0;
                 final tasks = habit == null
                     ? FocusFreeTaskList(focus: focus, maxHeight: listHeight)
                     : FocusTaskList(habit: habit, maxHeight: listHeight);
@@ -629,11 +632,27 @@ class _TopBar extends StatelessWidget {
     await _sheet(
       context,
       title: context.l10n.app_background,
+      maxWidth: hasVideoScenes ? 1000 : phoneWidth,
       child: Consumer<SettingsController>(
         builder: (sheetContext, s, __) => LayoutBuilder(
           builder: (_, box) {
-            const tile = 124.0;
+            final columns = ((box.maxWidth + 12) / 172).floor().clamp(3, 5);
+            final tile = hasVideoScenes
+                ? ((box.maxWidth - 12 * (columns - 1)) / columns).floorToDouble()
+                : 124.0;
             final tiles = <Widget>[
+            SizedBox(
+              width: tile,
+              child: FocusScenePreview(
+                scene: 0,
+                imagePath: '',
+                selected: s.focusScene == 0 && s.focusImage.isEmpty,
+                onTap: () {
+                  s.setFocusScene(0);
+                  s.setFocusImage('');
+                },
+              ),
+            ),
             for (var i = 1; i < focusSceneCount; i++)
               if (!s.isSceneHidden(i) && !hasVideoScenes)
                 SizedBox(
@@ -745,6 +764,10 @@ class _TopBar extends StatelessWidget {
                   child: GestureDetector(
                     onTap: pickImage,
                     child: Container(
+                      margin: EdgeInsets.symmetric(
+                        horizontal: tile * 0.03,
+                        vertical: tile / 0.78 * 0.03,
+                      ),
                       decoration: BoxDecoration(
                         color: sheetContext.colors.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(14),
@@ -764,6 +787,12 @@ class _TopBar extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (hasVideoScenes)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Wrap(spacing: 12, runSpacing: 12, children: tiles),
+                  )
+                else
                 SizedBox(
                   height: tile / 0.78 + 12,
                   child: ListView.separated(
@@ -792,13 +821,14 @@ class _TopBar extends StatelessWidget {
     BuildContext context, {
     required String title,
     required Widget child,
+    double maxWidth = phoneWidth,
   }) {
     return showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
       constraints: BoxConstraints(
-        maxWidth: phoneWidth,
+        maxWidth: maxWidth,
         maxHeight: MediaQuery.sizeOf(context).height * 0.85,
       ),
       builder: (sheet) => SafeArea(
