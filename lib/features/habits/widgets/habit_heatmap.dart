@@ -557,6 +557,8 @@ class _HabitHeatmapState extends State<HabitHeatmap> {
                           alignment: Alignment.centerLeft,
                           child: Text(
                             months.format(colDate),
+                            textScaler: MediaQuery.textScalerOf(context)
+                                .clamp(maxScaleFactor: 1.2),
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,

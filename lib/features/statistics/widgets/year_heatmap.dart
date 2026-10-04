@@ -140,6 +140,8 @@ class _YearHeatmapState extends State<YearHeatmap> {
                               alignment: Alignment.centerLeft,
                               child: Text(
                                 DateFormat.MMM(locale).format(colDate),
+                                textScaler: MediaQuery.textScalerOf(context)
+                                    .clamp(maxScaleFactor: 1.2),
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w600,

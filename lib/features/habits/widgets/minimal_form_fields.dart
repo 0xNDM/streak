@@ -370,6 +370,10 @@ class CompactWeekdays extends StatelessWidget {
                   ),
                   child: Text(
                     labels[i],
+                    maxLines: 1,
+                    softWrap: false,
+                    textScaler: MediaQuery.textScalerOf(context)
+                        .clamp(maxScaleFactor: 1.3),
                     style: TextStyle(
                       color: active ? accent : context.tokens.muted,
                       fontWeight: FontWeight.w700,

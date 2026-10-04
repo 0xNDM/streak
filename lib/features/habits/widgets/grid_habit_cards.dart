@@ -649,6 +649,8 @@ class _GridYearStripState extends State<_GridYearStrip> {
                           alignment: Alignment.centerLeft,
                           child: Text(
                             months.format(first),
+                            textScaler: MediaQuery.textScalerOf(context)
+                                .clamp(maxScaleFactor: 1.2),
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
