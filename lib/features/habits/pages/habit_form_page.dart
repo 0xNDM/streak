@@ -428,7 +428,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
             Padding(
               padding: const EdgeInsets.only(right: 16),
               child: Center(child: ExpressIconButton(
-                icon: LucideIcons.trash2,
+                icon: LucideIcons.archive,
                 tint: context.tokens.danger,
                 background: context.tokens.danger.withValues(alpha: 0.14),
                 onPressed: _confirmDelete,
@@ -472,6 +472,12 @@ class _HabitFormPageState extends State<HabitFormPage> {
         autofocus: _copying,
         onChanged: () => setState(() {}),
         onShuffleIcon: _revealLook,
+      ),
+      const SizedBox(height: 26),
+      SectionLabel(context.l10n.description),
+      AppTextField(
+        hint: context.l10n.description_hint,
+        controller: _description,
       ),
       const SizedBox(height: 26),
       SectionLabel(context.l10n.habit_kind),
@@ -541,66 +547,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
             ),
           ],
         ],
-        if (!_focusOnly) ...[
-          const SizedBox(height: 26),
-          SectionLabel(context.l10n.checklist),
-          SubstepsEditor(
-            substeps: _substeps,
-            color: _color,
-            onChanged: (list) => _substeps = list,
-          ),
-          const SizedBox(height: 12),
-          AnyStepsToggle(
-            value: _anySteps,
-            color: _color,
-            onChanged: (v) => setState(() => _anySteps = v),
-          ),
-        ],
       ],
-      if (_offersTracking) ...[
-        const SizedBox(height: 12),
-        TrackingToggle(
-          value: _tracking,
-          color: _color,
-          onChanged: (v) => setState(() => _tracking = v),
-        ),
-      ],
-      if (_offersDifficulty) ...[
-        const SizedBox(height: 12),
-        DifficultyPicker(
-          value: _difficulty,
-          color: _color,
-          onChanged: (v) => setState(() => _difficulty = v),
-        ),
-      ],
-      const SizedBox(height: 26),
-      SectionLabel(context.l10n.description),
-      AppTextField(
-        hint: context.l10n.description_hint,
-        controller: _description,
-      ),
-      const SizedBox(height: 26),
-      SectionLabel(context.l10n.icon, key: _lookAnchor),
-      IconPicker(
-        selected: _icon,
-        color: _color,
-        onSelected: (icon) => setState(() => _icon = icon),
-      ),
-      const SizedBox(height: 26),
-      SectionLabel(context.l10n.color),
-      ExpressCard(
-        padding: const EdgeInsets.all(16),
-        child: ColorPicker(
-          selected: _color,
-          onSelected: (c) => setState(() => _color = c),
-        ),
-      ),
-      const SizedBox(height: 26),
-      SectionLabel(context.l10n.category),
-      CategoryPicker(
-        selected: _category,
-        onSelected: (c) => setState(() => _category = c),
-      ),
       if (_kind != HabitKind.negative) ...[
         const SizedBox(height: 26),
         SectionLabel(context.l10n.frequency),
@@ -653,6 +600,59 @@ class _HabitFormPageState extends State<HabitFormPage> {
           ),
         ),
       AddReminderButton(onTap: _addReminder),
+      if (_kind == HabitKind.positive && !_focusOnly) ...[
+        const SizedBox(height: 26),
+        SectionLabel(context.l10n.checklist),
+        SubstepsEditor(
+          substeps: _substeps,
+          color: _color,
+          onChanged: (list) => _substeps = list,
+        ),
+        const SizedBox(height: 12),
+        AnyStepsToggle(
+          value: _anySteps,
+          color: _color,
+          onChanged: (v) => setState(() => _anySteps = v),
+        ),
+      ],
+      if (_offersTracking) ...[
+        const SizedBox(height: 12),
+        TrackingToggle(
+          value: _tracking,
+          color: _color,
+          onChanged: (v) => setState(() => _tracking = v),
+        ),
+      ],
+      if (_offersDifficulty) ...[
+        const SizedBox(height: 12),
+        DifficultyPicker(
+          value: _difficulty,
+          color: _color,
+          onChanged: (v) => setState(() => _difficulty = v),
+        ),
+      ],
+      const SizedBox(height: 26),
+      SectionLabel(context.l10n.category),
+      CategoryPicker(
+        selected: _category,
+        onSelected: (c) => setState(() => _category = c),
+      ),
+      const SizedBox(height: 26),
+      SectionLabel(context.l10n.icon, key: _lookAnchor),
+      IconPicker(
+        selected: _icon,
+        color: _color,
+        onSelected: (icon) => setState(() => _icon = icon),
+      ),
+      const SizedBox(height: 26),
+      SectionLabel(context.l10n.color),
+      ExpressCard(
+        padding: const EdgeInsets.all(16),
+        child: ColorPicker(
+          selected: _color,
+          onSelected: (c) => setState(() => _color = c),
+        ),
+      ),
       const SizedBox(height: 26),
       SectionLabel(context.l10n.cover_image),
       CoverPicker(
@@ -682,7 +682,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
         actions: [
           if (widget.isEditing)
             IconButton(
-              icon: Icon(LucideIcons.trash2, color: context.tokens.danger),
+              icon: Icon(LucideIcons.archive, color: context.tokens.danger),
               onPressed: _confirmDelete,
             ),
           TextButton(
@@ -852,74 +852,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
             ),
           ],
         ],
-        if (!_focusOnly) ...[
-          const SizedBox(height: 16),
-          SectionLabel(context.l10n.checklist),
-          CompactSubstepsEditor(
-            substeps: _substeps,
-            color: _color,
-            onChanged: (list) => _substeps = list,
-          ),
-          const SizedBox(height: 16),
-          AnyStepsToggle(
-            value: _anySteps,
-            color: _color,
-            compact: true,
-            onChanged: (v) => setState(() => _anySteps = v),
-          ),
-        ],
       ],
-      if (_offersTracking) ...[
-        const SizedBox(height: 16),
-        TrackingToggle(
-          value: _tracking,
-          color: _color,
-          compact: true,
-          onChanged: (v) => setState(() => _tracking = v),
-        ),
-      ],
-      if (_offersDifficulty) ...[
-        const SizedBox(height: 16),
-        DifficultyPicker(
-          value: _difficulty,
-          color: _color,
-          compact: true,
-          onChanged: (v) => setState(() => _difficulty = v),
-        ),
-      ],
-      const SizedBox(height: 16),
-      SectionLabel(context.l10n.icon),
-      CompactIconPicker(
-        selected: _icon,
-        color: _color,
-        onSelected: (icon) => setState(() => _icon = icon),
-      ),
-      const SizedBox(height: 16),
-      SectionLabel(context.l10n.color),
-      CompactColorPicker(
-        selected: _color,
-        onSelected: (c) => setState(() => _color = c),
-      ),
-      const SizedBox(height: 16),
-      SectionLabel(context.l10n.cover_image),
-      CompactCover(
-        path: _cover,
-        clarity: _coverClarity,
-        onPick: _pickCover,
-        onRemove: () => setState(() => _cover = ''),
-      ),
-      if (_cover.isNotEmpty)
-        CoverClarity(
-          value: _coverClarity,
-          color: _color,
-          onChanged: (value) => setState(() => _coverClarity = value),
-        ),
-      const SizedBox(height: 16),
-      SectionLabel(context.l10n.category),
-      CompactCategoryPicker(
-        selected: _category,
-        onSelected: (c) => setState(() => _category = c),
-      ),
       if (_kind != HabitKind.negative) ...[
         const SizedBox(height: 16),
         SectionLabel(context.l10n.frequency),
@@ -1006,6 +939,73 @@ class _HabitFormPageState extends State<HabitFormPage> {
           ),
         ),
       CompactAddButton(label: context.l10n.add_reminder, onTap: _addReminder),
+      if (_kind == HabitKind.positive && !_focusOnly) ...[
+        const SizedBox(height: 16),
+        SectionLabel(context.l10n.checklist),
+        CompactSubstepsEditor(
+          substeps: _substeps,
+          color: _color,
+          onChanged: (list) => _substeps = list,
+        ),
+        const SizedBox(height: 16),
+        AnyStepsToggle(
+          value: _anySteps,
+          color: _color,
+          compact: true,
+          onChanged: (v) => setState(() => _anySteps = v),
+        ),
+      ],
+      if (_offersTracking) ...[
+        const SizedBox(height: 16),
+        TrackingToggle(
+          value: _tracking,
+          color: _color,
+          compact: true,
+          onChanged: (v) => setState(() => _tracking = v),
+        ),
+      ],
+      if (_offersDifficulty) ...[
+        const SizedBox(height: 16),
+        DifficultyPicker(
+          value: _difficulty,
+          color: _color,
+          compact: true,
+          onChanged: (v) => setState(() => _difficulty = v),
+        ),
+      ],
+      const SizedBox(height: 16),
+      SectionLabel(context.l10n.category),
+      CompactCategoryPicker(
+        selected: _category,
+        onSelected: (c) => setState(() => _category = c),
+      ),
+      const SizedBox(height: 16),
+      SectionLabel(context.l10n.icon),
+      CompactIconPicker(
+        selected: _icon,
+        color: _color,
+        onSelected: (icon) => setState(() => _icon = icon),
+      ),
+      const SizedBox(height: 16),
+      SectionLabel(context.l10n.color),
+      CompactColorPicker(
+        selected: _color,
+        onSelected: (c) => setState(() => _color = c),
+      ),
+      const SizedBox(height: 16),
+      SectionLabel(context.l10n.cover_image),
+      CompactCover(
+        path: _cover,
+        clarity: _coverClarity,
+        onPick: _pickCover,
+        onRemove: () => setState(() => _cover = ''),
+      ),
+      if (_cover.isNotEmpty)
+        CoverClarity(
+          value: _coverClarity,
+          color: _color,
+          onChanged: (value) => setState(() => _coverClarity = value),
+        ),
     ];
   }
 
@@ -1041,7 +1041,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
           actions: [
             if (widget.isEditing)
               IconButton(
-                icon: Icon(LucideIcons.trash2, color: context.tokens.danger),
+                icon: Icon(LucideIcons.archive, color: context.tokens.danger),
                 onPressed: _confirmDelete,
               ),
             TextButton(
@@ -1143,77 +1143,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
                   ),
                 ],
               ],
-              if (!_focusOnly) ...[
-                const SizedBox(height: 20),
-                SectionLabel(context.l10n.checklist),
-                SubstepsEditor(
-                  substeps: _substeps,
-                  color: _color,
-                  onChanged: (list) => _substeps = list,
-                ),
-                const SizedBox(height: 12),
-                AnyStepsToggle(
-                  value: _anySteps,
-                  color: _color,
-                  onChanged: (v) => setState(() => _anySteps = v),
-                ),
-              ],
             ],
-            if (_offersTracking) ...[
-              const SizedBox(height: 20),
-              TrackingToggle(
-                value: _tracking,
-                color: _color,
-                onChanged: (v) => setState(() => _tracking = v),
-              ),
-            ],
-            if (_offersDifficulty) ...[
-              const SizedBox(height: 20),
-              DifficultyPicker(
-                value: _difficulty,
-                color: _color,
-                onChanged: (v) => setState(() => _difficulty = v),
-              ),
-            ],
-            const SizedBox(height: 20),
-            SectionLabel(context.l10n.icon),
-            IconPicker(
-              selected: _icon,
-              color: _color,
-              onSelected: (icon) => setState(() => _icon = icon),
-            ),
-            const SizedBox(height: 20),
-            SectionLabel(context.l10n.color),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: ColorPicker(
-                  selected: _color,
-                  onSelected: (c) => setState(() => _color = c),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            SectionLabel(context.l10n.cover_image),
-            CoverPicker(
-              path: _cover,
-              color: _color,
-              clarity: _coverClarity,
-              onPick: _pickCover,
-              onRemove: () => setState(() => _cover = ''),
-            ),
-            if (_cover.isNotEmpty)
-              CoverClarity(
-                value: _coverClarity,
-                color: _color,
-                onChanged: (value) => setState(() => _coverClarity = value),
-              ),
-            const SizedBox(height: 20),
-            SectionLabel(context.l10n.category),
-            CategoryPicker(
-              selected: _category,
-              onSelected: (c) => setState(() => _category = c),
-            ),
             if (_kind != HabitKind.negative) ...[
               const SizedBox(height: 20),
               SectionLabel(context.l10n.frequency),
@@ -1269,6 +1199,76 @@ class _HabitFormPageState extends State<HabitFormPage> {
                 ),
               ),
             AddReminderButton(onTap: _addReminder),
+            if (_kind == HabitKind.positive && !_focusOnly) ...[
+              const SizedBox(height: 20),
+              SectionLabel(context.l10n.checklist),
+              SubstepsEditor(
+                substeps: _substeps,
+                color: _color,
+                onChanged: (list) => _substeps = list,
+              ),
+              const SizedBox(height: 12),
+              AnyStepsToggle(
+                value: _anySteps,
+                color: _color,
+                onChanged: (v) => setState(() => _anySteps = v),
+              ),
+            ],
+            if (_offersTracking) ...[
+              const SizedBox(height: 20),
+              TrackingToggle(
+                value: _tracking,
+                color: _color,
+                onChanged: (v) => setState(() => _tracking = v),
+              ),
+            ],
+            if (_offersDifficulty) ...[
+              const SizedBox(height: 20),
+              DifficultyPicker(
+                value: _difficulty,
+                color: _color,
+                onChanged: (v) => setState(() => _difficulty = v),
+              ),
+            ],
+            const SizedBox(height: 20),
+            SectionLabel(context.l10n.category),
+            CategoryPicker(
+              selected: _category,
+              onSelected: (c) => setState(() => _category = c),
+            ),
+            const SizedBox(height: 20),
+            SectionLabel(context.l10n.icon),
+            IconPicker(
+              selected: _icon,
+              color: _color,
+              onSelected: (icon) => setState(() => _icon = icon),
+            ),
+            const SizedBox(height: 20),
+            SectionLabel(context.l10n.color),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: ColorPicker(
+                  selected: _color,
+                  onSelected: (c) => setState(() => _color = c),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            SectionLabel(context.l10n.cover_image),
+            CoverPicker(
+              path: _cover,
+              color: _color,
+              clarity: _coverClarity,
+              onPick: _pickCover,
+              onRemove: () => setState(() => _cover = ''),
+            ),
+            if (_cover.isNotEmpty)
+              CoverClarity(
+                value: _coverClarity,
+                color: _color,
+                onChanged: (value) => setState(() => _coverClarity = value),
+              ),
             const SizedBox(height: 24),
           ],
         ),

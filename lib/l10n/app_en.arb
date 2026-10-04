@@ -835,7 +835,7 @@
   "style_minimal_desc": "Habit grid and settings grouped into four sections.",
   "appearance_sub": "Theme, accent and background",
   "preferences_sub": "Language, week and sorting",
-  "data_sub": "Backups and import",
+  "data_sub": "Backups, archive and import",
   "about_sub": "Version, source code and support",
   "support_sub": "Report a bug or ask for a feature",
   "check_style": "Check style",

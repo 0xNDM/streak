@@ -89,15 +89,11 @@ void main() {
         isSelected: true,
       ),
     );
+    final list = find.byType(Scrollable).first;
+    await tester.scrollUntilVisible(find.bySemanticsLabel('Add step'), 300, scrollable: list);
     expect(find.bySemanticsLabel('Add step'), findsOneWidget);
 
-    await tester.drag(
-      find.byType(Scrollable).first,
-      const Offset(0, -300),
-      warnIfMissed: false,
-    );
-    await tester.pumpAndSettle();
-
+    await tester.scrollUntilVisible(find.bySemanticsLabel('dumbbell'), 300, scrollable: list);
     expect(find.bySemanticsLabel('dumbbell'), findsOneWidget);
     handle.dispose();
   });
