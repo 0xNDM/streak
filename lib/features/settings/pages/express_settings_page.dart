@@ -15,6 +15,7 @@ import 'package:streak/core/extensions/inset_extensions.dart';
 import 'package:streak/core/i18n/l10n.dart';
 import 'package:streak/core/routing/app_navigator.dart';
 import 'package:streak/core/utils/app_dirs.dart';
+import 'package:streak/core/utils/responsive.dart';
 import 'package:streak/core/widgets/section_label.dart';
 import 'package:streak/core/widgets/number_keypad_dialog.dart';
 import 'package:streak/features/habits/widgets/category_editor_sheet.dart';
@@ -34,6 +35,7 @@ class ExpressSettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsController>();
+    final listed = stackedRows(context);
 
     final items = <Widget>[
       ExpressHeadline(title: context.l10n.settings),
@@ -55,7 +57,36 @@ class ExpressSettingsPage extends StatelessWidget {
         ],
       ),
       const SizedBox(height: 22),
-      IntrinsicHeight(
+      if (listed)
+        ExpressGroup(
+          children: [
+            ExpressTile(
+              icon: LucideIcons.palette,
+              title: context.l10n.appearance,
+              subtitle: context.l10n.appearance_sub,
+              onTap: () => AppNavigator.push(const _AppearancePage()),
+            ),
+            ExpressTile(
+              icon: LucideIcons.slidersHorizontal,
+              title: context.l10n.preferences,
+              subtitle: context.l10n.preferences_sub,
+              onTap: () => AppNavigator.push(const _PreferencesPage()),
+            ),
+            ExpressTile(
+              icon: LucideIcons.database,
+              title: context.l10n.data,
+              subtitle: context.l10n.data_sub,
+              onTap: () => AppNavigator.push(const _DataPage()),
+            ),
+            ExpressTile(
+              icon: LucideIcons.heartHandshake,
+              title: context.l10n.support,
+              subtitle: context.l10n.support_sub,
+              onTap: () => AppNavigator.push(const _SupportPage()),
+            ),
+          ],
+        ),
+      if (!listed) IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -79,8 +110,8 @@ class ExpressSettingsPage extends StatelessWidget {
           ],
         ),
       ),
-      const SizedBox(height: Express.groupGap),
-      IntrinsicHeight(
+      if (!listed) const SizedBox(height: Express.groupGap),
+      if (!listed) IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

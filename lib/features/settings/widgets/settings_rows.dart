@@ -5,7 +5,7 @@ import 'package:streak/core/utils/responsive.dart';
 
 Widget settingsDivider(BuildContext context) => Divider(
       height: 1,
-      indent: 60,
+      indent: bareRows(context) ? 16 : 60,
       endIndent: 16,
       color: context.colors.surfaceContainerHighest,
     );
@@ -52,12 +52,13 @@ class SettingRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final stacked = stackedRows(context);
+    final bare = bareRows(context);
     final row = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
-          IconBadge(icon: icon),
-          const SizedBox(width: 14),
+          if (!bare) IconBadge(icon: icon),
+          if (!bare) const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -128,7 +129,7 @@ class NavRow extends StatelessWidget {
           );
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      leading: IconBadge(icon: icon, tint: tint),
+      leading: bareRows(context) ? null : IconBadge(icon: icon, tint: tint),
       title: Row(
         children: [
           Flexible(
@@ -215,7 +216,7 @@ class LinkRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-      leading: IconBadge(icon: icon),
+      leading: bareRows(context) ? null : IconBadge(icon: icon),
       horizontalTitleGap: 14,
       title: Text(
         title,
@@ -252,6 +253,7 @@ class PickerRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final stacked = stackedRows(context);
+    final bare = bareRows(context);
     final shown = value == null
         ? null
         : Text(
@@ -270,8 +272,8 @@ class PickerRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
-              IconBadge(icon: icon),
-              const SizedBox(width: 14),
+              if (!bare) IconBadge(icon: icon),
+              if (!bare) const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

@@ -32,3 +32,7 @@ bool isCompactRail(BuildContext context) =>
 bool stackedRows(BuildContext context) =>
     MediaQuery.sizeOf(context).width <
     360 * MediaQuery.textScalerOf(context).scale(1);
+
+bool bareRows(BuildContext context) =>
+    MediaQuery.sizeOf(context).width <
+    240 * MediaQuery.textScalerOf(context).scale(1);

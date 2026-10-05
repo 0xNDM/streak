@@ -187,6 +187,7 @@ class ExpressTile extends StatelessWidget {
     final accent = tint ?? scheme.primary;
     final radius = ExpressSlot.of(context, BorderRadius.circular(20));
     final stacked = stackedRows(context) && value != null;
+    final bare = bareRows(context);
 
     return ExpressSquish(
       onTap: onTap,
@@ -199,7 +200,7 @@ class ExpressTile extends StatelessWidget {
         padding: EdgeInsets.fromLTRB(16, dense ? 14 : 18, 20, dense ? 14 : 18),
         child: Row(
           children: [
-            Container(
+            if (!bare) Container(
               width: 40,
               height: 40,
               decoration: BoxDecoration(
@@ -208,7 +209,7 @@ class ExpressTile extends StatelessWidget {
               ),
               child: Icon(icon, size: 19, color: accent),
             ),
-            const SizedBox(width: 14),
+            if (!bare) const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
