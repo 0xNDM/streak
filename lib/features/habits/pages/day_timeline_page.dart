@@ -31,6 +31,8 @@ import 'package:streak/features/todos/data/todo.dart';
 import 'package:streak/features/todos/pages/todo_editor_page.dart';
 import 'package:streak/features/todos/state/todos_controller.dart';
 import 'package:streak/features/todos/widgets/todo_paper.dart';
+import 'package:streak/features/todos/widgets/todo_tile.dart';
+import 'package:streak/features/todos/widgets/todos_page_parts.dart';
 import 'package:streak/features/todos/widgets/todo_trash.dart';
 
 const _entrance = Duration(milliseconds: 60);
@@ -151,7 +153,36 @@ class _DayTimelinePageState extends State<DayTimelinePage> {
             ));
   }
 
-  Widget _todos(List<Todo> todos, int from) => PaperLanes(
+  Widget _todos(List<Todo> todos, int from) =>
+      context.read<SettingsController>().todoPapers
+          ? _papers(todos, from)
+          : _tiles(todos, from);
+
+  Widget _tiles(List<Todo> todos, int from) {
+    final express = context.read<SettingsController>().isExpressStyle;
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      sliver: SliverList.builder(
+        itemCount: todos.length,
+        itemBuilder: (context, i) => Entrance(
+          key: ValueKey(todos[i].id),
+          index: from + i,
+          delay: _entrance,
+          child: TodoTile(
+            todo: todos[i],
+            overdue: false,
+            corners: todoCorners(express, i, todos.length),
+            showProject: true,
+            checking: _completing.contains(todos[i].id),
+            onToggle: () => _toggleTodo(todos[i]),
+            onEdit: () => _openTodo(todos[i]),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _papers(List<Todo> todos, int from) => PaperLanes(
         notes: [
           for (final (i, todo) in todos.indexed)
             (
@@ -163,6 +194,7 @@ class _DayTimelinePageState extends State<DayTimelinePage> {
                 child: TodoPaper(
                   todo: todo,
                   overdue: false,
+                  showProject: true,
                   checking: _completing.contains(todo.id),
                   onToggle: () => _toggleTodo(todo),
                   onEdit: () => _openTodo(todo),

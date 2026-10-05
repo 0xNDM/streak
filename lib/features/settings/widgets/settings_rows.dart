@@ -302,7 +302,10 @@ class PickerRow extends StatelessWidget {
                   ],
                 ),
               ),
-              if (!stacked && shown != null) shown,
+              if (!stacked && shown != null) ...[
+                const SizedBox(width: 12),
+                shown,
+              ],
               if (trailing != null) trailing!,
               const SizedBox(width: 6),
               Icon(LucideIcons.chevronRight,
