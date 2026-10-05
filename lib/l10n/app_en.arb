@@ -1122,6 +1122,12 @@
     "description": "Screen reader label for a colour swatch in the picker"
   },
   "period_this_week": "This week",
+  "tracked_week": "{n} this week",
+  "@tracked_week": {"placeholders": {"n": {"type": "int"}}},
+  "tracked_month": "{n} this month",
+  "@tracked_month": {"placeholders": {"n": {"type": "int"}}},
+  "tracked_year": "{n} this year",
+  "@tracked_year": {"placeholders": {"n": {"type": "int"}}},
   "period_last_week": "Last week",
   "period_this_month": "This month",
   "period_last_month": "Last month",

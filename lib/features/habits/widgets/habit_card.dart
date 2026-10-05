@@ -162,7 +162,7 @@ class HabitCard extends StatelessWidget {
                                     ),
                                     const SizedBox(width: 3),
                                     Text(
-                                      habitMarkLabel(context, habit),
+                                      habitMarkLabel(context, habit, mode),
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w700,

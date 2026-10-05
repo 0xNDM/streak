@@ -119,6 +119,7 @@ class ExpressHabitCard extends StatelessWidget {
                       _MetaPills(
                         habit: habit,
                         planning: settings.planningEnabled,
+                        mode: mode,
                       ),
                     ],
                   ),
@@ -192,10 +193,15 @@ class _Glyph extends StatelessWidget {
 }
 
 class _MetaPills extends StatelessWidget {
-  const _MetaPills({required this.habit, required this.planning});
+  const _MetaPills({
+    required this.habit,
+    required this.planning,
+    required this.mode,
+  });
 
   final Habit habit;
   final bool planning;
+  final HeatmapMode mode;
 
   @override
   Widget build(BuildContext context) {
@@ -215,7 +221,7 @@ class _MetaPills extends StatelessWidget {
           ),
         _Pill(
           icon: habitMarkIcon(habit),
-          text: habitMarkLabel(context, habit),
+          text: habitMarkLabel(context, habit, mode),
           tint: habit.color,
         ),
         if (habit.isPlanned && planning)
