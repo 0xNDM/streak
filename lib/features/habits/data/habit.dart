@@ -78,6 +78,7 @@ class Habit {
     this.restDays = const [],
     this.archivedAt,
     this.scheduleStart,
+    this.fromLastDone = false,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? AppClock.now();
 
@@ -117,6 +118,7 @@ class Habit {
         final day = date.atMidnight;
         final start = (scheduleStart ?? createdAt).atMidnight;
         if (day.isBefore(start)) return false;
+        if (fromLastDone) return _dueSinceLastDone(day, start);
         if (scheduleUnit == ScheduleUnit.months) {
           final months =
               (day.year - start.year) * 12 + day.month - start.month;
@@ -133,11 +135,47 @@ class Habit {
     }
   }
 
+  bool _dueSinceLastDone(DateTime day, DateTime start) {
+    final last = _lastDoneBefore(day.epochDay);
+    if (last == null || last < start.epochDay) return true;
+    return !day.isBefore(_nextDueAfter(epochDayDate(last)));
+  }
+
+  int? _lastDoneBefore(int epochDay) {
+    var low = 0;
+    var high = _doneDays.length;
+    while (low < high) {
+      final mid = (low + high) ~/ 2;
+      if (_doneDays[mid] < epochDay) {
+        low = mid + 1;
+      } else {
+        high = mid;
+      }
+    }
+    return low == 0 ? null : _doneDays[low - 1];
+  }
+
+  DateTime _nextDueAfter(DateTime done) {
+    if (scheduleUnit != ScheduleUnit.months) {
+      return done.addDays(scheduleSpanDays);
+    }
+    final month = DateTime(done.year, done.month + scheduleEvery);
+    final last = DateTime(month.year, month.month + 1, 0).day;
+    return DateTime(month.year, month.month, math.min(done.day, last));
+  }
+
+  late final List<int> _doneDays = [
+    for (final key in completions.keys)
+      if (isCompletedOn(parseDayKey(key))) dayKeyEpoch(key),
+  ]..sort();
+
   final String coverPath;
   final int coverClarity;
   final DateTime createdAt;
 
   final DateTime? scheduleStart;
+
+  final bool fromLastDone;
 
   final HabitKind kind;
   final double dailyCost;
@@ -233,9 +271,14 @@ class Habit {
   bool isSatisfiedOn(DateTime date) =>
       isCompletedOn(date) || _doneAheadOf(date);
 
+  bool isDoneAheadOn(DateTime date) =>
+      !isCompletedOn(date) && _doneAheadOf(date);
+
   bool _doneAheadOf(DateTime date) {
     final span = scheduleSpanDays;
-    if (interval != HabitInterval.everyXDays || span <= 1) return false;
+    if (interval != HabitInterval.everyXDays || span <= 1 || fromLastDone) {
+      return false;
+    }
     final floor = startedAt;
     var cursor = date.atMidnight;
     for (var step = 1; step < span; step++) {
@@ -279,7 +322,7 @@ class Habit {
     }
     final span = scheduleSpanDays;
     if (interval != HabitInterval.everyXDays || span <= 1) return false;
-    if (isScheduledOn(cursor)) return false;
+    if (isScheduledOn(cursor)) return isDoneAheadOn(cursor);
     final floor = startedAt;
     for (var step = 1; step < span; step++) {
       cursor = cursor.addDays(-1);
@@ -672,6 +715,7 @@ class Habit {
     bool clearArchived = false,
     DateTime? scheduleStart,
     bool clearScheduleStart = false,
+    bool? fromLastDone,
     DateTime? createdAt,
   }) {
     return Habit(
@@ -714,6 +758,7 @@ class Habit {
       scheduleStart: clearScheduleStart
           ? null
           : (scheduleStart ?? this.scheduleStart),
+      fromLastDone: fromLastDone ?? this.fromLastDone,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -745,6 +790,7 @@ class Habit {
         'coverClarity': coverClarity,
         'createdAt': createdAt.toIso8601String(),
         if (scheduleStart != null) 'scheduleStart': scheduleStart!.dayKey,
+        if (fromLastDone) 'fromLastDone': true,
         'kind': kind.index,
         'dailyCost': dailyCost,
         'unitLabel': unitLabel,
@@ -806,6 +852,7 @@ class Habit {
         scheduleStart: map['scheduleStart'] is String
             ? parseDayKey(map['scheduleStart'] as String)
             : null,
+        fromLastDone: map['fromLastDone'] == true,
         kind: HabitKind.values[(map['kind'] ?? 0) as int],
         dailyCost: ((map['dailyCost'] ?? 0) as num).toDouble(),
         unitLabel: (map['unitLabel'] ?? '') as String,

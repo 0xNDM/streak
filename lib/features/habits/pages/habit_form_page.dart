@@ -67,6 +67,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
   List<int> _scheduleWeekdays = const [1, 3, 5];
   int _scheduleEvery = 2;
   DateTime? _scheduleStart;
+  bool _fromLastDone = false;
   ScheduleUnit _scheduleUnit = ScheduleUnit.days;
   String _cover = '';
   int _coverClarity = 100;
@@ -142,6 +143,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
       }
       _scheduleEvery = habit.scheduleEvery;
       _scheduleStart = habit.scheduleStart;
+      _fromLastDone = habit.fromLastDone;
       if (_copying && habit.interval == HabitInterval.everyXDays) {
         _scheduleStart ??= habit.createdAt.atMidnight;
       }
@@ -232,6 +234,8 @@ class _HabitFormPageState extends State<HabitFormPage> {
         : 0.0;
     final interval = negative ? HabitInterval.daily : _interval;
     final frequency = negative ? 1 : _frequency;
+    final fromLastDone =
+        interval == HabitInterval.everyXDays && _fromLastDone;
     final focusOnly = _kind == HabitKind.positive && _focusOnly;
     final substeps = _kind == HabitKind.positive && !focusOnly
         ? _substeps.where((s) => s.title.trim().isNotEmpty).toList()
@@ -252,6 +256,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
           scheduleUnit: negative ? ScheduleUnit.days : _scheduleUnit,
           scheduleStart: _scheduleStart,
           clearScheduleStart: _scheduleStart == null,
+          fromLastDone: fromLastDone,
           reminders: _reminders,
           coverPath: _cover,
           coverClarity: _coverClarity,
@@ -294,6 +299,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
         scheduleEvery: negative ? 2 : _scheduleEvery,
         scheduleUnit: negative ? ScheduleUnit.days : _scheduleUnit,
         scheduleStart: _scheduleStart,
+        fromLastDone: fromLastDone,
         reminders: _reminders,
         coverPath: cover,
         coverClarity: _coverClarity,
@@ -572,6 +578,14 @@ class _HabitFormPageState extends State<HabitFormPage> {
           start: _startShown,
           onStartChanged: (day) => setState(() => _scheduleStart = day),
         ),
+        if (_interval == HabitInterval.everyXDays) ...[
+          const SizedBox(height: 8),
+          FromLastDoneToggle(
+            value: _fromLastDone,
+            color: _color,
+            onChanged: (v) => setState(() => _fromLastDone = v),
+          ),
+        ],
         if (_noDays) const _NoDaysHint(),
       ],
       if (_kind != HabitKind.negative && _planning) ...[
@@ -903,6 +917,13 @@ class _HabitFormPageState extends State<HabitFormPage> {
             start: _startShown,
             onChanged: (day) => setState(() => _scheduleStart = day),
           ),
+          const SizedBox(height: 8),
+          FromLastDoneToggle(
+            value: _fromLastDone,
+            color: _color,
+            compact: true,
+            onChanged: (v) => setState(() => _fromLastDone = v),
+          ),
         ] else if (_interval == HabitInterval.weekdays) ...[
           const SizedBox(height: 12),
           CompactWeekdays(
@@ -1170,6 +1191,14 @@ class _HabitFormPageState extends State<HabitFormPage> {
                 start: _startShown,
                 onStartChanged: (day) => setState(() => _scheduleStart = day),
               ),
+              if (_interval == HabitInterval.everyXDays) ...[
+                const SizedBox(height: 8),
+                FromLastDoneToggle(
+                  value: _fromLastDone,
+                  color: _color,
+                  onChanged: (v) => setState(() => _fromLastDone = v),
+                ),
+              ],
               if (_noDays) const _NoDaysHint(),
             ],
             if (_kind != HabitKind.negative && _planning) ...[

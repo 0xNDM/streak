@@ -112,6 +112,7 @@ class HabitsController extends ChangeNotifier {
     int scheduleEvery = 2,
     ScheduleUnit scheduleUnit = ScheduleUnit.days,
     DateTime? scheduleStart,
+    bool fromLastDone = false,
     required List<Reminder> reminders,
     String coverPath = '',
     int coverClarity = 100,
@@ -149,6 +150,7 @@ class HabitsController extends ChangeNotifier {
       scheduleEvery: scheduleEvery,
       scheduleUnit: scheduleUnit,
       scheduleStart: scheduleStart,
+      fromLastDone: fromLastDone,
       reminders: reminders,
       coverPath: coverPath,
       coverClarity: coverClarity,
@@ -331,7 +333,9 @@ class HabitsController extends ChangeNotifier {
     await LocalStore.guardWrites(() => LocalStore.writeHabit(updated));
     final today = AppClock.now();
     if (habit.reminders.isNotEmpty &&
-        habit.silencesRemindersOn(today) != updated.silencesRemindersOn(today)) {
+        (habit.fromLastDone ||
+            habit.silencesRemindersOn(today) !=
+                updated.silencesRemindersOn(today))) {
       _refreshReminders(habit.id);
     }
   }

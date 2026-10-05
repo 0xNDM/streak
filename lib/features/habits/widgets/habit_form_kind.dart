@@ -320,6 +320,32 @@ class AnyStepsToggle extends StatelessWidget {
       );
 }
 
+class FromLastDoneToggle extends StatelessWidget {
+  const FromLastDoneToggle({
+    super.key,
+    required this.value,
+    required this.color,
+    required this.onChanged,
+    this.compact = false,
+  });
+
+  final bool value;
+  final Color color;
+  final ValueChanged<bool> onChanged;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) => HabitFlagToggle(
+        icon: LucideIcons.history,
+        title: context.l10n.from_last_done,
+        hint: context.l10n.from_last_done_sub,
+        value: value,
+        color: color,
+        onChanged: onChanged,
+        compact: compact,
+      );
+}
+
 class DifficultyPicker extends StatelessWidget {
   const DifficultyPicker({
     super.key,
