@@ -3,8 +3,11 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:streak/app/theme/app_tokens.dart';
 import 'package:streak/core/i18n/l10n.dart';
 import 'package:streak/core/utils/responsive.dart';
+import 'package:streak/core/widgets/scrolling_text.dart';
 import 'package:streak/core/widgets/sheet_type.dart';
+import 'package:streak/features/habits/data/category.dart';
 import 'package:streak/features/todos/data/todo.dart';
+import 'package:streak/features/todos/data/todo_tag.dart';
 import 'package:streak/features/todos/widgets/todo_labels.dart';
 
 class TodoSticker extends StatelessWidget {
@@ -30,6 +33,55 @@ class TodoSticker extends StatelessWidget {
       TodoPriority.medium => (LucideIcons.hourglass, const Color(0xFFF0A13A)),
       _ => (LucideIcons.flame, const Color(0xFFEF5B4C)),
     };
+    return _Sticker(
+      icon: icon,
+      label: todoPriorityLabels(context)[priority.index],
+      color: color,
+      turn: turn,
+      scale: scale,
+    );
+  }
+}
+
+class ProjectSticker extends StatelessWidget {
+  const ProjectSticker({
+    super.key,
+    required this.project,
+    this.turn = 0,
+    this.scale = 1,
+  });
+
+  final TodoTag project;
+  final double turn;
+  final double scale;
+
+  @override
+  Widget build(BuildContext context) => _Sticker(
+        icon: CategoryIcons.resolve(project.icon),
+        label: project.name,
+        color: project.color,
+        turn: turn,
+        scale: scale,
+      );
+}
+
+class _Sticker extends StatelessWidget {
+  const _Sticker({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.turn,
+    required this.scale,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final double turn;
+  final double scale;
+
+  @override
+  Widget build(BuildContext context) {
     final size = 10.5 * scale;
 
     return Transform.rotate(
@@ -57,8 +109,15 @@ class TodoSticker extends StatelessWidget {
           children: [
             Icon(icon, size: size, color: Colors.white),
             SizedBox(width: 4 * scale),
-            Text(
-              todoPriorityLabels(context)[priority.index].toUpperCase(),
+            ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: 120 * scale),
+              child: ScrollingLine(
+              rounds: 1,
+              replayOnScrollUp: true,
+              child: Text(
+              label.toUpperCase(),
+              maxLines: 1,
+              softWrap: false,
               style: TextStyle(
                 fontSize: size - 1,
                 fontWeight: FontWeight.w900,
@@ -66,6 +125,8 @@ class TodoSticker extends StatelessWidget {
                 height: 1.1,
                 color: Colors.white,
               ),
+            ),
+            ),
             ),
           ],
         ),

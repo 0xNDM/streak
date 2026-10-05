@@ -390,6 +390,7 @@ class _TodosPageState extends State<TodosPage>
               child: TodoPaper(
                 todo: todo,
                 overdue: overdue,
+                showProject: _projectFilter == null,
                 checking: _completing.contains(todo.id),
                 onToggle: () => _toggle(todo),
                 onEdit: () => _tap(todo),

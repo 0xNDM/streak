@@ -68,6 +68,7 @@ class TodoPaper extends StatelessWidget {
     required this.onToggle,
     required this.onEdit,
     this.checking = false,
+    this.showProject = false,
   });
 
   final Todo todo;
@@ -75,6 +76,7 @@ class TodoPaper extends StatelessWidget {
   final VoidCallback onToggle;
   final VoidCallback onEdit;
   final bool checking;
+  final bool showProject;
 
   @override
   Widget build(BuildContext context) {
@@ -83,7 +85,11 @@ class TodoPaper extends StatelessWidget {
     final soft = softInkOf(context);
     final done = todo.done || checking;
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final tags = context.watch<TodoTagsController>().resolve(todo.tags);
+    final labels = context.watch<TodoTagsController>();
+    final tags = labels.resolve(todo.tags);
+    final project = showProject && todo.project.isNotEmpty
+        ? labels.byId(todo.project)
+        : null;
     final steps = todo.steps.take(8).toList();
     final hidden = todo.steps.length - steps.length;
     final sticker = todo.priority != TodoPriority.none;
@@ -214,6 +220,14 @@ class TodoPaper extends StatelessWidget {
                                     ),
                                   ),
                                 ),
+                            ],
+                            if (project != null) ...[
+                              const SizedBox(height: 10),
+                              ProjectSticker(
+                                project: project,
+                                turn: -TodoSticker.turnFor(todo.id),
+                                scale: 0.9,
+                              ),
                             ],
                             if (tags.isNotEmpty) ...[
                               const SizedBox(height: 10),
