@@ -21,6 +21,7 @@ import 'package:streak/l10n/app_localizations.dart';
 import 'package:streak/l10n/app_localizations_en.dart';
 import 'package:streak/services/home_widget_service.dart';
 import 'package:streak/services/linux_notifications.dart';
+import 'package:streak/services/widget_icon_service.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -37,6 +38,8 @@ class NotificationService {
   static const actionDone = 'habit_done';
   static const actionSnooze = 'habit_snooze';
   static const actionAdd = 'habit_add';
+
+  static const _amountInput = 'amount';
 
   static bool takesAmount(Habit habit) =>
       habit.kind == HabitKind.quantitative || habit.effectiveTarget > 1;
@@ -80,6 +83,7 @@ class NotificationService {
 
   static void Function(String habitId)? onOpenHabit;
   static void Function()? onOpenTodos;
+  static void Function()? onHabitsChanged;
 
   static const _todoPayload = 'todo:';
 
@@ -87,20 +91,31 @@ class NotificationService {
 
   bool _ready = false;
 
+  static (String?, String?, String?) _read(NotificationResponse response) {
+    final payload = response.payload;
+    if (!Platform.isWindows || payload == null) {
+      return (payload, response.actionId, response.input);
+    }
+    final split = payload.indexOf(':');
+    final action = split < 0 ? null : payload.substring(0, split);
+    if (!NotificationActions.handles(action)) return (payload, null, null);
+    final input = response.data[_amountInput];
+    return (payload.substring(split + 1), action, input is String ? input : null);
+  }
+
+  static String _windowsArguments(String action, Habit habit) =>
+      '$action:${habit.id}';
+
   void _handleResponse(NotificationResponse response) {
-    final id = response.payload;
+    final (id, actionId, input) = _read(response);
     if (id == null || id.isEmpty) return;
     if (id.startsWith(_todoPayload)) {
       onOpenTodos?.call();
       return;
     }
-    if (NotificationActions.handles(response.actionId)) {
-      NotificationActions.apply(
-        response.actionId!,
-        id,
-        response.input,
-        response.id,
-      );
+    if (NotificationActions.handles(actionId)) {
+      NotificationActions.apply(actionId!, id, input, response.id)
+          .then((_) => onHabitsChanged?.call());
       return;
     }
     onOpenHabit?.call(id);
@@ -169,9 +184,13 @@ class NotificationService {
 
     final launch =
         Platform.isLinux ? null : await _plugin.getNotificationAppLaunchDetails();
-    if (launch?.didNotificationLaunchApp ?? false) {
-      pendingHabitId = launch!.notificationResponse?.payload;
-    }
+    final opened = launch?.didNotificationLaunchApp ?? false
+        ? launch!.notificationResponse
+        : null;
+    final (launchId, launchAction, launchInput) =
+        opened == null ? (null, null, null) : _read(opened);
+    final launchedByAction = NotificationActions.handles(launchAction);
+    if (!launchedByAction) pendingHabitId = launchId;
 
     if (Platform.isAndroid) {
       await _plugin
@@ -188,6 +207,10 @@ class NotificationService {
     await _repairStore();
 
     _ready = true;
+
+    if (launchedByAction && launchId != null) {
+      await NotificationActions.apply(launchAction!, launchId, launchInput);
+    }
   }
 
   Future<void> _repairStore() async {
@@ -446,7 +469,7 @@ class NotificationService {
         habit.name,
         body,
         when,
-        _details(habit, body, strings),
+        await _details(habit, body, strings),
         payload: habit.id,
         matchDateTimeComponents: daily
             ? DateTimeComponents.time
@@ -472,7 +495,7 @@ class NotificationService {
           ),
           tz.local,
         ),
-        _details(habit, body, strings),
+        await _details(habit, body, strings),
         payload: habit.id,
       );
     }
@@ -504,7 +527,7 @@ class NotificationService {
         habit.name,
         body,
         tz.TZDateTime.from(at, tz.local),
-        _details(habit, body, strings),
+        await _details(habit, body, strings),
         payload: habit.id,
       );
     }
@@ -546,19 +569,70 @@ class NotificationService {
         habit.name,
         body,
         when,
-        _details(habit, body, strings),
+        await _details(habit, body, strings),
         payload: habit.id,
       );
     }
     return ids;
   }
 
-  NotificationDetails _details(
+  Future<List<WindowsImage>> _windowsLogo(Habit? habit) async {
+    if (habit == null) return const [];
+    final logo =
+        await WidgetIconService.badge(habit.icon, habit.color.toARGB32());
+    if (logo == null) return const [];
+    return [
+      WindowsImage(
+        Uri.file(logo, windows: true),
+        altText: habit.name,
+        placement: WindowsImagePlacement.appLogoOverride,
+        crop: WindowsImageCrop.circle,
+      ),
+    ];
+  }
+
+  Future<WindowsNotificationDetails?> _windowsDetails(
+    Habit habit,
+    AppLocalizations strings,
+  ) async {
+    if (!Platform.isWindows) return null;
+    final amount = takesAmount(habit);
+    return WindowsNotificationDetails(
+      images: await _windowsLogo(habit),
+      inputs: [
+        if (amount)
+          WindowsTextInput(
+            id: _amountInput,
+            placeHolderContent: strings.notif_action_add_hint,
+          ),
+      ],
+      actions: [
+        if (habit.kind != HabitKind.negative)
+          WindowsAction(
+            content: strings.notif_action_done,
+            arguments: _windowsArguments(actionDone, habit),
+          ),
+        if (amount)
+          WindowsAction(
+            content: strings.notif_action_add,
+            arguments: _windowsArguments(actionAdd, habit),
+            inputId: _amountInput,
+          ),
+        WindowsAction(
+          content: strings.notif_action_snooze,
+          arguments: _windowsArguments(actionSnooze, habit),
+        ),
+      ],
+    );
+  }
+
+  Future<NotificationDetails> _details(
     Habit habit,
     String body,
     AppLocalizations strings,
-  ) =>
+  ) async =>
       NotificationDetails(
+        windows: await _windowsDetails(habit, strings),
         android: AndroidNotificationDetails(
           _channelId,
           _channelName,
@@ -615,7 +689,7 @@ class NotificationService {
       habit.name,
       body,
       tz.TZDateTime.now(tz.local).add(Duration(minutes: minutes)),
-      _details(habit, body, strings),
+      await _details(habit, body, strings),
       payload: habit.id,
     );
   }
@@ -652,10 +726,18 @@ class NotificationService {
   Future<void> showFocusEnd({
     required String title,
     required String body,
+    String habitId = '',
   }) async {
     if (!_ready) await initialize();
     try {
-      await _plugin.show(_focusEndId, title, body, null);
+      final details = Platform.isWindows
+          ? NotificationDetails(
+              windows: WindowsNotificationDetails(
+                images: await _windowsLogo(LocalStore.habit(habitId)),
+              ),
+            )
+          : null;
+      await _plugin.show(_focusEndId, title, body, details);
     } catch (e) {
       debugPrint('Focus end notice failed: $e');
     }
@@ -877,8 +959,9 @@ class NotificationActions {
 
       await LocalStore.writeHabit(updated);
       habits[habitId] = updated;
-      if (habit.silencesRemindersOn(today) !=
-          updated.silencesRemindersOn(today)) {
+      if (habit.fromLastDone ||
+          habit.silencesRemindersOn(today) !=
+              updated.silencesRemindersOn(today)) {
         await NotificationService().scheduleFor(updated);
       }
       await HomeWidgetService.sync(habits, renderIcons: false);

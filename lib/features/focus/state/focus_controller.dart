@@ -508,7 +508,11 @@ class FocusController extends ChangeNotifier {
 
   Future<void> _announceEnd({required bool breakEnded}) async {
     final (title, body) = await _endTexts(breakEnded: breakEnded);
-    await NotificationService().showFocusEnd(title: title, body: body);
+    await NotificationService().showFocusEnd(
+      title: title,
+      body: body,
+      habitId: _habitId,
+    );
   }
 
   Future<void> _syncEndAlarm() async {

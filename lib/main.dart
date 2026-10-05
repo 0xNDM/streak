@@ -84,6 +84,7 @@ Future<void> _startup() async {
 
   NotificationService.onOpenHabit = _openHabit;
   NotificationService.onOpenTodos = _openTodos;
+  NotificationService.onHabitsChanged = _reloadHabits;
   FocusService.onPending = drainFocusActions;
   FocusService.listen();
   try {
@@ -164,6 +165,10 @@ const _appChannel = MethodChannel('streak/app_icon');
 
 void _openHabit(String habitId) {
   AppNavigator.push(HabitDetailsPage(habitId: habitId), fade: true);
+}
+
+void _reloadHabits() {
+  AppNavigator.key.currentContext?.read<HabitsController>().reload();
 }
 
 void _openTodos() {

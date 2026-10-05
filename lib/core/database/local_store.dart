@@ -184,14 +184,16 @@ class LocalStore {
     return result;
   }
 
-  static String? habitName(String id) {
+  static Habit? habit(String id) {
     try {
       final raw = _habits.get(id);
-      return raw is String ? Habit.fromJson(raw).name : null;
+      return raw is String ? Habit.fromJson(raw) : null;
     } catch (_) {
       return null;
     }
   }
+
+  static String? habitName(String id) => habit(id)?.name;
 
   static Future<void> writeHabit(Habit habit) async {
     await _habits.put(habit.id, habit.toJson());
