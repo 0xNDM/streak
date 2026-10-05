@@ -11,6 +11,7 @@ import 'package:streak/core/widgets/hold_repeat_button.dart';
 import 'package:streak/core/widgets/number_keypad_dialog.dart';
 import 'package:streak/features/habits/data/habit.dart';
 import 'package:streak/features/habits/data/substep.dart';
+import 'package:streak/features/habits/widgets/habit_form_schedule.dart';
 import 'package:streak/features/habits/widgets/minimal_form_fields.dart';
 import 'package:streak/features/habits/widgets/saved_money.dart';
 import 'package:streak/features/habits/widgets/substep_draft.dart';
@@ -339,6 +340,34 @@ class FromLastDoneToggle extends StatelessWidget {
         icon: LucideIcons.history,
         title: context.l10n.from_last_done,
         hint: context.l10n.from_last_done_sub,
+        value: value,
+        color: color,
+        onChanged: onChanged,
+        compact: compact,
+      );
+}
+
+class MonthWeekdayToggle extends StatelessWidget {
+  const MonthWeekdayToggle({
+    super.key,
+    required this.value,
+    required this.start,
+    required this.color,
+    required this.onChanged,
+    this.compact = false,
+  });
+
+  final bool value;
+  final DateTime start;
+  final Color color;
+  final ValueChanged<bool> onChanged;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) => HabitFlagToggle(
+        icon: LucideIcons.calendarDays,
+        title: context.l10n.month_weekday,
+        hint: context.l10n.month_weekday_sub(monthWeekdayLabel(context, start)),
         value: value,
         color: color,
         onChanged: onChanged,

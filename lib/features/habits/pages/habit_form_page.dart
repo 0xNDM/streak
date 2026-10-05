@@ -68,6 +68,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
   int _scheduleEvery = 2;
   DateTime? _scheduleStart;
   bool _fromLastDone = false;
+  bool _monthWeekday = false;
   ScheduleUnit _scheduleUnit = ScheduleUnit.days;
   String _cover = '';
   int _coverClarity = 100;
@@ -96,6 +97,9 @@ class _HabitFormPageState extends State<HabitFormPage> {
       (_scheduleStart ?? widget.habit?.createdAt ?? AppClock.today()).atMidnight;
 
   bool get _copying => widget.template != null;
+
+  bool get _monthly =>
+      _scheduleUnit == ScheduleUnit.months && !_fromLastDone;
 
   bool get _planning => context.watch<SettingsController>().planningEnabled;
 
@@ -144,6 +148,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
       _scheduleEvery = habit.scheduleEvery;
       _scheduleStart = habit.scheduleStart;
       _fromLastDone = habit.fromLastDone;
+      _monthWeekday = habit.monthWeekday;
       if (_copying && habit.interval == HabitInterval.everyXDays) {
         _scheduleStart ??= habit.createdAt.atMidnight;
       }
@@ -236,6 +241,10 @@ class _HabitFormPageState extends State<HabitFormPage> {
     final frequency = negative ? 1 : _frequency;
     final fromLastDone =
         interval == HabitInterval.everyXDays && _fromLastDone;
+    final monthWeekday = interval == HabitInterval.everyXDays &&
+        _scheduleUnit == ScheduleUnit.months &&
+        !fromLastDone &&
+        _monthWeekday;
     final focusOnly = _kind == HabitKind.positive && _focusOnly;
     final substeps = _kind == HabitKind.positive && !focusOnly
         ? _substeps.where((s) => s.title.trim().isNotEmpty).toList()
@@ -257,6 +266,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
           scheduleStart: _scheduleStart,
           clearScheduleStart: _scheduleStart == null,
           fromLastDone: fromLastDone,
+          monthWeekday: monthWeekday,
           reminders: _reminders,
           coverPath: _cover,
           coverClarity: _coverClarity,
@@ -300,6 +310,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
         scheduleUnit: negative ? ScheduleUnit.days : _scheduleUnit,
         scheduleStart: _scheduleStart,
         fromLastDone: fromLastDone,
+        monthWeekday: monthWeekday,
         reminders: _reminders,
         coverPath: cover,
         coverClarity: _coverClarity,
@@ -585,6 +596,15 @@ class _HabitFormPageState extends State<HabitFormPage> {
             color: _color,
             onChanged: (v) => setState(() => _fromLastDone = v),
           ),
+          if (_monthly) ...[
+            const SizedBox(height: 8),
+            MonthWeekdayToggle(
+              value: _monthWeekday,
+              start: _startShown,
+              color: _color,
+              onChanged: (v) => setState(() => _monthWeekday = v),
+            ),
+          ],
         ],
         if (_noDays) const _NoDaysHint(),
       ],
@@ -924,6 +944,16 @@ class _HabitFormPageState extends State<HabitFormPage> {
             compact: true,
             onChanged: (v) => setState(() => _fromLastDone = v),
           ),
+          if (_monthly) ...[
+            const SizedBox(height: 8),
+            MonthWeekdayToggle(
+              value: _monthWeekday,
+              start: _startShown,
+              color: _color,
+              compact: true,
+              onChanged: (v) => setState(() => _monthWeekday = v),
+            ),
+          ],
         ] else if (_interval == HabitInterval.weekdays) ...[
           const SizedBox(height: 12),
           CompactWeekdays(
@@ -1198,6 +1228,15 @@ class _HabitFormPageState extends State<HabitFormPage> {
                   color: _color,
                   onChanged: (v) => setState(() => _fromLastDone = v),
                 ),
+                if (_monthly) ...[
+                  const SizedBox(height: 8),
+                  MonthWeekdayToggle(
+                    value: _monthWeekday,
+                    start: _startShown,
+                    color: _color,
+                    onChanged: (v) => setState(() => _monthWeekday = v),
+                  ),
+                ],
               ],
               if (_noDays) const _NoDaysHint(),
             ],

@@ -79,6 +79,7 @@ class Habit {
     this.archivedAt,
     this.scheduleStart,
     this.fromLastDone = false,
+    this.monthWeekday = false,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? AppClock.now();
 
@@ -123,6 +124,7 @@ class Habit {
           final months =
               (day.year - start.year) * 12 + day.month - start.month;
           if (months < 0 || months % scheduleEvery != 0) return false;
+          if (monthWeekday) return _sameWeekdaySlot(day, start);
           final last = DateTime(day.year, day.month + 1, 0).day;
           return day.day == (start.day <= last ? start.day : last);
         }
@@ -133,6 +135,13 @@ class Habit {
       case HabitInterval.monthly:
         return true;
     }
+  }
+
+  bool _sameWeekdaySlot(DateTime day, DateTime start) {
+    if (day.weekday != start.weekday) return false;
+    final nth = (start.day - 1) ~/ 7;
+    if (nth < 4) return (day.day - 1) ~/ 7 == nth;
+    return day.day + 7 > DateTime(day.year, day.month + 1, 0).day;
   }
 
   bool _dueSinceLastDone(DateTime day, DateTime start) {
@@ -176,6 +185,8 @@ class Habit {
   final DateTime? scheduleStart;
 
   final bool fromLastDone;
+
+  final bool monthWeekday;
 
   final HabitKind kind;
   final double dailyCost;
@@ -716,6 +727,7 @@ class Habit {
     DateTime? scheduleStart,
     bool clearScheduleStart = false,
     bool? fromLastDone,
+    bool? monthWeekday,
     DateTime? createdAt,
   }) {
     return Habit(
@@ -759,6 +771,7 @@ class Habit {
           ? null
           : (scheduleStart ?? this.scheduleStart),
       fromLastDone: fromLastDone ?? this.fromLastDone,
+      monthWeekday: monthWeekday ?? this.monthWeekday,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -791,6 +804,7 @@ class Habit {
         'createdAt': createdAt.toIso8601String(),
         if (scheduleStart != null) 'scheduleStart': scheduleStart!.dayKey,
         if (fromLastDone) 'fromLastDone': true,
+        if (monthWeekday) 'monthWeekday': true,
         'kind': kind.index,
         'dailyCost': dailyCost,
         'unitLabel': unitLabel,
@@ -853,6 +867,7 @@ class Habit {
             ? parseDayKey(map['scheduleStart'] as String)
             : null,
         fromLastDone: map['fromLastDone'] == true,
+        monthWeekday: map['monthWeekday'] == true,
         kind: HabitKind.values[(map['kind'] ?? 0) as int],
         dailyCost: ((map['dailyCost'] ?? 0) as num).toDouble(),
         unitLabel: (map['unitLabel'] ?? '') as String,

@@ -303,6 +303,13 @@ String scheduleEveryLabel(BuildContext context, int every, ScheduleUnit unit) =>
       ScheduleUnit.months => context.l10n.every_n_months(every),
     };
 
+String monthWeekdayLabel(BuildContext context, DateTime start) {
+  final locale = Localizations.localeOf(context).toString();
+  final day = DateFormat.EEEE(locale).format(start);
+  const slots = ['first', 'second', 'third', 'fourth', 'last'];
+  return context.l10n.nth_weekday(slots[(start.day - 1) ~/ 7], day);
+}
+
 String scheduleUnitLabel(BuildContext context, ScheduleUnit unit) =>
     switch (unit) {
       ScheduleUnit.days => context.l10n.sched_unit_days,

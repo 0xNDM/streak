@@ -192,6 +192,44 @@ void main() {
     });
   });
 
+  group('same weekday every month', () {
+    Habit monthly(DateTime start, {int every = 1}) => _habit(
+          interval: HabitInterval.everyXDays,
+          every: every,
+          createdAt: start,
+        ).copyWith(
+          scheduleUnit: ScheduleUnit.months,
+          scheduleStart: start,
+          monthWeekday: true,
+        );
+
+    test('keeps the first Monday instead of the date', () {
+      final h = monthly(DateTime(2026, 10, 5));
+      expect(h.isScheduledOn(DateTime(2026, 11, 2)), isTrue);
+      expect(h.isScheduledOn(DateTime(2026, 11, 5)), isFalse);
+      expect(h.isScheduledOn(DateTime(2026, 11, 9)), isFalse);
+      expect(h.isScheduledOn(DateTime(2026, 12, 7)), isTrue);
+    });
+
+    test('a fifth weekday means the last one', () {
+      final h = monthly(DateTime(2026, 10, 29));
+      expect(h.isScheduledOn(DateTime(2026, 11, 26)), isTrue);
+      expect(h.isScheduledOn(DateTime(2026, 11, 19)), isFalse);
+      expect(h.isScheduledOn(DateTime(2026, 12, 31)), isTrue);
+    });
+
+    test('it still skips the months in between', () {
+      final h = monthly(DateTime(2026, 10, 5), every: 2);
+      expect(h.isScheduledOn(DateTime(2026, 11, 2)), isFalse);
+      expect(h.isScheduledOn(DateTime(2026, 12, 7)), isTrue);
+    });
+
+    test('the switch survives a round trip', () {
+      final h = monthly(DateTime(2026, 10, 5));
+      expect(Habit.fromMap(h.toMap()).monthWeekday, isTrue);
+    });
+  });
+
   group('done for now', () {
     test('a weekly habit is settled once it is ticked today', () {
       final pending = _habit(

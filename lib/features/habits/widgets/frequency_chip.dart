@@ -13,8 +13,10 @@ String habitFrequencyLabel(BuildContext context, Habit habit) {
     HabitInterval.monthly =>
       context.l10n.freq_per_month_short('${habit.targetFrequency}'),
     HabitInterval.weekdays => _weekdaysLabel(context, habit),
-    HabitInterval.everyXDays =>
-      scheduleEveryLabel(context, habit.scheduleEvery, habit.scheduleUnit),
+    HabitInterval.everyXDays => habit.monthWeekday
+        ? '${scheduleEveryLabel(context, habit.scheduleEvery, habit.scheduleUnit)}, '
+            '${monthWeekdayLabel(context, habit.scheduleStart ?? habit.createdAt)}'
+        : scheduleEveryLabel(context, habit.scheduleEvery, habit.scheduleUnit),
   };
 }
 
