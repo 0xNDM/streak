@@ -78,8 +78,9 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    final saved = context.read<SettingsController>().openingMode;
-    _mode = HeatmapMode.values[saved.clamp(0, 2)];
+    final settings = context.read<SettingsController>();
+    _mode = HeatmapMode.values[settings.openingMode.clamp(0, 2)];
+    if (settings.todayCategory.isNotEmpty) _category = settings.todayCategory;
     BackHandlers.add(_backOut);
   }
 
@@ -102,6 +103,11 @@ class _HomePageState extends State<HomePage> {
 
   final _coins = ValueNotifier<int>(0);
   int _coinAmount = 0;
+
+  void _pickCategory(String? category) {
+    setState(() => _category = category);
+    context.read<SettingsController>().setTodayCategory(category ?? '');
+  }
 
   void _changeMode(HeatmapMode mode) {
     setState(() => _mode = mode);
@@ -170,10 +176,10 @@ class _HomePageState extends State<HomePage> {
           (
             LucideIcons.arrowUpDown,
             context.l10n.reorder,
-            () => run(() => setState(() {
-                  _category = null;
-                  _reordering = true;
-                })),
+            () => run(() {
+                  _pickCategory(null);
+                  setState(() => _reordering = true);
+                }),
             false,
           ),
           (
@@ -632,7 +638,7 @@ class _HomePageState extends State<HomePage> {
                           settings.cardActivity && settings.viewSwitcher,
                       categories: categories,
                       category: _category,
-                      onCategory: (c) => setState(() => _category = c),
+                      onCategory: _pickCategory,
                       tracked: tracked,
                       hideTracking: settings.hideTracking,
                       onTracking: toggleTracking,
@@ -657,7 +663,7 @@ class _HomePageState extends State<HomePage> {
                         _CategoryBar(
                           categories: categories,
                           selected: _category,
-                          onSelected: (c) => setState(() => _category = c),
+                          onSelected: _pickCategory,
                           tracked: tracked,
                           hideTracking: settings.hideTracking,
                           onTracking: toggleTracking,

@@ -62,6 +62,7 @@ class SettingsController extends ChangeNotifier {
     _appIcon = LocalStore.setting('appIcon', 0);
     _accentColor = LocalStore.setting('accentColor', AppPalette.brand.toARGB32());
     _heatmapMode = LocalStore.setting('heatmapMode', 0);
+    _todayCategory = LocalStore.setting('todayCategory', '');
     _heatmapPath = LocalStore.setting('heatmapPath', false);
     _heatmapRolling = LocalStore.setting('heatmapRolling', false);
     _startView = LocalStore.setting('startView', 0);
@@ -156,6 +157,7 @@ class SettingsController extends ChangeNotifier {
   late int _appIcon;
   late int _accentColor;
   late int _heatmapMode;
+  late String _todayCategory;
   late bool _heatmapPath;
   late bool _heatmapRolling;
   late int _startView;
@@ -283,6 +285,13 @@ class SettingsController extends ChangeNotifier {
     _heatmapMode = value;
     await LocalStore.writeSetting('heatmapMode', value);
     notifyListeners();
+  }
+
+  String get todayCategory => _todayCategory;
+
+  Future<void> setTodayCategory(String value) async {
+    _todayCategory = value;
+    await LocalStore.writeSetting('todayCategory', value);
   }
 
   int get startView => _startView;
