@@ -4,6 +4,7 @@ import 'package:streak/app/theme/app_tokens.dart';
 import 'package:streak/core/i18n/l10n.dart';
 import 'package:streak/core/widgets/sheet_type.dart';
 import 'package:streak/core/widgets/number_keypad_dialog.dart';
+import 'package:streak/core/widgets/time_picker.dart';
 import 'package:streak/features/habits/data/day_plan.dart';
 import 'package:streak/features/habits/data/habit.dart';
 
@@ -218,7 +219,7 @@ class HabitTimeFields extends StatelessWidget {
     final initial = _planned
         ? TimeOfDay(hour: startMinute ~/ 60, minute: startMinute % 60)
         : const TimeOfDay(hour: 9, minute: 0);
-    final picked = await showTimePicker(context: context, initialTime: initial);
+    final picked = await pickTime(context, initial);
     if (picked == null) return;
     onChanged(picked.hour * 60 + picked.minute, durationMinutes);
   }
@@ -252,6 +253,18 @@ class HabitTimeFields extends StatelessWidget {
             compact: compact,
             onTap: () => _pickStart(context),
             onClear: _planned ? () => onChanged(-1, 0) : null,
+          ),
+          SizedBox(height: compact ? 8 : 10),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              context.l10n.habit_time_sub,
+              style: TextStyle(
+                fontSize: compact ? 11.5 : 12.5,
+                height: 1.35,
+                color: context.tokens.muted,
+              ),
+            ),
           ),
           if (_planned) ...[
             SizedBox(height: compact ? 10 : 12),

@@ -14,7 +14,9 @@ import 'package:streak/core/utils/cover_storage.dart';
 import 'package:streak/core/utils/amount_format.dart';
 import 'package:streak/core/widgets/sheet_type.dart';
 import 'package:streak/core/widgets/cover_image.dart';
+import 'package:streak/core/widgets/time_picker.dart';
 import 'package:streak/features/habits/data/category.dart';
+import 'package:streak/features/habits/widgets/habit_time_fields.dart';
 import 'package:streak/features/settings/widgets/minimal_settings_widgets.dart';
 import 'package:streak/features/todos/data/todo.dart';
 import 'package:streak/features/todos/state/todo_tags_controller.dart';
@@ -304,9 +306,9 @@ class _TodoEditorPageState extends State<TodoEditorPage> {
 
   Future<void> _pickTime() async {
     final now = AppClock.now();
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _minutes == null
+    final picked = await pickTime(
+      context,
+      _minutes == null
           ? TimeOfDay(hour: now.hour, minute: 0)
           : TimeOfDay(hour: _minutes! ~/ 60, minute: _minutes! % 60),
     );
@@ -317,23 +319,11 @@ class _TodoEditorPageState extends State<TodoEditorPage> {
     });
   }
 
-  static const _estimates = [5, 10, 15, 20, 30, 45, 60, 90, 120, 180];
-
-  Future<void> _pickEstimate() => showOptionSheet(
-        context,
-        title: context.l10n.todo_estimate,
-        options: [
-          for (final minutes in _estimates) formatMinutes(minutes.toDouble()),
-          context.l10n.todo_estimate_none,
-        ],
-        index: _estimate == null
-            ? _estimates.length
-            : _estimates.indexOf(_estimate!).clamp(0, _estimates.length),
-        onSelected: (index) => _edit(
-          () => _estimate =
-              index < _estimates.length ? _estimates[index] : null,
-        ),
-      );
+  Future<void> _pickEstimate() async {
+    final minutes = await showDurationSheet(context, minutes: _estimate ?? 0);
+    if (minutes == null || !mounted) return;
+    _edit(() => _estimate = minutes == 0 ? null : minutes);
+  }
 
   Future<void> _pickPriority() => showTodoPriorityPicker(
         context,

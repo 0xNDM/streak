@@ -10,6 +10,7 @@ import 'package:streak/core/extensions/date_extensions.dart';
 import 'package:streak/core/i18n/l10n.dart';
 import 'package:streak/core/widgets/sheet_type.dart';
 import 'package:streak/core/widgets/section_label.dart';
+import 'package:streak/core/widgets/time_picker.dart';
 import 'package:streak/features/focus/state/focus_controller.dart';
 import 'package:streak/features/focus/widgets/focus_duration_fields.dart';
 import 'package:streak/features/habits/state/habits_controller.dart';
@@ -51,7 +52,7 @@ class _FocusLogState extends State<_FocusLog> {
   }
 
   Future<void> _pickTime() async {
-    final picked = await showTimePicker(context: context, initialTime: _time);
+    final picked = await pickTime(context, _time);
     if (picked != null) setState(() => _time = picked);
   }
 

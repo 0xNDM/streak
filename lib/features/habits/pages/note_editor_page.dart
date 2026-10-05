@@ -14,6 +14,7 @@ import 'package:streak/core/routing/app_navigator.dart';
 import 'package:streak/core/utils/cover_storage.dart';
 import 'package:streak/core/widgets/photo_deck.dart';
 import 'package:streak/core/widgets/photo_viewer.dart';
+import 'package:streak/core/widgets/time_picker.dart';
 import 'package:streak/features/habits/data/habit_note.dart';
 import 'package:streak/features/habits/state/notes_controller.dart';
 import 'package:streak/features/habits/widgets/express_form_kit.dart';
@@ -56,10 +57,7 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
   }
 
   Future<void> _pickTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _time ?? TimeOfDay.now(),
-    );
+    final picked = await pickTime(context, _time ?? TimeOfDay.now());
     if (picked != null) setState(() => _time = picked);
   }
 

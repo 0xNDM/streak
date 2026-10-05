@@ -9,6 +9,7 @@ import 'package:streak/core/i18n/date_labels.dart';
 import 'package:streak/core/utils/app_snackbar.dart';
 import 'package:provider/provider.dart';
 import 'package:streak/core/widgets/app_text_field.dart';
+import 'package:streak/core/widgets/time_picker.dart';
 import 'package:streak/features/habits/data/reminder.dart';
 import 'package:streak/features/habits/widgets/minimal_form_fields.dart';
 import 'package:streak/features/settings/state/settings_controller.dart';
@@ -114,14 +115,14 @@ class _ReminderEditorSheetState extends State<ReminderEditorSheet> {
   }
 
   Future<void> _pickTime() async {
-    final picked = await showTimePicker(context: context, initialTime: _time);
+    final picked = await pickTime(context, _time);
     if (picked != null) setState(() => _time = picked);
   }
 
   Future<void> _pickUntil() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _until ?? const TimeOfDay(hour: 23, minute: 0),
+    final picked = await pickTime(
+      context,
+      _until ?? const TimeOfDay(hour: 23, minute: 0),
     );
     if (picked != null) setState(() => _until = picked);
   }
