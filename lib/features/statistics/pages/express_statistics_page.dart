@@ -33,6 +33,7 @@ import 'package:streak/features/statistics/widgets/express_line_chart.dart';
 import 'package:streak/features/statistics/widgets/express_stat_kit.dart';
 import 'package:streak/features/statistics/widgets/stat_charts.dart';
 import 'package:streak/features/statistics/widgets/year_heatmap.dart';
+import 'package:streak/core/extensions/color_extensions.dart';
 
 class ExpressStatisticsPage extends StatefulWidget {
   const ExpressStatisticsPage({super.key});
@@ -218,7 +219,7 @@ class _ExpressStatisticsPageState extends State<ExpressStatisticsPage> {
       for (final habit in all)
         (
           name: habit.name,
-          color: habit.color,
+          color: habit.color.shownIn(context),
           count: stats.perHabit[habit.id] ?? 0,
         ),
     ]..sort((a, b) => b.count.compareTo(a.count));
@@ -444,7 +445,7 @@ class _HabitScope extends StatelessWidget {
             label: habit.name,
             glyph: habit.icon,
             active: selected == habit.id,
-            tint: habit.color,
+            tint: habit.color.shownIn(context),
             onTap: () => onSelected(habit.id),
           ),
       ],

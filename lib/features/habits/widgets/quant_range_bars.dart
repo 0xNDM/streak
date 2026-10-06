@@ -7,6 +7,7 @@ import 'package:streak/features/habits/data/habit.dart';
 import 'package:streak/features/habits/data/quant_stats.dart';
 import 'package:streak/features/settings/state/settings_controller.dart';
 import 'package:streak/features/statistics/widgets/stat_charts.dart';
+import 'package:streak/core/extensions/color_extensions.dart';
 
 String amountWithUnit(Habit habit, double value) =>
     habit.isTimeAmount || habit.unitLabel.isEmpty
@@ -57,7 +58,7 @@ class QuantRangeBars extends StatelessWidget {
     return ValueBars(
       key: ValueKey(range),
       values: stats.series,
-      color: habit.color,
+      color: habit.color.shownIn(context),
       height: height,
       barWidth: _barWidth,
       goal: range == QuantRange.year ? null : habit.perDayTarget,

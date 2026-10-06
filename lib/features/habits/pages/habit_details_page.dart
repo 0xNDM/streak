@@ -56,6 +56,7 @@ import 'package:streak/features/habits/widgets/focus_only_dialog.dart';
 import 'package:streak/features/habits/widgets/unscheduled_day_dialog.dart';
 import 'package:streak/features/habits/widgets/vacation_sheet.dart';
 import 'package:streak/features/settings/state/settings_controller.dart';
+import 'package:streak/core/extensions/color_extensions.dart';
 
 class HabitDetailsPage extends StatefulWidget {
   const HabitDetailsPage({super.key, required this.habitId});
@@ -117,7 +118,7 @@ class _HabitDetailsPageState extends State<HabitDetailsPage> {
             target: habit.perDayTarget,
             decimals: true,
             clock: habit.isTimeAmount,
-            accent: habit.color,
+            accent: habit.color.shownIn(context),
           );
           if (value != null && value != current) {
             await controller.setProgress(habit.id, date, value);
@@ -169,7 +170,7 @@ class _HabitDetailsPageState extends State<HabitDetailsPage> {
                 ? null
                 : Row(
               children: [
-                HabitGlyph(glyph: habit.icon, color: habit.color, size: 22),
+                HabitGlyph(glyph: habit.icon, color: habit.color.shownIn(context), size: 22),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(habit.name, overflow: TextOverflow.ellipsis),
@@ -380,7 +381,7 @@ class _JourneyStrip extends StatelessWidget {
               button: true,
               child: GestureDetector(
                 onTap: () => AppNavigator.push(
-                  JourneyPage(habitId: habit.id, accent: habit.color),
+                  JourneyPage(habitId: habit.id, accent: habit.color.shownIn(context)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -493,7 +494,7 @@ class _ActivityView extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(14, 16, 14, 16),
         child: YearHeatmap(
           year: AppClock.now().year,
-          color: habit.color,
+          color: habit.color.shownIn(context),
           habit: habit,
           express: true,
         ),
@@ -554,9 +555,9 @@ class _ExpressHeader extends StatelessWidget {
         children: [
           ExpressBlob(
             size: 58,
-            color: habit.color.withValues(alpha: 0.18),
+            color: habit.color.shownIn(context).withValues(alpha: 0.18),
             shape: ExpressShape.cookie,
-            child: HabitGlyph(glyph: habit.icon, color: habit.color, size: 27),
+            child: HabitGlyph(glyph: habit.icon, color: habit.color.shownIn(context), size: 27),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -784,12 +785,12 @@ class _FocusTile extends StatelessWidget {
               if (express)
                 ExpressBlob(
                   size: 44,
-                  color: habit.color.withValues(alpha: 0.18),
+                  color: habit.color.shownIn(context).withValues(alpha: 0.18),
                   shape: ExpressShape.cookie,
-                  child: Icon(LucideIcons.timer, size: 20, color: habit.color),
+                  child: Icon(LucideIcons.timer, size: 20, color: habit.color.shownIn(context)),
                 )
               else
-                Icon(LucideIcons.timer, size: 21, color: habit.color),
+                Icon(LucideIcons.timer, size: 21, color: habit.color.shownIn(context)),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -833,10 +834,10 @@ class _FocusTile extends StatelessWidget {
                   icon: LucideIcons.play,
                   tooltip: context.l10n.focus_start,
                   size: 46,
-                  tint: habit.color.computeLuminance() > 0.55
+                  tint: habit.color.shownIn(context).computeLuminance() > 0.55
                       ? Colors.black
                       : Colors.white,
-                  background: habit.color,
+                  background: habit.color.shownIn(context),
                   resting: ExpressShape.cookie,
                   pressed: ExpressShape.flower,
                   onPressed: () => AppNavigator.push(
@@ -854,7 +855,7 @@ class _FocusTile extends StatelessWidget {
               else
                 IconButton(
                   tooltip: context.l10n.focus_start,
-                  icon: Icon(LucideIcons.circlePlay, color: habit.color),
+                  icon: Icon(LucideIcons.circlePlay, color: habit.color.shownIn(context)),
                   onPressed: () => AppNavigator.push(
                     focus.isActive
                         ? const FocusPage()

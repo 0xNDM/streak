@@ -9,6 +9,7 @@ import 'package:streak/features/habits/widgets/habit_entrance.dart';
 import 'package:streak/features/habits/widgets/habit_heatmap.dart';
 import 'package:streak/features/habits/widgets/slot_transition.dart';
 import 'package:streak/features/habits/widgets/swipe_check.dart';
+import 'package:streak/core/extensions/color_extensions.dart';
 
 class MinimalHabitList extends StatelessWidget {
   const MinimalHabitList({
@@ -86,11 +87,11 @@ class MinimalHabitList extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 12),
               child: PaneMark(
                 id: habit.id,
-                tint: habit.color,
+                tint: habit.color.shownIn(context),
                 corners: BorderRadius.circular(20),
                 child: SwipeCheck(
                   done: habit.isCompletedOn(AppClock.today()),
-                  tint: habit.color,
+                  tint: habit.color.shownIn(context),
                   corners: BorderRadius.circular(20),
                   onSwipe: onSwipe == null ? null : () => onSwipe!(habit),
                   child: KeepBuilt(
@@ -164,11 +165,11 @@ class MinimalHabitList extends StatelessWidget {
   Widget _monthCard(BuildContext context, Habit habit) {
     return PaneMark(
       id: habit.id,
-      tint: habit.color,
+      tint: habit.color.shownIn(context),
       corners: BorderRadius.circular(30),
       child: SwipeCheck(
         done: habit.isCompletedOn(AppClock.today()),
-        tint: habit.color,
+        tint: habit.color.shownIn(context),
         corners: BorderRadius.circular(30),
         onSwipe: onSwipe == null ? null : () => onSwipe!(habit),
         child: KeepBuilt(

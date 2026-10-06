@@ -24,6 +24,7 @@ import 'package:streak/features/statistics/data/habit_stats.dart';
 import 'package:streak/features/statistics/widgets/period_totals.dart';
 import 'package:streak/features/statistics/widgets/stat_charts.dart';
 import 'package:streak/features/statistics/widgets/year_heatmap.dart';
+import 'package:streak/core/extensions/color_extensions.dart';
 
 class MinimalStatisticsPage extends StatefulWidget {
   const MinimalStatisticsPage({super.key});
@@ -63,7 +64,7 @@ class _MinimalStatisticsPageState extends State<MinimalStatisticsPage> {
       for (final habit in all)
         (
           name: habit.name,
-          color: habit.color,
+          color: habit.color.shownIn(context),
           count: stats.perHabit[habit.id] ?? 0,
         ),
     ]..sort((a, b) => b.count.compareTo(a.count));

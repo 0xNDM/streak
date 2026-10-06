@@ -14,6 +14,7 @@ import 'package:streak/features/habits/state/notes_controller.dart';
 import 'package:streak/features/settings/state/settings_controller.dart';
 import 'package:streak/features/todos/data/todo.dart';
 import 'package:streak/features/todos/widgets/todo_check.dart';
+import 'package:streak/core/extensions/color_extensions.dart';
 
 const timelineGutter = 46.0;
 const _cardPadding = 12.0;
@@ -115,12 +116,12 @@ class TimelineBlock extends StatelessWidget {
                       width: _tile,
                       height: _tileHeight,
                       decoration: BoxDecoration(
-                        color: habit.color.withValues(alpha: done ? 0.5 : 0.18),
+                        color: habit.color.shownIn(context).withValues(alpha: done ? 0.5 : 0.18),
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: HabitGlyph(
                         glyph: habit.icon,
-                        color: done ? scheme.surface : habit.color,
+                        color: done ? scheme.surface : habit.color.shownIn(context),
                         size: 22,
                       ),
                     ),
@@ -164,7 +165,7 @@ class TimelineBlock extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 12.5,
                                 fontWeight: FontWeight.w700,
-                                color: habit.color,
+                                color: habit.color.shownIn(context),
                               ),
                             ),
                           ],
@@ -394,7 +395,7 @@ class _NoteLine extends StatelessWidget {
           NoteEditorPage(
             habitId: habit.id,
             dayKey: note.date,
-            accent: habit.color,
+            accent: habit.color.shownIn(context),
             note: note,
           ),
         ),
@@ -423,7 +424,7 @@ class _NoteLine extends StatelessWidget {
                     fontSize: 12.5,
                     fontWeight: FontWeight.w800,
                     height: 1.35,
-                    color: habit.color,
+                    color: habit.color.shownIn(context),
                     fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),
@@ -483,7 +484,7 @@ class TimelineCheck extends StatelessWidget {
   Widget build(BuildContext context) {
     final count = habit.completions[date.dayKey]?.count ?? 0;
     final progress = habit.progressFor(count);
-    final color = _quant ? progress.activeColor(habit.color) : habit.color;
+    final color = _quant ? progress.activeColor(habit.color.shownIn(context)) : habit.color.shownIn(context);
     final circle = context.watch<SettingsController>().isCircleCheck;
 
     return Semantics(

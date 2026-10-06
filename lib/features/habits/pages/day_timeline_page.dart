@@ -34,6 +34,7 @@ import 'package:streak/features/todos/widgets/todo_paper.dart';
 import 'package:streak/features/todos/widgets/todo_tile.dart';
 import 'package:streak/features/todos/widgets/todos_page_parts.dart';
 import 'package:streak/features/todos/widgets/todo_trash.dart';
+import 'package:streak/core/extensions/color_extensions.dart';
 
 const _entrance = Duration(milliseconds: 60);
 
@@ -105,7 +106,7 @@ class _DayTimelinePageState extends State<DayTimelinePage> {
         NoteEditorPage(
           habitId: habit.id,
           dayKey: _day.dayKey,
-          accent: habit.color,
+          accent: habit.color.shownIn(context),
         ),
       );
 
@@ -133,7 +134,7 @@ class _DayTimelinePageState extends State<DayTimelinePage> {
     for (var i = from; i >= 0 && i < plan.slots.length; i += step) {
       final slot = plan.slots[i];
       final habit = slot.habit;
-      if (habit != null) return habit.color;
+      if (habit != null) return habit.color.shownIn(context);
       final todo = slot.todo;
       if (todo != null) return timelineTodoColor(context, todo);
     }
@@ -526,12 +527,12 @@ class _AnytimeRow extends StatelessWidget {
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: habit.color.withValues(alpha: done ? 0.5 : 0.18),
+                  color: habit.color.shownIn(context).withValues(alpha: done ? 0.5 : 0.18),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: HabitGlyph(
                   glyph: habit.icon,
-                  color: done ? scheme.surface : habit.color,
+                  color: done ? scheme.surface : habit.color.shownIn(context),
                   size: 18,
                 ),
               ),

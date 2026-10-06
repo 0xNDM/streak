@@ -21,6 +21,7 @@ import 'package:streak/features/habits/widgets/frequency_chip.dart';
 import 'package:streak/features/habits/widgets/habit_heatmap.dart';
 import 'package:streak/features/habits/widgets/saved_money.dart';
 import 'package:streak/features/habits/widgets/vacation_sheet.dart';
+import 'package:streak/core/extensions/color_extensions.dart';
 
 class MinimalDetailHeader extends StatelessWidget {
   const MinimalDetailHeader({super.key, required this.habit});
@@ -42,7 +43,7 @@ class MinimalDetailHeader extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.only(top: 4),
-            child: HabitGlyph(glyph: habit.icon, color: habit.color, size: 24),
+            child: HabitGlyph(glyph: habit.icon, color: habit.color.shownIn(context), size: 24),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -215,7 +216,7 @@ class _PlayButton extends StatelessWidget {
             color: minimalRaised(context),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(LucideIcons.play, size: 15, color: habit.color),
+          child: Icon(LucideIcons.play, size: 15, color: habit.color.shownIn(context)),
         ),
       ),
     );

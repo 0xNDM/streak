@@ -111,12 +111,12 @@ class HabitCard extends StatelessWidget {
                           width: compact ? 34 : 46,
                           height: compact ? 34 : 46,
                           decoration: BoxDecoration(
-                            color: habit.color.withValues(alpha: 0.18),
+                            color: habit.color.shownIn(context).withValues(alpha: 0.18),
                             borderRadius: BorderRadius.circular(compact ? 11 : 14),
                           ),
                           child: HabitGlyph(
                             glyph: habit.icon,
-                            color: habit.color,
+                            color: habit.color.shownIn(context),
                             size: compact ? 18 : 24,
                           ),
                         ),
@@ -158,7 +158,7 @@ class HabitCard extends StatelessWidget {
                                     Icon(
                                       habitMarkIcon(habit),
                                       size: 14,
-                                      color: habit.color,
+                                      color: habit.color.shownIn(context),
                                     ),
                                     const SizedBox(width: 3),
                                     Text(
@@ -222,7 +222,7 @@ class HabitCard extends StatelessWidget {
                                     Expanded(
                                       child: StrengthBar(
                                         value: habit.strength,
-                                        color: habit.color,
+                                        color: habit.color.shownIn(context),
                                         track: scheme.surfaceContainerHighest,
                                       ),
                                     ),
@@ -395,7 +395,7 @@ class _AmountLabel extends StatelessWidget {
         fontSize: 13,
         fontWeight: FontWeight.w700,
         color: progress.reachedGoal
-            ? progress.solidColor(habit.color)
+            ? progress.solidColor(habit.color.shownIn(context))
             : context.tokens.muted,
       ),
     );
@@ -462,7 +462,7 @@ class _ActionButton extends StatelessWidget {
     switch (habit.kind) {
       case HabitKind.positive:
         return _TodayButton(
-          color: habit.color,
+          color: habit.color.shownIn(context),
           done: doneToday,
           circle: circle,
           onTap: () {
@@ -472,7 +472,7 @@ class _ActionButton extends StatelessWidget {
       case HabitKind.negative:
         final relapsed = !doneToday;
         return _RelapseButton(
-          color: habit.color,
+          color: habit.color.shownIn(context),
           relapsed: relapsed,
           circle: circle,
           onTap: () => _handleRelapseTap(context, relapsed),
@@ -504,7 +504,7 @@ class _ActionButton extends StatelessWidget {
             );
           case QuantKind.reading:
             return _BookButton(
-              color: progress.solidColor(habit.color),
+              color: progress.solidColor(habit.color.shownIn(context)),
               ratio: ratio.clamp(0.0, 1.0),
               done: doneToday,
               onTap: addProgress,
@@ -513,7 +513,7 @@ class _ActionButton extends StatelessWidget {
           case QuantKind.generic:
           case QuantKind.time:
             return _QuantityButton(
-              color: habit.color,
+              color: habit.color.shownIn(context),
               progress: progress,
               done: doneToday,
               circle: circle,

@@ -9,6 +9,7 @@ import 'package:streak/core/i18n/date_labels.dart';
 import 'package:streak/features/habits/data/habit.dart';
 import 'package:streak/features/habits/widgets/habit_heatmap.dart';
 import 'package:streak/features/settings/state/settings_controller.dart';
+import 'package:streak/core/extensions/color_extensions.dart';
 
 class ExpressStreakRow extends StatefulWidget {
   const ExpressStreakRow({
@@ -86,7 +87,7 @@ class _ExpressStreakRowState extends State<ExpressStreakRow>
     final states = [for (final date in dates) _stateOf(date, today)];
     _replay(states.map((s) => s.index).join());
 
-    final tint = widget.habit.color;
+    final tint = widget.habit.color.shownIn(context);
     final ink = tint.computeLuminance() > 0.55 ? Colors.black : Colors.white;
 
     return SizedBox(

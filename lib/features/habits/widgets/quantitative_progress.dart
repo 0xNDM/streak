@@ -15,6 +15,7 @@ import 'package:streak/features/habits/widgets/check_seal.dart';
 import 'package:streak/features/habits/widgets/reading_books.dart';
 import 'package:streak/features/habits/widgets/unscheduled_day_dialog.dart';
 import 'package:streak/features/habits/widgets/water_cup.dart';
+import 'package:streak/core/extensions/color_extensions.dart';
 
 class QuantitativeProgress extends StatelessWidget {
   const QuantitativeProgress({super.key, required this.habit});
@@ -37,7 +38,7 @@ class QuantitativeProgress extends StatelessWidget {
       target: habit.perDayTarget,
       decimals: true,
       clock: habit.isTimeAmount,
-      accent: habit.color,
+      accent: habit.color.shownIn(context),
     );
     if (result != null && result >= 0 && result != current && context.mounted) {
       context.read<HabitsController>().setProgress(habit.id, AppClock.now(), result);
@@ -73,7 +74,7 @@ class QuantitativeProgress extends StatelessWidget {
                 ReadingBooks(habit: habit, ratio: ratio, count: count),
               QuantKind.generic || QuantKind.time => _GenericRing(
                   progress: habit.progressFor(count),
-                  color: habit.color,
+                  color: habit.color.shownIn(context),
                 ),
             },
             const SizedBox(height: 18),
@@ -116,14 +117,14 @@ class QuantitativeProgress extends StatelessWidget {
                 _RoundActionButton(
                   icon: LucideIcons.minus,
                   label: context.l10n.a11y_decrease,
-                  color: habit.color,
+                  color: habit.color.shownIn(context),
                   onTap: count > 0 ? () => add(-habit.incrementAmount) : null,
                 ),
                 const SizedBox(width: 20),
                 _RoundActionButton(
                   icon: LucideIcons.plus,
                   label: context.l10n.a11y_increase,
-                  color: habit.color,
+                  color: habit.color.shownIn(context),
                   filled: true,
                   onTap: () => add(habit.incrementAmount),
                 ),

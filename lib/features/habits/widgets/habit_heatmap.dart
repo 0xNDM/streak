@@ -36,14 +36,14 @@ Color heatmapCellColor(
     if (beforeCreation) {
       return scheme.surfaceContainerHighest.withValues(alpha: 0.4);
     }
-    final clean = habit.color.withValues(alpha: 0.4);
+    final clean = habit.color.shownIn(context).withValues(alpha: 0.4);
     if (date.isAfter(today)) return clean.withValues(alpha: 0.18);
     if (habit.completions.containsKey(date.dayKey)) return context.tokens.danger;
     return clean;
   }
 
   if (!beforeCreation && habit.isCoveredOn(date)) {
-    return habit.color.withValues(alpha: 0.22);
+    return habit.color.shownIn(context).withValues(alpha: 0.22);
   }
 
   final logged = habit.completions[date.dayKey]?.count ?? 0;
@@ -56,8 +56,8 @@ Color heatmapCellColor(
   final target = habit.effectiveTarget <= 0 ? 1.0 : habit.effectiveTarget;
   final ratio = (count / target).clamp(0.25, 1.0);
   final full = QuantProgress.of(count: count, target: target)
-      .solidColor(habit.color);
-  return Color.lerp(habit.color.withValues(alpha: 0.4), full, ratio)!;
+      .solidColor(habit.color.shownIn(context));
+  return Color.lerp(habit.color.shownIn(context).withValues(alpha: 0.4), full, ratio)!;
 }
 
 String heatmapDayLabel(BuildContext context, Habit habit, DateTime date) {
@@ -115,7 +115,7 @@ class _HabitHeatmapState extends State<HabitHeatmap> {
     final plain =
         fill.a < 0.55 || fill == context.colors.surfaceContainerHighest;
     final color = plain
-        ? widget.habit.color
+        ? widget.habit.color.shownIn(context)
         : (fill.computeLuminance() > 0.55 ? Colors.black : Colors.white);
     return Border.all(
       color: color.withValues(alpha: plain ? 1 : 0.6),
@@ -126,7 +126,7 @@ class _HabitHeatmapState extends State<HabitHeatmap> {
   Color? _pathInk(BuildContext context, DateTime date, {bool inMonth = false}) {
     if (inMonth && date.month != _today.month) return null;
     return widget.habit.isCompletedOn(date)
-        ? heatmapPathColor(context, widget.habit.color)
+        ? heatmapPathColor(context, widget.habit.color.shownIn(context))
         : context.colors.surfaceContainerHighest;
   }
 

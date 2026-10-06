@@ -13,6 +13,7 @@ import 'package:streak/features/settings/state/settings_controller.dart';
 import 'package:streak/features/settings/widgets/minimal_settings_widgets.dart';
 import 'package:streak/features/statistics/widgets/express_stat_kit.dart';
 import 'package:streak/features/statistics/widgets/stat_kit.dart';
+import 'package:streak/core/extensions/color_extensions.dart';
 
 String habitMoneySaved(BuildContext context, Habit habit) => formatMoney(
       habit.moneySaved,
@@ -176,7 +177,7 @@ class SavedMoneyStats extends StatelessWidget {
             icon: LucideIcons.shieldCheck,
             label: context.l10n.clean_days,
             value: '${habit.cleanDays}',
-            tint: habit.color,
+            tint: habit.color.shownIn(context),
             shape: ExpressShape.gem,
           ),
         ],
@@ -192,7 +193,7 @@ class SavedMoneyStats extends StatelessWidget {
       ),
       right: MiniStat(
         icon: LucideIcons.shieldCheck,
-        color: habit.color,
+        color: habit.color.shownIn(context),
         value: '${habit.cleanDays}',
         label: context.l10n.clean_days,
       ),

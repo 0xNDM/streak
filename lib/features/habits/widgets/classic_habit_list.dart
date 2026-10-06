@@ -14,6 +14,7 @@ import 'package:streak/features/habits/widgets/habit_heatmap.dart';
 import 'package:streak/features/habits/widgets/habit_entrance.dart';
 import 'package:streak/features/habits/widgets/slot_transition.dart';
 import 'package:streak/features/habits/widgets/swipe_check.dart';
+import 'package:streak/core/extensions/color_extensions.dart';
 
 class ClassicHabitList extends StatelessWidget {
   const ClassicHabitList({
@@ -112,13 +113,13 @@ class ClassicHabitList extends StatelessWidget {
               padding: EdgeInsets.only(bottom: compact ? 3 : 12),
               child: PaneMark(
                 id: habit.id,
-                tint: habit.color,
+                tint: habit.color.shownIn(context),
                 corners: compact
                     ? stackedCorners(slot, group.length)
                     : BorderRadius.circular(24),
                 child: SwipeCheck(
                   done: habit.isCompletedOn(AppClock.today()),
-                  tint: habit.color,
+                  tint: habit.color.shownIn(context),
                   corners: compact
                       ? stackedCorners(slot, group.length)
                       : BorderRadius.circular(24),

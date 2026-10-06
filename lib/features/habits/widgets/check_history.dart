@@ -13,6 +13,7 @@ import 'package:streak/features/habits/data/habit.dart';
 import 'package:streak/features/habits/widgets/habit_heatmap.dart';
 import 'package:streak/features/habits/state/notes_controller.dart';
 import 'package:streak/features/settings/state/settings_controller.dart';
+import 'package:streak/core/extensions/color_extensions.dart';
 
 List<Completion> checkLog(Habit habit) {
   final out = habit.completions.values.where((e) => e.day != null).toList()
@@ -241,7 +242,7 @@ class _EntryState extends State<_Entry> {
                     width: 8,
                     height: 8,
                     decoration: BoxDecoration(
-                      color: widget.habit.color,
+                      color: widget.habit.color.shownIn(context),
                       shape: BoxShape.circle,
                     ),
                   ),

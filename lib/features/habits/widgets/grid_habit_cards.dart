@@ -34,12 +34,12 @@ class _GlyphTile extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: habit.color.withValues(alpha: 0.16),
+        color: habit.color.shownIn(context).withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(size * 0.28),
       ),
       child: HabitGlyph(
         glyph: habit.icon,
-        color: habit.color,
+        color: habit.color.shownIn(context),
         size: size * 0.46,
       ),
     );
@@ -69,7 +69,7 @@ class _CheckTile extends StatelessWidget {
     final negative = habit.kind == HabitKind.negative;
     final relapsed = negative && isRelapse(habit, AppClock.now());
     final marked = negative ? relapsed : done;
-    final tint = relapsed ? context.tokens.danger : habit.color;
+    final tint = relapsed ? context.tokens.danger : habit.color.shownIn(context);
 
     return Semantics(
       button: true,
@@ -133,7 +133,7 @@ class _QuantTile extends StatelessWidget {
     final count = habit.completions[today.dayKey]?.count ?? 0;
     final progress = habit.progressFor(count);
     final reached = progress.reachedGoal;
-    final settled = reached ? progress.reachedColor(habit.color) : habit.color;
+    final settled = reached ? progress.reachedColor(habit.color.shownIn(context)) : habit.color.shownIn(context);
 
     return Semantics(
       button: true,
@@ -164,7 +164,7 @@ class _QuantTile extends StatelessWidget {
                       heightFactor: t.clamp(0.0, 1.0),
                       widthFactor: 1,
                       child: ColoredBox(
-                        color: progress.activeColor(habit.color),
+                        color: progress.activeColor(habit.color.shownIn(context)),
                       ),
                     ),
                   ),
@@ -177,7 +177,7 @@ class _QuantTile extends StatelessWidget {
                     builder: (context, t, _) => Icon(
                       Icons.check_rounded,
                       size: size * 0.5,
-                      color: reached || t >= 0.45 ? habit.color.ink : habit.color,
+                      color: reached || t >= 0.45 ? habit.color.shownIn(context).ink : habit.color.shownIn(context),
                     ),
                   ),
               ],
@@ -334,7 +334,7 @@ class _DayCell extends StatelessWidget {
     final relapsed = negative && isRelapse(habit, date);
     final done = relapsed || habit.isCompletedOn(date);
     final covered = !done && habit.isCoveredOn(date);
-    final tint = relapsed ? context.tokens.danger : habit.color;
+    final tint = relapsed ? context.tokens.danger : habit.color.shownIn(context);
     final quant = habit.kind == HabitKind.quantitative;
     final today = date.atMidnight == AppClock.today();
 
@@ -397,7 +397,7 @@ class _DayCell extends StatelessWidget {
                                     target: habit.perDayTarget,
                                   ).fraction,
                                   widthFactor: 1,
-                                  child: ColoredBox(color: habit.color),
+                                  child: ColoredBox(color: habit.color.shownIn(context)),
                                 ),
                               ),
                           ],
@@ -626,7 +626,7 @@ class _GridYearStripState extends State<_GridYearStrip> {
         inkFor: (column, row) {
           final date = start.addDays(column * 7 + row);
           return widget.habit.isCompletedOn(date)
-              ? heatmapPathColor(context, widget.habit.color)
+              ? heatmapPathColor(context, widget.habit.color.shownIn(context))
               : context.colors.surfaceContainerHighest;
         },
         child: Row(

@@ -8,6 +8,7 @@ import 'package:streak/core/utils/amount_format.dart';
 import 'package:streak/features/habits/data/habit.dart';
 import 'package:streak/features/habits/state/habits_controller.dart';
 import 'package:streak/features/habits/widgets/check_seal.dart';
+import 'package:streak/core/extensions/color_extensions.dart';
 
 class ReadingBooks extends StatelessWidget {
   const ReadingBooks({
@@ -108,12 +109,12 @@ class _Book extends StatelessWidget {
                 height: 10,
                 child: CustomPaint(painter: _GroundShadowPainter()),
               ),
-              Positioned(left: 0, right: 0, top: 0, bottom: 7, child: _body()),
+              Positioned(left: 0, right: 0, top: 0, bottom: 7, child: _body(context)),
               if (done)
                 Positioned(
                   right: -2,
                   bottom: 12,
-                  child: CheckSeal(color: habit.color),
+                  child: CheckSeal(color: habit.color.shownIn(context)),
                 ),
             ],
           ),
@@ -122,7 +123,7 @@ class _Book extends StatelessWidget {
     );
   }
 
-  Widget _body() {
+  Widget _body(BuildContext context) {
     return Stack(
       children: [
         Positioned(
@@ -158,11 +159,11 @@ class _Book extends StatelessWidget {
               fit: StackFit.expand,
               children: [
                 if (isProgress)
-                  _ProgressCover(color: habit.color, ratio: ratio, count: count)
+                  _ProgressCover(color: habit.color.shownIn(context), ratio: ratio, count: count)
                 else if (_hasPhoto)
                   CoverImage(path: habit.bookCoverPath)
                 else
-                  _JacketCover(color: habit.color, title: habit.name),
+                  _JacketCover(color: habit.color.shownIn(context), title: habit.name),
                 Positioned(
                   left: 0,
                   top: 0,

@@ -8,6 +8,7 @@ import 'package:streak/features/habits/data/habit.dart';
 import 'package:streak/features/settings/state/settings_controller.dart';
 import 'package:streak/features/statistics/widgets/express_line_chart.dart';
 import 'package:streak/features/statistics/widgets/stat_line_charts.dart';
+import 'package:streak/core/extensions/color_extensions.dart';
 
 class FocusDailyBars extends StatelessWidget {
   const FocusDailyBars({super.key, required this.habit, this.days = 14});
@@ -35,7 +36,7 @@ class FocusDailyBars extends StatelessWidget {
       final month = DateFormat.MMM(locale);
       return ExpressLineChart(
         values: minutes,
-        color: habit.color,
+        color: habit.color.shownIn(context),
         window: 10,
         height: 176,
         format: label,
@@ -50,7 +51,7 @@ class FocusDailyBars extends StatelessWidget {
 
     return TrendChart(
       values: minutes,
-      color: habit.color,
+      color: habit.color.shownIn(context),
       startDate: start,
       height: 132,
       format: label,

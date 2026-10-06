@@ -30,6 +30,7 @@ import 'package:streak/features/statistics/widgets/stat_kit.dart';
 import 'package:streak/features/statistics/widgets/stat_line_charts.dart';
 import 'package:streak/features/statistics/widgets/year_heatmap.dart';
 import 'package:streak/core/widgets/glass.dart';
+import 'package:streak/core/extensions/color_extensions.dart';
 
 class StatisticsPage extends StatefulWidget {
   const StatisticsPage({super.key});
@@ -314,14 +315,14 @@ class _StatisticsPageState extends State<StatisticsPage> {
                     title: context.l10n.by_habit,
                     icon: LucideIcons.chartPie,
                     color: accent,
-                    child: HabitDonut(entries: _ranking(all, stats)),
+                    child: HabitDonut(entries: _ranking(context, all, stats)),
                   ),
                 ),
                 const SizedBox(height: 16),
                 StatReveal(
                   child: _RankingCard(
                     accent: accent,
-                    entries: _ranking(all, stats, limit: all.length),
+                    entries: _ranking(context, all, stats, limit: all.length),
                   ),
                 ),
               ],
@@ -342,6 +343,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
 }
 
 List<({String name, Color color, int count})> _ranking(
+  BuildContext context,
   List<Habit> habits,
   HabitStats stats, {
   int limit = 5,
@@ -350,7 +352,7 @@ List<({String name, Color color, int count})> _ranking(
     for (final habit in habits)
       (
         name: habit.name,
-        color: habit.color,
+        color: habit.color.shownIn(context),
         count: stats.perHabit[habit.id] ?? 0,
       ),
   ]..sort((a, b) => b.count.compareTo(a.count));

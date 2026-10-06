@@ -11,6 +11,7 @@ import 'package:streak/core/express/express_shapes.dart';
 import 'package:streak/core/express/express_surface.dart';
 import 'package:streak/core/express/express_type.dart';
 import 'package:streak/features/settings/state/settings_controller.dart';
+import 'package:streak/core/extensions/color_extensions.dart';
 
 class StreakSummary extends StatelessWidget {
   const StreakSummary({super.key, required this.habit, required this.mode});
@@ -34,7 +35,7 @@ class StreakSummary extends StatelessWidget {
           Expanded(
             child: _StatBox(
               icon: LucideIcons.history,
-              iconColor: habit.color,
+              iconColor: habit.color.shownIn(context),
               shape: ExpressShape.cookie,
               label: context.l10n.last_check,
               value: lastCheckLabel(context, habit, withTime: false),
@@ -44,7 +45,7 @@ class StreakSummary extends StatelessWidget {
         Expanded(
           child: _StatBox(
             icon: LucideIcons.flame,
-            iconColor: habit.color,
+            iconColor: habit.color.shownIn(context),
             shape: ExpressShape.cookie,
             label: context.l10n.current,
             value: _format(context, habit.currentStreak),

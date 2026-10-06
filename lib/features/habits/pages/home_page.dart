@@ -54,6 +54,7 @@ import 'package:streak/features/focus/state/focus_controller.dart';
 import 'package:streak/core/extensions/date_extensions.dart';
 import 'package:streak/core/widgets/glass.dart';
 import 'package:streak/core/widgets/morph_menu.dart';
+import 'package:streak/core/extensions/color_extensions.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -165,7 +166,7 @@ class _HomePageState extends State<HomePage> {
                   NoteEditorPage(
                     habitId: habit.id,
                     dayKey: AppClock.today().dayKey,
-                    accent: habit.color,
+                    accent: habit.color.shownIn(context),
                   ),
                 )),
             false,

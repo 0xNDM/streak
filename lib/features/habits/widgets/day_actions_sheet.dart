@@ -15,6 +15,7 @@ import 'package:streak/features/habits/pages/notes_page.dart';
 import 'package:streak/features/habits/state/habits_controller.dart';
 import 'package:streak/features/habits/state/notes_controller.dart';
 import 'package:streak/features/habits/widgets/habit_checklist.dart';
+import 'package:streak/core/extensions/color_extensions.dart';
 
 Future<void> showDayActionsSheet(
   BuildContext context, {
@@ -83,7 +84,7 @@ Future<void> showDayActionsSheet(
                 icon: LucideIcons.notebookPen,
                 label: context.l10n.view_notes,
                 badge: count > 0 ? '$count' : null,
-                accent: habit.color,
+                accent: habit.color.shownIn(context),
                 highlighted: true,
                 trailing: LucideIcons.chevronRight,
                 onTap: () {
@@ -92,7 +93,7 @@ Future<void> showDayActionsSheet(
                     NotesPage(
                       habitId: habit.id,
                       date: date,
-                      accent: habit.color,
+                      accent: habit.color.shownIn(context),
                     ),
                   );
                 },
@@ -107,7 +108,7 @@ Future<void> showDayActionsSheet(
                     NoteEditorPage(
                       habitId: habit.id,
                       dayKey: date.dayKey,
-                      accent: habit.color,
+                      accent: habit.color.shownIn(context),
                     ),
                   );
                 },

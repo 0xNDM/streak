@@ -12,6 +12,7 @@ import 'package:streak/features/habits/state/notes_controller.dart';
 import 'package:streak/features/habits/widgets/habit_heatmap.dart';
 import 'package:streak/features/habits/widgets/note_widgets.dart';
 import 'package:streak/features/settings/state/settings_controller.dart';
+import 'package:streak/core/extensions/color_extensions.dart';
 
 class ActivityCalendar extends StatefulWidget {
   const ActivityCalendar({
@@ -189,19 +190,19 @@ class _CalendarCell extends StatelessWidget {
     } else if (isCurrentMonth && relapsed) {
       fillColor = danger;
     } else if (isCurrentMonth && negative && !outOfScope) {
-      fillColor = habit.color.withValues(alpha: 0.24);
+      fillColor = habit.color.shownIn(context).withValues(alpha: 0.24);
     } else if (isCurrentMonth && ratioFill && count > 0) {
       final target = habit.effectiveTarget <= 0 ? 1.0 : habit.effectiveTarget;
       final ratio = (count / target).clamp(0.25, 1.0);
       fillColor = Color.lerp(
-        habit.color.withValues(alpha: 0.4),
-        QuantProgress.of(count: count, target: target).solidColor(habit.color),
+        habit.color.shownIn(context).withValues(alpha: 0.4),
+        QuantProgress.of(count: count, target: target).solidColor(habit.color.shownIn(context)),
         ratio,
       );
     } else if (isCurrentMonth && !negative && !ratioFill && completed) {
-      fillColor = habit.color;
+      fillColor = habit.color.shownIn(context);
     } else if (isCurrentMonth && !outOfScope && habit.isCoveredOn(date)) {
-      fillColor = habit.color.withValues(alpha: 0.22);
+      fillColor = habit.color.shownIn(context).withValues(alpha: 0.22);
     } else {
       fillColor = null;
     }
@@ -213,7 +214,7 @@ class _CalendarCell extends StatelessWidget {
 
     final Color textColor;
     if (filledStrong) {
-      textColor = (relapsed ? danger : habit.color).computeLuminance() > 0.5
+      textColor = (relapsed ? danger : habit.color.shownIn(context)).computeLuminance() > 0.5
           ? Colors.black
           : Colors.white;
     } else if (!isCurrentMonth) {
@@ -249,7 +250,7 @@ class _CalendarCell extends StatelessWidget {
                   (isToday ? scheme.surfaceContainerHighest : Colors.transparent),
               borderRadius: BorderRadius.circular(10),
               border: isToday && !filledStrong
-                  ? Border.all(color: habit.color.withValues(alpha: 0.5))
+                  ? Border.all(color: habit.color.shownIn(context).withValues(alpha: 0.5))
                   : null,
             ),
             child: Column(

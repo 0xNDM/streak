@@ -13,6 +13,7 @@ import 'package:streak/features/habits/widgets/habit_entrance.dart';
 import 'package:streak/features/habits/widgets/habit_heatmap.dart';
 import 'package:streak/features/habits/widgets/slot_transition.dart';
 import 'package:streak/features/habits/widgets/swipe_check.dart';
+import 'package:streak/core/extensions/color_extensions.dart';
 
 class ExpressHabitList extends StatelessWidget {
   const ExpressHabitList({
@@ -112,11 +113,11 @@ class ExpressHabitList extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: Express.groupGap),
               child: PaneMark(
                 id: habit.id,
-                tint: habit.color,
+                tint: habit.color.shownIn(context),
                 corners: radius,
                 child: SwipeCheck(
                   done: habit.isCompletedOn(AppClock.today()),
-                  tint: habit.color,
+                  tint: habit.color.shownIn(context),
                   corners: radius,
                   onSwipe: onSwipe == null ? null : () => onSwipe!(habit),
                   child: KeepBuilt(

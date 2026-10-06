@@ -6,6 +6,7 @@ import 'package:streak/core/widgets/number_keypad_dialog.dart';
 import 'package:streak/features/habits/data/habit.dart';
 import 'package:streak/features/habits/state/habits_controller.dart';
 import 'package:streak/features/habits/widgets/unscheduled_day_dialog.dart';
+import 'package:streak/core/extensions/color_extensions.dart';
 
 Future<void> addCustomAmount(BuildContext context, Habit habit) async {
   if (habit.kind != HabitKind.quantitative) return;
@@ -21,7 +22,7 @@ Future<void> addCustomAmount(BuildContext context, Habit habit) async {
     unit: habit.unitLabel,
     decimals: true,
     clock: habit.isTimeAmount,
-    accent: habit.color,
+    accent: habit.color.shownIn(context),
   );
   if (amount == null || amount <= 0 || !context.mounted) return;
 

@@ -4,6 +4,7 @@ import 'package:streak/app/theme/app_tokens.dart';
 import 'package:streak/core/i18n/l10n.dart';
 import 'package:streak/features/habits/data/habit.dart';
 import 'package:streak/core/widgets/glass.dart';
+import 'package:streak/core/extensions/color_extensions.dart';
 
 class HabitFilter extends StatelessWidget {
   const HabitFilter({
@@ -33,7 +34,7 @@ class HabitFilter extends StatelessWidget {
           for (final habit in habits)
             _FilterChip(
               label: habit.name,
-              color: habit.color,
+              color: habit.color.shownIn(context),
               active: selected == habit.id,
               onTap: () => onSelected(habit.id),
             ),
