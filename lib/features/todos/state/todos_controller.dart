@@ -78,6 +78,12 @@ class TodosController extends ChangeNotifier {
     TodosWidgetService.syncSoon(_todos);
   }
 
+  Future<void> refresh() async {
+    if (!LocalStore.todosChangedElsewhere) return;
+    await LocalStore.reloadTodos();
+    reload();
+  }
+
   Future<Todo> create({
     required String text,
     String date = '',

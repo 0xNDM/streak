@@ -220,7 +220,7 @@ class _HomeShellState extends State<HomeShell>
       final habits = context.read<HabitsController>();
       if (Platform.isIOS) _applyWidgetActions(habits);
       habits.refresh().then((_) => HomeWidgetService.sync(habits.asMap));
-      context.read<TodosController>().reload();
+      context.read<TodosController>().refresh();
       drainFocusActions();
       context.read<SettingsController>().runAutoBackup();
       _waitForNextDay();

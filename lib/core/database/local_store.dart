@@ -32,6 +32,7 @@ class LocalStore {
 
   static int _writing = 0;
   static String _habitsStamp = '';
+  static String _todosStamp = '';
 
   static bool get isWriting => _writing > 0;
 
@@ -57,6 +58,7 @@ class LocalStore {
     _notes = await Hive.openBox(_notesBox);
     _focus = await Hive.openBox(_focusBox);
     _todos = await Hive.openBox(_todosBox);
+    _todosStamp = _stampOf(_todos);
     _todoTags = await Hive.openBox(_todoTagsBox);
     final movedFrom = DataLocation.rewriteFrom;
     if (movedFrom != null) await _followMove(movedFrom);
@@ -95,7 +97,22 @@ class LocalStore {
     return result;
   }
 
-  static Future<void> writeTodo(Todo todo) => _todos.put(todo.id, todo.toMap());
+  static Future<void> writeTodo(Todo todo) async {
+    await _todos.put(todo.id, todo.toMap());
+    _todosStamp = _stampOf(_todos);
+  }
+
+  static bool get todosChangedElsewhere {
+    final stamp = _stampOf(_todos);
+    return stamp.isEmpty || stamp != _todosStamp;
+  }
+
+  static Future<void> reloadTodos() async {
+    if (_writing > 0) return;
+    if (_todos.isOpen) await _todos.close();
+    _todos = await Hive.openBox(_todosBox);
+    _todosStamp = _stampOf(_todos);
+  }
 
   static Future<void> writeTodos(Iterable<Todo> todos) =>
       _todos.putAll({for (final todo in todos) todo.id: todo.toMap()});

@@ -21,6 +21,7 @@ import 'package:streak/l10n/app_localizations.dart';
 import 'package:streak/l10n/app_localizations_en.dart';
 import 'package:streak/services/home_widget_service.dart';
 import 'package:streak/services/linux_notifications.dart';
+import 'package:streak/services/todos_widget_service.dart';
 import 'package:streak/services/widget_icon_service.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
@@ -38,6 +39,7 @@ class NotificationService {
   static const actionDone = 'habit_done';
   static const actionSnooze = 'habit_snooze';
   static const actionAdd = 'habit_add';
+  static const actionTodoDone = 'todo_done';
 
   static const _amountInput = 'amount';
 
@@ -54,6 +56,7 @@ class NotificationService {
   static const _categoryHabit = 'habit';
   static const _categoryAmount = 'habit_amount';
   static const _categoryNegative = 'habit_negative';
+  static const _categoryTodo = 'todo';
 
   static String _categoryFor(Habit habit) => habit.kind == HabitKind.negative
       ? _categoryNegative
@@ -78,12 +81,22 @@ class NotificationService {
       DarwinNotificationCategory(_categoryHabit, actions: [done, snooze]),
       DarwinNotificationCategory(_categoryAmount, actions: [done, add, snooze]),
       DarwinNotificationCategory(_categoryNegative, actions: [snooze]),
+      DarwinNotificationCategory(
+        _categoryTodo,
+        actions: [
+          DarwinNotificationAction.plain(
+            actionTodoDone,
+            strings.notif_action_done,
+          ),
+        ],
+      ),
     ];
   }
 
   static void Function(String habitId)? onOpenHabit;
   static void Function()? onOpenTodos;
   static void Function()? onHabitsChanged;
+  static void Function()? onTodosChanged;
 
   static const _todoPayload = 'todo:';
 
@@ -110,7 +123,12 @@ class NotificationService {
     final (id, actionId, input) = _read(response);
     if (id == null || id.isEmpty) return;
     if (id.startsWith(_todoPayload)) {
-      onOpenTodos?.call();
+      if (actionId == actionTodoDone) {
+        NotificationActions.apply(actionId!, id)
+            .then((_) => onTodosChanged?.call());
+      } else {
+        onOpenTodos?.call();
+      }
       return;
     }
     if (NotificationActions.handles(actionId)) {
@@ -809,7 +827,26 @@ class NotificationService {
           importance: Importance.high,
           priority: Priority.high,
           styleInformation: BigTextStyleInformation(todo.body),
+          actions: [
+            AndroidNotificationAction(
+              actionTodoDone,
+              strings.notif_action_done,
+              showsUserInterface: false,
+              cancelNotification: true,
+            ),
+          ],
         ),
+        iOS: const DarwinNotificationDetails(categoryIdentifier: _categoryTodo),
+        windows: Platform.isWindows
+            ? WindowsNotificationDetails(
+                actions: [
+                  WindowsAction(
+                    content: strings.notif_action_done,
+                    arguments: '$actionTodoDone:$_todoPayload${todo.id}',
+                  ),
+                ],
+              )
+            : null,
       ),
       payload: '$_todoPayload${todo.id}',
     );
@@ -905,7 +942,8 @@ class NotificationActions {
   static bool handles(String? actionId) =>
       actionId == NotificationService.actionDone ||
       actionId == NotificationService.actionSnooze ||
-      actionId == NotificationService.actionAdd;
+      actionId == NotificationService.actionAdd ||
+      actionId == NotificationService.actionTodoDone;
 
   static Future<void> apply(
     String actionId,
@@ -916,6 +954,10 @@ class NotificationActions {
     try {
       await LocalStore.init();
       AppClock.cutoffHour = LocalStore.setting('dayCutoff', 0);
+      if (actionId == NotificationService.actionTodoDone) {
+        await _finishTodo(habitId);
+        return;
+      }
       await LocalStore.reloadHabits();
       final habits = LocalStore.readHabits();
       final habit = habits[habitId];
@@ -968,6 +1010,19 @@ class NotificationActions {
     } catch (e) {
       debugPrint('Notification action failed: $e');
     }
+  }
+
+  static Future<void> _finishTodo(String payload) async {
+    if (!payload.startsWith(NotificationService._todoPayload)) return;
+    await LocalStore.reloadTodos();
+    final id = payload.substring(NotificationService._todoPayload.length);
+    final todos = LocalStore.readTodos();
+    final index = todos.indexWhere((todo) => todo.id == id);
+    if (index == -1 || todos[index].done) return;
+    final done = todos[index].copyWith(done: true, doneAt: DateTime.now());
+    todos[index] = done;
+    await LocalStore.writeTodo(done);
+    await TodosWidgetService.sync(todos);
   }
 }
 

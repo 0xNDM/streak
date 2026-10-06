@@ -85,6 +85,7 @@ Future<void> _startup() async {
   NotificationService.onOpenHabit = _openHabit;
   NotificationService.onOpenTodos = _openTodos;
   NotificationService.onHabitsChanged = _reloadHabits;
+  NotificationService.onTodosChanged = _reloadTodos;
   FocusService.onPending = drainFocusActions;
   FocusService.listen();
   try {
@@ -169,6 +170,10 @@ void _openHabit(String habitId) {
 
 void _reloadHabits() {
   AppNavigator.key.currentContext?.read<HabitsController>().reload();
+}
+
+void _reloadTodos() {
+  AppNavigator.key.currentContext?.read<TodosController>().reload();
 }
 
 void _openTodos() {
