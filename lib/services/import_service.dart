@@ -57,6 +57,12 @@ class _RawHabit {
   final int every;
   final Map<DateTime, num> days = {};
   final Map<DateTime, String> notes = {};
+  DateTime? since;
+
+  void seen(DateTime day) {
+    final d = DateTime(day.year, day.month, day.day);
+    if (since == null || d.isBefore(since!)) since = d;
+  }
 
   void mark(DateTime day, num count) {
     final d = DateTime(day.year, day.month, day.day);
@@ -153,6 +159,11 @@ class ImportService {
     if (_looksLikeLoopCsv(lower)) {
       return _build(_parseMatrix(header, rows.skip(1)), 'Loop Habit Tracker');
     }
+    if (lower.contains('habit') &&
+        lower.contains('date') &&
+        lower.contains('status')) {
+      return _build(_parseHabitify(lower, rows.skip(1)), 'Habitify');
+    }
     final habitCol = _indexOfAny(lower, const ['habit', 'name', 'habitname']);
     final dateCol = _indexOfAny(lower, const ['date', 'fecha', 'day', 'día', 'timestamp']);
     if (habitCol != null && dateCol != null && habitCol != dateCol) {
@@ -187,9 +198,10 @@ class ImportService {
       });
       totalEntries += completions.length;
 
-      final createdAt = r.days.isEmpty
+      final tracked = [...r.days.keys, ?r.since];
+      final createdAt = tracked.isEmpty
           ? DateTime.now()
-          : r.days.keys.reduce((a, b) => a.isBefore(b) ? a : b);
+          : tracked.reduce((a, b) => a.isBefore(b) ? a : b);
       final measurable = r.kind == HabitKind.quantitative;
       habits.add(
         Habit(
@@ -649,6 +661,52 @@ class ImportService {
       byName.putIfAbsent(name, () => _RawHabit(name)).mark(date, v);
     }
     return byName.values.toList();
+  }
+
+  static List<_RawHabit> _parseHabitify(
+      List<String> lower, Iterable<List<String>> rows) {
+    final habitCol = lower.indexOf('habit');
+    final dateCol = lower.indexOf('date');
+    final statusCol = lower.indexOf('status');
+    final logCol = lower.indexOf('total log');
+    final idCol = lower.indexOf('habit id');
+    String cell(List<String> row, int idx) =>
+        idx >= 0 && row.length > idx ? row[idx].trim() : '';
+    final names = <String, String>{};
+    final logs = <String, List<(DateTime, String, num)>>{};
+    for (final row in rows) {
+      final name = cell(row, habitCol);
+      final date = _parseDate(cell(row, dateCol));
+      if (name.isEmpty || date == null) continue;
+      final id = cell(row, idCol);
+      final key = id.isEmpty ? name : id;
+      names.putIfAbsent(key, () => name);
+      final log = num.tryParse(cell(row, logCol).replaceAll(',', '.')) ?? 0;
+      logs.putIfAbsent(key, () => []).add(
+            (date, cell(row, statusCol).toLowerCase(), log),
+          );
+    }
+    return [
+      for (final entry in logs.entries)
+        _habitifyHabit(names[entry.key]!, entry.value),
+    ];
+  }
+
+  static _RawHabit _habitifyHabit(
+      String name, List<(DateTime, String, num)> days) {
+    final statuses = {for (final (_, status, _) in days) status};
+    final avoid = statuses.contains('succeeded') ||
+        (statuses.contains('failed') && !statuses.contains('completed'));
+    final habit = _RawHabit(
+      name,
+      kind: avoid ? HabitKind.negative : HabitKind.positive,
+    );
+    for (final (date, status, log) in days) {
+      habit.seen(date);
+      if (avoid && status == 'failed') habit.mark(date, log < 1 ? 1 : log.round());
+      if (!avoid && status == 'completed') habit.mark(date, 1);
+    }
+    return habit;
   }
 
   static bool _isStreakBackup(dynamic decoded) {

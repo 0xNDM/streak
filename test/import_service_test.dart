@@ -455,6 +455,35 @@ Date,Meditate,Exercise
     });
   });
 
+  group('Habitify CSV', () {
+    final csv = '''
+﻿Habit;Date;Total log;Unit;Status;Habit ID
+Quit;2026-02-09;0;times;Succeeded;q1
+Quit;2026-02-10;0;times;Succeeded;q1
+Quit;2026-02-11;3;times;Failed;q1
+Quit;2026-02-12;1;times;Failed;q1
+Read;2026-02-10;1;times;Completed;r1
+Read;2026-02-11;0;times;Skipped;r1
+Read;2026-02-12;1;times;Completed;r1
+''';
+
+    test('reads Status: Failed is a relapse, Skipped is not done', () {
+      final o = ImportService.parseBytes(_b(csv), fileName: 'habitify.csv');
+      expect(o.source, 'Habitify');
+      final quit = _byName(o, 'Quit');
+      final read = _byName(o, 'Read');
+      expect(quit.kind, HabitKind.negative);
+      expect(quit.createdAt, DateTime(2026, 2, 9));
+      expect(quit.isCompletedOn(DateTime(2026, 2, 10)), isTrue);
+      expect(quit.isCompletedOn(DateTime(2026, 2, 11)), isFalse);
+      expect(quit.completions[DateTime(2026, 2, 11).dayKey]!.count, 3);
+      expect(quit.completions.length, 2);
+      expect(read.kind, HabitKind.positive);
+      expect(read.completions.length, 2);
+      expect(read.isCompletedOn(DateTime(2026, 2, 11)), isFalse);
+    });
+  });
+
   group('errors', () {
     test('empty CSV throws a friendly error', () {
       expect(

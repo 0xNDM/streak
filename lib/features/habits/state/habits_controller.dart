@@ -458,21 +458,52 @@ class HabitsController extends ChangeNotifier {
     if (outcome == null) return null;
     await LocalStore.guardWrites(() async {
       var order = habits.length;
+      final into = <String, String>{};
       for (final habit in outcome.habits) {
-        final placed = habit.copyWith(order: order++);
+        final same = _namedLike(habit);
+        final placed = same == null
+            ? habit.copyWith(order: order++)
+            : same.copyWith(
+                completions: FolderSync.mergeCompletions(
+                  same.completions,
+                  habit.completions,
+                ),
+                createdAt: habit.createdAt.isBefore(same.createdAt)
+                    ? habit.createdAt
+                    : same.createdAt,
+              );
+        into[habit.id] = placed.id;
         _habits[placed.id] = placed;
         await LocalStore.writeHabit(placed);
         if (placed.reminders.isNotEmpty) {
           await _notifications.scheduleFor(placed);
         }
       }
+      final known = {
+        for (final note in LocalStore.readNotes())
+          (note.habitId, note.date, note.text),
+      };
       for (final note in outcome.notes) {
-        await LocalStore.writeNote(note);
+        final moved = note.copyWith(habitId: into[note.habitId]);
+        if (known.contains((moved.habitId, moved.date, moved.text))) continue;
+        await LocalStore.writeNote(moved);
       }
     });
     notifyListeners();
     await HomeWidgetService.sync(asMap);
     return outcome;
+  }
+
+  Habit? _namedLike(Habit imported) {
+    final name = imported.name.trim().toLowerCase();
+    for (final habit in habits) {
+      if (habit.id != imported.id &&
+          habit.kind == imported.kind &&
+          habit.name.trim().toLowerCase() == name) {
+        return habit;
+      }
+    }
+    return null;
   }
 
   Future<String?> importBackup({bool replace = false}) async {
