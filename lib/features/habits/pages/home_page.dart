@@ -8,6 +8,7 @@ import 'package:streak/core/express/express_surface.dart';
 import 'package:streak/core/extensions/inset_extensions.dart';
 import 'package:streak/core/i18n/l10n.dart';
 import 'package:streak/core/minimal/minimal_kit.dart';
+import 'package:streak/core/widgets/fold_header.dart';
 import 'package:streak/core/widgets/sheet_action.dart';
 import 'package:streak/core/widgets/sheet_type.dart';
 import 'package:streak/core/routing/app_navigator.dart';
@@ -73,6 +74,8 @@ class _HomePageState extends State<HomePage> {
   final Map<String, bool> _frozen = {};
   final Set<String> _leaving = {};
   List<Habit> _visible = const [];
+  bool _peek = false;
+  Set<String> _peeked = const {};
   final Map<String, Timer> _timers = {};
 
   @override
@@ -619,6 +622,19 @@ class _HomePageState extends State<HomePage> {
                   ? shown
                   : _completedLast(shown);
               _visible = visible;
+              final hidden = _reordering || !todayFiltered(settings)
+                  ? const <Habit>[]
+                  : _hiddenFrom(all, visible, settings.hideTracking);
+              if (hidden.isEmpty) _peek = false;
+              final more = _peek ? hidden : const <Habit>[];
+              _peeked = {for (final habit in more) habit.id};
+              final fold = hidden.isEmpty
+                  ? null
+                  : FoldHeader(
+                      label: _foldLabel(hidden, today),
+                      expanded: _peek,
+                      onTap: () => setState(() => _peek = !_peek),
+                    );
               final allDone =
                   hidingDone && visible.isEmpty && filtered.isNotEmpty;
               void openFilter() => showTodayFilterSheet(context);
@@ -701,6 +717,8 @@ class _HomePageState extends State<HomePage> {
                         mode: _mode,
                         reordering: _reordering,
                         header: header,
+                        fold: fold,
+                        more: more,
                         onReorder: (oldIndex, newIndex) =>
                             controller.reorder(visible, oldIndex, newIndex),
                         onOpen: _openDetails,
@@ -716,6 +734,8 @@ class _HomePageState extends State<HomePage> {
                         habits: visible,
                         mode: _mode,
                         header: header,
+                        fold: fold,
+                        more: more,
                         onOpen: _openDetails,
                         onToggleToday: (habit) => _toggle(habit, today),
                         onToggleDay: _toggle,
@@ -729,6 +749,8 @@ class _HomePageState extends State<HomePage> {
                         mode: _mode,
                         reordering: _reordering,
                         header: header,
+                        fold: fold,
+                        more: more,
                         onReorder: (oldIndex, newIndex) =>
                             controller.reorder(visible, oldIndex, newIndex),
                         onOpen: _openDetails,
@@ -856,6 +878,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   bool _changesSlot(String id, bool settled) {
+    if (_peeked.contains(id)) return false;
     final settings = context.read<SettingsController>();
     if (settings.hideDone) return true;
     if (!settings.sortCompletedLast) return false;
@@ -863,6 +886,32 @@ class _HomePageState extends State<HomePage> {
     final after = _completedLast(_visible, id: id, settled: settled);
     return before.indexWhere((h) => h.id == id) !=
         after.indexWhere((h) => h.id == id);
+  }
+
+  List<Habit> _hiddenFrom(
+    List<Habit> all,
+    List<Habit> shown,
+    bool hideTracking,
+  ) {
+    final ids = {for (final habit in shown) habit.id};
+    return [
+      for (final habit in all)
+        if (!ids.contains(habit.id) &&
+            !(hideTracking && habit.tracking) &&
+            (_category == null || habit.category == _category))
+          habit,
+    ];
+  }
+
+  String _foldLabel(List<Habit> hidden, DateTime today) {
+    final count = hidden.length;
+    if (hidden.every((habit) => habit.isDoneForNow)) {
+      return context.l10n.today_fold_done(count);
+    }
+    if (hidden.every((habit) => !habit.isScheduledOn(today))) {
+      return context.l10n.today_fold_other(count);
+    }
+    return context.l10n.today_fold_hidden(count);
   }
 
   List<String> _categoriesOf(List<Habit> habits, List<Category> order) {

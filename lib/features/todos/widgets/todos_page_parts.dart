@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:streak/app/theme/app_tokens.dart';
 import 'package:streak/core/i18n/l10n.dart';
 import 'package:streak/core/widgets/app_empty_state.dart';
+import 'package:streak/core/widgets/fold_header.dart';
 import 'package:streak/core/widgets/section_label.dart';
 import 'package:streak/core/widgets/stacked_corners.dart';
 import 'package:streak/features/settings/state/settings_controller.dart';
@@ -253,39 +254,11 @@ class TodoCompletedHeader extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
-    final muted = context.tokens.muted;
-    return Semantics(
-      button: true,
-      expanded: expanded,
-      child: GestureDetector(
+  Widget build(BuildContext context) => FoldHeader(
+        label: context.l10n.todo_completed_count(count),
+        expanded: expanded,
         onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Row(
-            children: [
-              AnimatedRotation(
-                turns: expanded ? 0.25 : 0,
-                duration: const Duration(milliseconds: 200),
-                child: Icon(LucideIcons.chevronRight, size: 16, color: muted),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                context.l10n.todo_completed_count(count),
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.1,
-                  color: muted,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+      );
 }
 
 class TodoAddButton extends StatefulWidget {

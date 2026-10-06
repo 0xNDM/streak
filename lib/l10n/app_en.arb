@@ -894,6 +894,18 @@
   "hide_done": "Hide completed",
   "hide_done_sub": "What you finish today leaves the list",
   "today_filter": "Show",
+  "today_fold_done": "Done ({count})",
+  "@today_fold_done": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "today_fold_other": "Other days ({count})",
+  "@today_fold_other": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "today_fold_hidden": "Hidden ({count})",
+  "@today_fold_hidden": {
+    "placeholders": { "count": { "type": "int" } }
+  },
   "card_activity": "Activity on cards",
   "card_activity_sub": "Shows the last days on the card, ready to tick",
   "readable_copy": "Readable copy",

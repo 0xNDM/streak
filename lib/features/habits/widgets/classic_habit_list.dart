@@ -29,6 +29,8 @@ class ClassicHabitList extends StatelessWidget {
     required this.onLongPress,
     this.onSwipe,
     this.leaving = const {},
+    this.fold,
+    this.more = const [],
   });
 
   final List<Habit> habits;
@@ -36,6 +38,8 @@ class ClassicHabitList extends StatelessWidget {
   final bool reordering;
   final Set<String> leaving;
   final Widget header;
+  final Widget? fold;
+  final List<Habit> more;
   final void Function(int oldIndex, int newIndex) onReorder;
   final ValueChanged<Habit> onOpen;
   final ValueChanged<Habit> onToggleToday;
@@ -52,7 +56,7 @@ class ClassicHabitList extends StatelessWidget {
         16,
         104,
       ),
-      itemCount: habits.length,
+      itemCount: habits.length + (fold == null ? 0 : 1 + more.length),
       buildDefaultDragHandles: false,
       onReorder: (oldIndex, newIndex) {
         onReorder(oldIndex, newIndex);
@@ -63,7 +67,13 @@ class ClassicHabitList extends StatelessWidget {
       ),
       header: header,
       itemBuilder: (context, index) {
-        final habit = habits[index];
+        if (index == habits.length) {
+          return KeyedSubtree(key: const ValueKey('fold'), child: fold!);
+        }
+        final extra = index > habits.length;
+        final group = extra ? more : habits;
+        final slot = extra ? index - habits.length - 1 : index;
+        final habit = group[slot];
         if (reordering) {
           return ReorderableDelayedDragStartListener(
             key: ValueKey(habit.id),
@@ -104,22 +114,22 @@ class ClassicHabitList extends StatelessWidget {
                 id: habit.id,
                 tint: habit.color,
                 corners: compact
-                    ? stackedCorners(index, habits.length)
+                    ? stackedCorners(slot, group.length)
                     : BorderRadius.circular(24),
                 child: SwipeCheck(
                   done: habit.isCompletedOn(AppClock.today()),
                   tint: habit.color,
                   corners: compact
-                      ? stackedCorners(index, habits.length)
+                      ? stackedCorners(slot, group.length)
                       : BorderRadius.circular(24),
                   onSwipe: onSwipe == null ? null : () => onSwipe!(habit),
                   child: KeepBuilt(
-                  keys: [habit, mode, compact, index, habits.length, AppClock.today()],
+                  keys: [habit, mode, compact, slot, group.length, AppClock.today()],
                   build: () => HabitCard(
                     habit: habit,
                     mode: mode,
                     corners: compact
-                        ? stackedCorners(index, habits.length)
+                        ? stackedCorners(slot, group.length)
                         : null,
                     onOpen: () => onOpen(habit),
                     onToggleToday: () => onToggleToday(habit),

@@ -791,6 +791,18 @@
   "hide_done": "Ocultar los hechos",
   "hide_done_sub": "Lo que terminas hoy sale de la lista",
   "today_filter": "Mostrar",
+  "today_fold_done": "Hechos ({count})",
+  "@today_fold_done": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "today_fold_other": "Otros días ({count})",
+  "@today_fold_other": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "today_fold_hidden": "Ocultos ({count})",
+  "@today_fold_hidden": {
+    "placeholders": { "count": { "type": "int" } }
+  },
   "card_activity": "Actividad en las tarjetas",
   "card_activity_sub": "Enseña los últimos días en la tarjeta, listos para marcar",
   "readable_copy": "Copia legible",

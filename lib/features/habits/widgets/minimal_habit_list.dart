@@ -22,6 +22,8 @@ class MinimalHabitList extends StatelessWidget {
     required this.onLongPress,
     this.onSwipe,
     this.leaving = const {},
+    this.fold,
+    this.more = const [],
   });
 
   static EdgeInsets _padding(BuildContext context) =>
@@ -30,6 +32,8 @@ class MinimalHabitList extends StatelessWidget {
   final List<Habit> habits;
   final HeatmapMode mode;
   final Widget header;
+  final Widget? fold;
+  final List<Habit> more;
   final ValueChanged<Habit> onOpen;
   final ValueChanged<Habit> onToggleToday;
   final void Function(Habit habit, DateTime date) onToggleDay;
@@ -65,11 +69,12 @@ class MinimalHabitList extends StatelessWidget {
   Widget _list(BuildContext context) {
     return ListView.builder(
       padding: _padding(context),
-      itemCount: habits.length + 1,
+      itemCount: habits.length + 1 + (fold == null ? 0 : 1 + more.length),
       itemBuilder: (context, index) {
         if (index == 0) return _Cascade(index: 0, child: header);
         final i = index - 1;
-        final habit = habits[i];
+        if (i == habits.length) return _Cascade(index: index, child: fold!);
+        final habit = i > habits.length ? more[i - habits.length - 1] : habits[i];
         return _Cascade(
           index: index,
           child: HabitEntrance(
@@ -118,14 +123,18 @@ class MinimalHabitList extends StatelessWidget {
   Widget _monthGrid(BuildContext context) {
     return ListView.builder(
       padding: _padding(context),
-      itemCount: (habits.length + 1) ~/ 2 + 1,
+      itemCount: _rows(habits) + 1 + (fold == null ? 0 : 1 + _rows(more)),
       itemBuilder: (context, index) {
         if (index == 0) return _Cascade(index: 0, child: header);
-        final i = (index - 1) * 2;
+        final split = _rows(habits) + 1;
+        if (index == split) return _Cascade(index: index, child: fold!);
+        final extra = index > split;
+        final group = extra ? more : habits;
+        final i = (index - (extra ? split + 1 : 1)) * 2;
         return _Cascade(
           index: index,
           child: HabitEntrance(
-          key: ValueKey(habits[i].id),
+          key: ValueKey(group[i].id),
           index: index - 1,
           child: Padding(
             padding: const EdgeInsets.only(bottom: 12),
@@ -133,11 +142,11 @@ class MinimalHabitList extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Expanded(child: _monthCard(habits[i])),
+                  Expanded(child: _monthCard(context, group[i])),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: i + 1 < habits.length
-                        ? _monthCard(habits[i + 1])
+                    child: i + 1 < group.length
+                        ? _monthCard(context, group[i + 1])
                         : const SizedBox.shrink(),
                   ),
                 ],
@@ -150,7 +159,9 @@ class MinimalHabitList extends StatelessWidget {
     );
   }
 
-  Widget _monthCard(Habit habit) {
+  static int _rows(List<Habit> habits) => (habits.length + 1) ~/ 2;
+
+  Widget _monthCard(BuildContext context, Habit habit) {
     return PaneMark(
       id: habit.id,
       tint: habit.color,
