@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:streak/core/database/local_store.dart';
@@ -520,6 +521,7 @@ class FocusController extends ChangeNotifier {
     try {
       if (!_open || !isRunning) return await notifications.cancelFocusEnd();
       if (isFlow || reachedTarget || !isMobile) return;
+      if (Platform.isAndroid) return await notifications.cancelFocusEnd();
       final (title, body) = await _endTexts(breakEnded: _isBreak);
       await notifications.scheduleFocusEnd(
         title: title,
@@ -578,6 +580,7 @@ class FocusController extends ChangeNotifier {
               : isRunning
                   ? 'running'
                   : 'paused';
+      final (endTitle, endBody) = await _endTexts(breakEnded: _isBreak);
       await FocusService.show(
         habitId: _habitId,
         title: name ?? strings.focus,
@@ -598,6 +601,8 @@ class FocusController extends ChangeNotifier {
         continueLabel: strings.focus_continue,
         skipLabel: strings.focus_skip_break,
         minuteLabel: '+${strings.minutes_short('1')}',
+        endTitle: endTitle,
+        endBody: endBody,
       );
     } catch (e) {
       debugPrint('Focus notification sync failed: $e');

@@ -41,6 +41,8 @@ object FocusState {
         state.put("skipLabel", arguments["skipLabel"] as? String ?: "")
         state.put("continueLabel", arguments["continueLabel"] as? String ?: "")
         state.put("minuteLabel", arguments["minuteLabel"] as? String ?: "")
+        state.put("endTitle", arguments["endTitle"] as? String ?: "")
+        state.put("endBody", arguments["endBody"] as? String ?: "")
         state.put("total", (arguments["total"] as? Number)?.toInt() ?: 0)
         state.put("phase", arguments["phase"] as? String ?: "")
         state.put("running", running)

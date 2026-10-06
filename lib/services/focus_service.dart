@@ -52,6 +52,8 @@ class FocusService {
     required String continueLabel,
     required String skipLabel,
     required String minuteLabel,
+    required String endTitle,
+    required String endBody,
   }) =>
       _invoke('show', {
         'habitId': habitId,
@@ -71,6 +73,8 @@ class FocusService {
         'continueLabel': continueLabel,
         'skipLabel': skipLabel,
         'minuteLabel': minuteLabel,
+        'endTitle': endTitle,
+        'endBody': endBody,
       });
 
   static Future<void> hide() => _invoke('hide', const {});
