@@ -103,8 +103,8 @@ class _HabitHeatmapState extends State<HabitHeatmap> {
 
   DateTime get _today => AppClock.today();
 
-  DateTime _mondayOf(DateTime d) =>
-      d.atMidnight.addDays(-(d.weekday - 1));
+  DateTime _weekOf(DateTime d) => d.atMidnight
+      .startOfWeek(context.watch<SettingsController>().weekStart);
 
   Color _cell(BuildContext context, DateTime date, {bool inScope = true}) =>
       heatmapCellColor(context, widget.habit, date, inScope: inScope);
@@ -241,8 +241,8 @@ class _HabitHeatmapState extends State<HabitHeatmap> {
   int _monthColumns() {
     final first = DateTime(_today.year, _today.month, 1);
     final last = DateTime(_today.year, _today.month + 1, 0);
-    final start = _mondayOf(first);
-    final end = _mondayOf(last).addDays(6);
+    final start = _weekOf(first);
+    final end = _weekOf(last).addDays(6);
     return ((end.epochDay - start.epochDay + 1) / 7).round();
   }
 
@@ -280,9 +280,9 @@ class _HabitHeatmapState extends State<HabitHeatmap> {
     final bool monthScope = widget.mode == HeatmapMode.month;
     final DateTime start;
     if (monthScope) {
-      start = _mondayOf(DateTime(_today.year, _today.month, 1));
+      start = _weekOf(DateTime(_today.year, _today.month, 1));
     } else {
-      start = _mondayOf(_today).addDays(-7 * (columns - 1));
+      start = _weekOf(_today).addDays(-7 * (columns - 1));
     }
 
     final path = heatmapPathOn(context);
@@ -515,7 +515,7 @@ class _HabitHeatmapState extends State<HabitHeatmap> {
     final path = heatmapPathOn(context);
     final gap = path ? heatmapPathGap : 3.0;
     const cell = 13.0;
-    final start = _mondayOf(_today).addDays(-7 * (columns - 1));
+    final start = _weekOf(_today).addDays(-7 * (columns - 1));
     final months = DateFormat.MMM(Localizations.localeOf(context).languageCode);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {

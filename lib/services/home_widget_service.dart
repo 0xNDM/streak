@@ -286,7 +286,7 @@ class HomeWidgetService {
 
   static List<DateTime> _heatmapDays(DateTime midnight) {
     final start = midnight
-        .startOfWeek(DateTime.monday)
+        .startOfWeek(LocalStore.setting('weekStart', 1))
         .addDays(-7 * (_heatmapWeeks - 1));
     return List.generate(_heatmapWeeks * 7, start.addDays);
   }

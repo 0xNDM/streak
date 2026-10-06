@@ -599,8 +599,9 @@ class _GridYearStripState extends State<_GridYearStrip> {
   @override
   Widget build(BuildContext context) {
     final today = AppClock.today();
-    final monday = today.addDays(-(today.weekday - 1));
-    final start = monday.subtract(const Duration(days: 7 * (_weeks - 1)));
+    final start = today
+        .startOfWeek(context.watch<SettingsController>().weekStart)
+        .addDays(-7 * (_weeks - 1));
     final months = DateFormat.MMM(Localizations.localeOf(context).languageCode);
     final path = heatmapPathOn(context);
     final gap = path ? heatmapPathGap : 3.0;
@@ -632,7 +633,7 @@ class _GridYearStripState extends State<_GridYearStrip> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: List.generate(_weeks, (column) {
           final first = start.addDays(column * 7);
-          final previous = start.add(Duration(days: (column - 1) * 7));
+          final previous = start.addDays((column - 1) * 7);
           final newMonth = column == 0 || first.month != previous.month;
 
           return Padding(
