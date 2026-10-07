@@ -16,6 +16,7 @@ Future<double?> showNumberKeypadDialog(
   bool decimals = false,
   bool clock = false,
   Color? accent,
+  ValueNotifier<bool>? replacing,
 }) {
   return showDialog<double>(
     context: context,
@@ -28,6 +29,7 @@ Future<double?> showNumberKeypadDialog(
       decimals: decimals,
       clock: clock,
       accent: accent,
+      replacing: replacing,
     ),
   );
 }
@@ -42,6 +44,7 @@ class _NumberKeypadDialog extends StatefulWidget {
     required this.decimals,
     required this.clock,
     required this.accent,
+    required this.replacing,
   });
 
   final String title;
@@ -52,6 +55,7 @@ class _NumberKeypadDialog extends StatefulWidget {
   final bool decimals;
   final bool clock;
   final Color? accent;
+  final ValueNotifier<bool>? replacing;
 
   @override
   State<_NumberKeypadDialog> createState() => _NumberKeypadDialogState();
@@ -190,6 +194,53 @@ class _NumberKeypadDialogState extends State<_NumberKeypadDialog> {
               textAlign: TextAlign.center,
               style: sheetTitleStyle(context, size: 17),
             ),
+            if (widget.replacing case final replacing?) ...[
+              const SizedBox(height: 12),
+              ValueListenableBuilder<bool>(
+                valueListenable: replacing,
+                builder: (context, replace, _) => Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Row(
+                    children: [
+                      for (final (index, label) in [
+                        context.l10n.quant_mode_add,
+                        context.l10n.quant_mode_replace,
+                      ].indexed)
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => replacing.value = index == 1,
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              padding: const EdgeInsets.symmetric(vertical: 9),
+                              decoration: BoxDecoration(
+                                color: replace == (index == 1)
+                                    ? accent.withValues(alpha: 0.18)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(11),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                label,
+                                style: sheetActionStyle(
+                                  context,
+                                  size: 14,
+                                  color: replace == (index == 1)
+                                      ? accent
+                                      : context.tokens.muted,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 14),
             FittedBox(
               fit: BoxFit.scaleDown,
