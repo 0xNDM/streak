@@ -1132,12 +1132,8 @@
       }
     }
   },
-  "widget_cfg_todos_scope": "Görevler",
   "widget_cfg_todos_all": "Tüm görevleri göster",
   "widget_cfg_todos_hint": "Kapalı: yalnızca bugünkü, geciken ve tarihsiz görevler",
-  "widget_cfg_checks": "İşaretler",
-  "widget_cfg_square": "Kare",
-  "widget_cfg_circle": "Daire",
   "widget_cfg_show_activity": "Şunun aktivitesini göster",
   "widget_cfg_dot_color": "Nokta rengi",
   "widget_cfg_style": "Stil",

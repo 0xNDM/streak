@@ -63,12 +63,19 @@ class HomeWidgetService {
           'activity': l10n.widget_activity,
           'today_progress': l10n.widget_today_progress('{done}', '{total}'),
           'done_today': l10n.widget_done_today,
+          'today': l10n.today,
+          'this_week': l10n.widget_this_week,
+          'week_done': l10n.widget_week_done('{done}', '{total}'),
+          'today_done': l10n.widget_today_done('{done}', '{total}'),
+          'streak_days': l10n.widget_streak_days,
           'todos_open': l10n.widget_todos_open('{count}'),
           'todos_empty': l10n.widget_todos_empty,
           'best_streak': l10n.widget_best_streak('{streak}'),
           'label_week': l10n.week,
           'label_best': l10n.best,
           'cfg_title': l10n.widget_cfg_title,
+          'cfg_content': l10n.widget_cfg_content,
+          'cfg_background': l10n.widget_cfg_background,
           'cfg_color': l10n.widget_cfg_color,
           'cfg_image': l10n.widget_cfg_image,
           'cfg_choose_image': l10n.widget_cfg_choose_image,
@@ -80,12 +87,9 @@ class HomeWidgetService {
           'cfg_opacity': l10n.widget_cfg_opacity('{value}'),
           'cfg_border': l10n.widget_cfg_border,
           'cfg_thickness': l10n.widget_cfg_thickness('{value}'),
-          'cfg_todos_scope': l10n.widget_cfg_todos_scope,
           'cfg_todos_all': l10n.widget_cfg_todos_all,
-          'cfg_checks': l10n.widget_cfg_checks,
-          'cfg_square': l10n.widget_cfg_square,
-          'cfg_circle': l10n.widget_cfg_circle,
           'cfg_todos_hint': l10n.widget_cfg_todos_hint,
+          'cfg_show_art': l10n.widget_cfg_show_art,
           'cfg_show_activity': l10n.widget_cfg_show_activity,
           'cfg_show_habits': l10n.widget_cfg_show_habits,
           'cfg_show_habits_hint': l10n.widget_cfg_show_habits_hint,
@@ -175,6 +179,19 @@ class HomeWidgetService {
     }
   }
 
+  static String _dateLabel(String pattern, DateTime day) {
+    String plain(String text) {
+      final bare = text.replaceAll('.', '');
+      return bare.isEmpty ? bare : bare[0].toUpperCase() + bare.substring(1);
+    }
+
+    try {
+      return plain(DateFormat(pattern, _locale ?? 'en').format(day));
+    } catch (e) {
+      return '';
+    }
+  }
+
   static List<Habit> _ordered(Map<String, Habit> habits) =>
       habits.values.where((habit) => !habit.isArchived).toList()
         ..sort((a, b) => a.order.compareTo(b.order));
@@ -226,6 +243,7 @@ class HomeWidgetService {
       return {
         'key': date.dayKey,
         'label': narrow[date.weekday % 7],
+        'short': _dateLabel('ccc', date),
         'isToday': date.dayKey == today.dayKey,
       };
     }).toList();
@@ -257,6 +275,8 @@ class HomeWidgetService {
       'days': days,
       'weekOffset': weekOffset,
       'todayKey': today.dayKey,
+      'dateLabel': _dateLabel('MMMd', today),
+      'weekdayLabel': _dateLabel('EEEE', today),
       'dayCutoff': AppClock.cutoffHour,
       'heatmap': _heatmapLevels(listed, today),
       'fallbackIconPath': icons[_allHabitsIcon] ?? '',

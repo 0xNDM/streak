@@ -1018,7 +1018,6 @@
     "description": "Screen reader label for a colour swatch in the picker"
   },
   "report_issue": "报告问题",
-  "widget_cfg_todos_scope": "任务",
   "todo_time": "时间",
   "vacation_all_sub": "开启后，任何习惯都不会算作未完成",
   "currency_hint": "符号或代码",

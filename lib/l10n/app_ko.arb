@@ -875,7 +875,6 @@
       }
     }
   },
-  "widget_cfg_todos_scope": "할 일",
   "widget_cfg_todos_all": "모든 할 일 표시",
   "widget_cfg_todos_hint": "끔: 오늘, 미뤄둔, 언젠가 할 일만 표시",
   "widget_cfg_dot_color": "점 색상",
@@ -1426,9 +1425,6 @@
   "focus_restart_body": "이번 회차에 집중한 시간이 사라져요.",
   "swipe_cards": "습관 카드 밀기",
   "swipe_cards_sub": "왼쪽으로 밀어 습관을 완료하고 오른쪽으로 밀어 되돌리세요.",
-  "widget_cfg_square": "사각형",
-  "widget_cfg_circle": "원",
-  "widget_cfg_checks": "체크",
   "focus_hold_sub": "계속 버튼을 누르기 전까지 다음 회차로 넘어가지 않아요.",
   "duplicate_habit": "습관 복제",
   "habit_duplicated": "{name} 습관을 추가했어요",

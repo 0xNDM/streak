@@ -1062,7 +1062,6 @@
       }
     }
   },
-  "widget_cfg_todos_scope": "Sarcini",
   "widget_cfg_todos_all": "Afișează toate sarcinile",
   "widget_cfg_todos_hint": "Dezactivat: doar sarcinile de azi, întârziate și fără dată",
   "widget_cfg_show_activity": "Afișează activitatea pentru",

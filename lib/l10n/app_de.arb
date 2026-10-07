@@ -785,7 +785,6 @@
   "clear_progress_sub": "Verlauf, Notizen und Fokus-Sessions",
   "clear_progress_confirm": "Fortschritt zurücksetzen",
   "clear_progress_done": "Fortschritt zurückgesetzt",
-  "widget_cfg_todos_scope": "Aufgaben",
   "todo_time": "Zeit",
   "vacation_all_sub": "Nichts zählt als verfehlt, solange es eingeschaltet ist",
   "currency_hint": "Symbol oder Code",

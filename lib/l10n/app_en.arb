@@ -991,6 +991,13 @@
   "widget_open_to_sync": "Open Streak to sync",
   "widget_activity": "Activity",
   "widget_today_progress": "Today  {done}/{total}",
+  "widget_today_done": "{done} of {total} done",
+  "@widget_today_done": {
+    "placeholders": {
+      "done": { "type": "String" },
+      "total": { "type": "String" }
+    }
+  },
   "@widget_today_progress": {
     "placeholders": {
       "done": { "type": "String" },
@@ -1005,6 +1012,15 @@
   },
   "widget_todos_empty": "Nothing left for today",
   "widget_done_today": "done today",
+  "widget_streak_days": "Streak days",
+  "widget_this_week": "This week",
+  "widget_week_done": "{done} of {total}",
+  "@widget_week_done": {
+    "placeholders": {
+      "done": { "type": "String" },
+      "total": { "type": "String" }
+    }
+  },
   "widget_best_streak": "🔥 {streak} best streak",
   "@widget_best_streak": {
     "placeholders": {
@@ -1012,6 +1028,8 @@
     }
   },
   "widget_cfg_title": "Customize widget",
+  "widget_cfg_content": "Content",
+  "widget_cfg_background": "Background",
   "widget_cfg_color": "Color",
   "widget_cfg_image": "Image",
   "widget_cfg_choose_image": "Choose image",
@@ -1033,12 +1051,9 @@
       "value": { "type": "String" }
     }
   },
-  "widget_cfg_todos_scope": "Tasks",
   "widget_cfg_todos_all": "Show every task",
   "widget_cfg_todos_hint": "Off: only today, late and undated tasks",
-  "widget_cfg_checks": "Checks",
-  "widget_cfg_square": "Square",
-  "widget_cfg_circle": "Circle",
+  "widget_cfg_show_art": "Show illustration",
   "widget_cfg_show_activity": "Show activity of",
   "widget_cfg_dot_color": "Dot color",
   "widget_cfg_style": "Style",
