@@ -388,7 +388,7 @@ class _HomePageState extends State<HomePage> {
         actions: minimal && !railed && !_reordering
             ? [
                 if (settings.focusEnabled &&
-                    context.watch<FocusController>().isActive) ...[
+                    context.select<FocusController, bool>((f) => f.isActive)) ...[
                   const FocusPill(compact: true),
                   const SizedBox(width: 6),
                 ],
