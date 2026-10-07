@@ -6,7 +6,7 @@ import 'package:streak/app/theme/app_theme.dart';
 
 TextStyle statNumber(BuildContext context, double size, {Color? color}) =>
     TextStyle(
-      fontFamily: 'Figtree',
+      fontFamily: AppTheme.isClassic(context) ? AppTheme.classicFont : 'Figtree',
       fontSize: size,
       fontWeight: FontWeight.w900,
       height: 1,
