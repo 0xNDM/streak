@@ -44,6 +44,7 @@ List<FocusTrack> focusTracksOf(BuildContext context, SettingsController s) => [
               'rain.mp3' => context.l10n.focus_track_rain,
               'brown_noise.mp3' => context.l10n.focus_track_brown,
               'fire.mp3' => context.l10n.focus_track_fire,
+              'ticking.mp3' => context.l10n.focus_track_ticking,
               _ => entry.value,
             },
             asset: true,
