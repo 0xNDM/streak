@@ -94,6 +94,22 @@ flutter:
           weight: 800
         - asset: fonts/Figtree-Black.ttf
           weight: 900
+    - family: GoogleSansRounded
+      fonts:
+        - asset: fonts/GoogleSansRounded-Light.ttf
+          weight: 300
+        - asset: fonts/GoogleSansRounded-Regular.ttf
+          weight: 400
+        - asset: fonts/GoogleSansRounded-Medium.ttf
+          weight: 500
+        - asset: fonts/GoogleSansRounded-SemiBold.ttf
+          weight: 600
+        - asset: fonts/GoogleSansRounded-Bold.ttf
+          weight: 700
+        - asset: fonts/GoogleSansRounded-ExtraBold.ttf
+          weight: 800
+        - asset: fonts/GoogleSansRounded-Black.ttf
+          weight: 900
     - family: GoogleSansFlex
       fonts:
         - asset: fonts/GoogleSansFlex.ttf

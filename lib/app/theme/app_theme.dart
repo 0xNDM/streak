@@ -10,6 +10,10 @@ class AppTheme {
   const AppTheme._();
 
   static const _fontFamily = 'Figtree';
+  static const classicFont = 'GoogleSansRounded';
+
+  static bool isClassic(BuildContext context) =>
+      Theme.of(context).textTheme.bodyMedium?.fontFamily == classicFont;
 
   static ThemeData light([Color? accent, int style = 0]) =>
       _build(Brightness.light, accent ?? AppPalette.brand, style);
@@ -164,6 +168,7 @@ class AppTheme {
     final isDark = brightness == Brightness.dark;
     final minimal = style == 1;
     final accent = adaptAccent(seed, isDark);
+    final font = minimal ? _fontFamily : classicFont;
 
     final scheme = ColorScheme.fromSeed(
       seedColor: accent,
@@ -198,7 +203,7 @@ class AppTheme {
       colorScheme: scheme,
 
       scaffoldBackgroundColor: Colors.transparent,
-      fontFamily: _fontFamily,
+      fontFamily: font,
       visualDensity: VisualDensity.standard,
       splashFactory: NoSplash.splashFactory,
       extensions: [isDark ? AppTokens.dark : AppTokens.light],
@@ -210,7 +215,7 @@ class AppTheme {
         systemOverlayStyle: systemBars(brightness),
         foregroundColor: scheme.onSurface,
         titleTextStyle: TextStyle(
-          fontFamily: _fontFamily,
+          fontFamily: font,
           fontSize: 26,
           fontWeight: FontWeight.w800,
           color: scheme.onSurface,
@@ -247,7 +252,7 @@ class AppTheme {
         titleTextStyle: minimal
             ? MinimalType.display(22, color: scheme.onSurface)
             : TextStyle(
-                fontFamily: _fontFamily,
+                fontFamily: classicFont,
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
                 color: scheme.onSurface,
