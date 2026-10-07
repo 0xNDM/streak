@@ -17,6 +17,7 @@ import 'package:streak/features/focus/state/focus_controller.dart';
 import 'package:streak/features/habits/pages/habit_details_page.dart';
 import 'package:streak/features/habits/state/categories_controller.dart';
 import 'package:streak/features/habits/state/habits_controller.dart';
+import 'package:streak/features/habits/widgets/day_actions_sheet.dart';
 import 'package:streak/features/island/state/island_controller.dart';
 import 'package:streak/features/habits/state/notes_controller.dart';
 import 'package:streak/features/settings/state/settings_controller.dart';
@@ -183,6 +184,21 @@ void _openTodos() {
 void _openPage(String page) {
   if (page == 'todos') _openTodos();
   if (page == 'stats') AppNavigator.push(const StatisticsPage(), fade: true);
+  if (page.startsWith('day:')) _openDay(page.substring(4));
+}
+
+void _openDay(String target) {
+  final split = target.lastIndexOf(':');
+  final context = AppNavigator.key.currentContext;
+  if (split <= 0 || context == null) return;
+  final habit = context.read<HabitsController>().byId(target.substring(0, split));
+  if (habit == null) return;
+  showDayActionsSheet(
+    context,
+    habit: habit,
+    date: parseDayKey(target.substring(split + 1)),
+    notesEnabled: context.read<SettingsController>().notesEnabled,
+  );
 }
 
 void _startFocus(String habitId) {

@@ -154,6 +154,7 @@ class WidgetConfigActivity : ComponentActivity() {
                 initialBgLight = WidgetConfig.bgLight(this, appWidgetId),
                 initialTodosAll = WidgetConfig.todosAll(this, appWidgetId),
                 initialArt = WidgetConfig.art(this, appWidgetId),
+                initialSpan = WidgetConfig.span(this, appWidgetId),
                 initialChosen = WidgetConfig.habits(this, appWidgetId),
                 isEdit = WidgetConfig.exists(this, appWidgetId),
             )
@@ -192,7 +193,7 @@ class WidgetConfigActivity : ComponentActivity() {
         bg: Int, opacity: Int, border: Boolean, borderWidth: Int,
         habitId: String?, allColor: Int, layout: Int,
         followSystem: Boolean, bgLight: Int, todosAll: Boolean,
-        chosen: Set<String>, art: Boolean,
+        chosen: Set<String>, art: Boolean, span: Int,
     ) {
         val image = if (bgModeState.value == 1) imageState.value else null
         WidgetConfig.set(
@@ -202,6 +203,7 @@ class WidgetConfigActivity : ComponentActivity() {
         if (image != originalImage) WidgetConfig.deleteImage(this, originalImage)
         if (type == WType.TODOS) WidgetConfig.setTodosAll(this, appWidgetId, todosAll)
         if (type == WType.STATS || type == WType.TODOS) WidgetConfig.setArt(this, appWidgetId, art)
+        if (type == WType.HABIT) WidgetConfig.setSpan(this, appWidgetId, span)
         if (filters) WidgetConfig.setHabits(this, appWidgetId, chosen)
         if (type == WType.HEATMAP) {
             HeatmapConfig.setHabit(this, appWidgetId, habitId)
@@ -298,6 +300,7 @@ class WidgetConfigActivity : ComponentActivity() {
         initialBgLight: Int,
         initialTodosAll: Boolean,
         initialArt: Boolean,
+        initialSpan: Int,
         initialChosen: Set<String>,
         isEdit: Boolean,
     ) {
@@ -314,6 +317,7 @@ class WidgetConfigActivity : ComponentActivity() {
         var lightCustom by remember { mutableStateOf(false) }
         var todosAll by remember { mutableStateOf(initialTodosAll) }
         var art by remember { mutableStateOf(initialArt) }
+        var span by remember { mutableStateOf(initialSpan) }
         var chosen by remember { mutableStateOf(initialChosen) }
         val mode by bgModeState
         val image by imageState
@@ -328,7 +332,7 @@ class WidgetConfigActivity : ComponentActivity() {
 
         val hasArt = type == WType.STATS || type == WType.TODOS
         val hasPicker = filters && habits.size > 1
-        val hasContent = type == WType.HEATMAP || type == WType.TODOS || hasArt || hasPicker
+        val hasContent = type == WType.HEATMAP || type == WType.TODOS || type == WType.HABIT || hasArt || hasPicker
 
         CompositionLocalProvider(LocalTextStyle provides TextStyle(fontFamily = rounded, color = ink)) {
             Column(modifier = Modifier.fillMaxSize().background(screenBg)) {
@@ -343,7 +347,7 @@ class WidgetConfigActivity : ComponentActivity() {
                             .padding(18.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Preview(style, image.takeIf { mode == 1 }, layout, habitId, allColor, art)
+                        Preview(style, image.takeIf { mode == 1 }, layout, habitId, allColor, art, span)
                     }
                 }
                 Column(
@@ -364,6 +368,17 @@ class WidgetConfigActivity : ComponentActivity() {
                                         onLeft = { layout = HeatmapConfig.LAYOUT_CLASSIC },
                                         onRight = { layout = HeatmapConfig.LAYOUT_CARD },
                                     )
+                                }
+                            }
+                            if (type == WType.HABIT) {
+                                Inset {
+                                    Label(tr("cfg_days", "Days shown"))
+                                    Spacer(Modifier.height(12.dp))
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Chip(tr("this_week", "This week"), span == 7) { span = 7 }
+                                        Chip("8", span == 8) { span = 8 }
+                                        Chip("9", span == 9) { span = 9 }
+                                    }
                                 }
                             }
                             if (type == WType.TODOS) {
@@ -510,7 +525,7 @@ class WidgetConfigActivity : ComponentActivity() {
                             .clickable {
                                 save(
                                     bg, opacity, border, borderWidth, habitId, allColor, layout,
-                                    followSystem, bgLight, todosAll, chosen, art,
+                                    followSystem, bgLight, todosAll, chosen, art, span,
                                 )
                             },
                         contentAlignment = Alignment.Center,
@@ -534,6 +549,7 @@ class WidgetConfigActivity : ComponentActivity() {
                                 allColor = brand.toArgb()
                                 layout = HeatmapConfig.LAYOUT_CLASSIC
                                 art = true
+                                span = 7
                                 todosAll = false
                                 chosen = emptySet()
                                 bgModeState.value = 0
@@ -680,6 +696,7 @@ class WidgetConfigActivity : ComponentActivity() {
         habitId: String?,
         allColor: Int,
         art: Boolean,
+        span: Int,
     ) = Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         val frame = when (type) {
             WType.STATS -> Modifier.size(158.dp)
@@ -725,7 +742,7 @@ class WidgetConfigActivity : ComponentActivity() {
                 )
             }
             when (type) {
-                WType.HABIT -> WeekSample(style)
+                WType.HABIT -> WeekSample(style, span)
                 WType.TODAY -> TodaySample(style)
                 WType.STATS -> StatsSample(style, art)
                 WType.HEATMAP -> Box(Modifier.padding(14.dp)) { LivePreview(style, layout, habitId, allColor) }

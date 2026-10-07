@@ -65,6 +65,7 @@ class HomeWidgetService {
           'done_today': l10n.widget_done_today,
           'today': l10n.today,
           'this_week': l10n.widget_this_week,
+          'last_days': l10n.widget_last_days('{count}'),
           'week_done': l10n.widget_week_done('{done}', '{total}'),
           'today_done': l10n.widget_today_done('{done}', '{total}'),
           'streak_days': l10n.widget_streak_days,
@@ -90,6 +91,7 @@ class HomeWidgetService {
           'cfg_todos_all': l10n.widget_cfg_todos_all,
           'cfg_todos_hint': l10n.widget_cfg_todos_hint,
           'cfg_show_art': l10n.widget_cfg_show_art,
+          'cfg_days': l10n.widget_cfg_days,
           'cfg_show_activity': l10n.widget_cfg_show_activity,
           'cfg_show_habits': l10n.widget_cfg_show_habits,
           'cfg_show_habits_hint': l10n.widget_cfg_show_habits_hint,
@@ -205,6 +207,7 @@ class HomeWidgetService {
     final weekStart = LocalStore.setting('weekStart', 1);
     final weekOffset = _weekDays - 1 - (today.weekday - weekStart + 7) % 7;
     final dates = window.take(_weekDays).toList();
+    final earlier = [today.addDays(-_weekDays - 1), today.addDays(-_weekDays)];
     final listed = _ordered(habits);
 
     final widgetHabits = listed.map((habit) {
@@ -235,18 +238,26 @@ class HomeWidgetService {
             .map((d) => !habit.isPausedOn(d) && habit.isScheduledOn(d))
             .toList(),
         'heatmap': _levelsOf(habit, today),
+        'earlier': {
+          'completions': earlier.map(habit.isCompletedOn).toList(),
+          'counts': earlier
+              .map((d) => habit.completions[d.dayKey]?.count ?? 0.0)
+              .toList(),
+          'scheduled': earlier
+              .map((d) => !habit.isPausedOn(d) && habit.isScheduledOn(d))
+              .toList(),
+        },
       };
     }).toList();
 
     final narrow = _narrowWeekdays();
-    final days = window.map((date) {
-      return {
-        'key': date.dayKey,
-        'label': narrow[date.weekday % 7],
-        'short': _dateLabel('ccc', date),
-        'isToday': date.dayKey == today.dayKey,
-      };
-    }).toList();
+    Map<String, Object> dayOf(DateTime date) => {
+          'key': date.dayKey,
+          'label': narrow[date.weekday % 7],
+          'short': _dateLabel('ccc', date),
+          'isToday': date.dayKey == today.dayKey,
+        };
+    final days = window.map(dayOf).toList();
 
     final counted = listed.where((h) => !h.tracking).toList();
 
@@ -273,11 +284,13 @@ class HomeWidgetService {
     return json.encode({
       'habits': widgetHabits,
       'days': days,
+      'earlierDays': earlier.map(dayOf).toList(),
       'weekOffset': weekOffset,
       'todayKey': today.dayKey,
       'dateLabel': _dateLabel('MMMd', today),
       'weekdayLabel': _dateLabel('EEEE', today),
       'dayCutoff': AppClock.cutoffHour,
+      'pastFirst': LocalStore.setting('pastFirst', false),
       'heatmap': _heatmapLevels(listed, today),
       'fallbackIconPath': icons[_allHabitsIcon] ?? '',
       if (Platform.isIOS) 'fallbackIconData': _iconData(icons[_allHabitsIcon]),

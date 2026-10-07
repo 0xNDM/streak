@@ -10,6 +10,7 @@ object WidgetPayload {
 
     const val WEEK = 7
     const val TODAY = WEEK - 1
+    const val EARLIER = 2
     private const val SPAN = WEEK + TODAY
 
     fun todayKey(context: Context): String =
@@ -129,6 +130,7 @@ object WidgetPayload {
             else -> end - TODAY
         }
 
+        if (start > 0) root.put("earlierDays", shift(root.optJSONArray("earlierDays"), days, start))
         root.put("days", sliceDays(days, start, todayKey))
         if (end > TODAY) {
             val since = TODAY - root.optInt("weekOffset", 0) + end - TODAY
@@ -144,6 +146,13 @@ object WidgetPayload {
         for (i in 0 until habits.length()) {
             val habit = habits.optJSONObject(i) ?: continue
             val scheduled = habit.optJSONArray("scheduled")
+            if (start > 0) {
+                val earlier = habit.optJSONObject("earlier") ?: JSONObject()
+                for (name in listOf("completions", "counts", "scheduled")) {
+                    earlier.put(name, shift(earlier.optJSONArray(name), habit.optJSONArray(name), start))
+                }
+                habit.put("earlier", earlier)
+            }
             val completions = slice(habit.optJSONArray("completions"), start)
             habit.put("completions", completions)
             habit.put("counts", slice(habit.optJSONArray("counts"), start))
@@ -181,6 +190,15 @@ object WidgetPayload {
                     .put("short", day.optString("short"))
                     .put("isToday", day.optString("key") == todayKey),
             )
+        }
+        return out
+    }
+
+    private fun shift(earlier: JSONArray?, values: JSONArray?, start: Int): JSONArray {
+        val out = JSONArray()
+        for (k in 0 until EARLIER) {
+            val at = start - EARLIER + k
+            out.put((if (at >= 0) values?.opt(at) else earlier?.opt(at + EARLIER)) ?: JSONObject.NULL)
         }
         return out
     }

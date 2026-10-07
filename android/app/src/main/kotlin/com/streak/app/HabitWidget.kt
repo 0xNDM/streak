@@ -55,7 +55,21 @@ private const val ROW_GAP = 5f
 private const val ICON = 20f
 private const val RIGHT_INSET = 8f
 
-private data class Grid(val inner: Float, val name: Float, val cell: Float, val dot: Float)
+private data class Grid(val inner: Float, val name: Float, val cell: Float, val dot: Float, val first: Int, val span: Int)
+
+private fun series(habit: JSONObject, name: String, day: Int): Any? =
+    if (day >= 0) {
+        habit.optJSONArray(name)?.opt(day)
+    } else {
+        habit.optJSONObject("earlier")?.optJSONArray(name)?.opt(day + WidgetPayload.EARLIER)
+    }
+
+private fun dayAt(data: JSONObject, day: Int): JSONObject? =
+    if (day >= 0) {
+        data.optJSONArray("days")?.optJSONObject(day)
+    } else {
+        data.optJSONArray("earlierDays")?.optJSONObject(day + WidgetPayload.EARLIER)
+    }
 
 class HabitWidget : GlanceAppWidget() {
 
@@ -90,13 +104,15 @@ class HabitWidget : GlanceAppWidget() {
             }
             return
         }
-        val offset = data.optInt("weekOffset", 0).coerceIn(0, maxOf(0, days.length() - 7))
+        val span = WidgetConfig.span(context, appWidgetId)
+        val first = if (span > 7) TODAY_INDEX - span + 1 else data.optInt("weekOffset", 0).coerceIn(0, maxOf(0, days.length() - 7))
         val inner = size.width.value - PAD * 2
         val name = inner * 0.40f
-        val cell = (inner - name - RIGHT_INSET) / 7f
-        val grid = Grid(inner, name, cell, minOf(22f, cell - 4f))
-        val keys = List(days.length()) {
-            days.optJSONObject(it)?.optString("key") ?: WidgetPayload.todayKey(context)
+        val cell = (inner - name - RIGHT_INSET) / span
+        val grid = Grid(inner, name, cell, minOf(22f, cell - 4f), first, span)
+        val pastFirst = data.optBoolean("pastFirst", false)
+        val keys = List(span) {
+            dayAt(data, first + it)?.optString("key") ?: WidgetPayload.todayKey(context)
         }
 
         val last = habits.length() - 1
@@ -108,13 +124,13 @@ class HabitWidget : GlanceAppWidget() {
         ) {
             Box(modifier = GlanceModifier.fillMaxWidth().height((HEADER + LIST_GAP).dp)) {
                 val top = BAR_H + BAR_GAP + (LETTER_ROW - grid.dot) / 2f - 3f
-                Band(context, style, grid, offset, top, HEADER + LIST_GAP - top, openTop = false, openBottom = true)
-                Header(context, style, grid, density, habits, days, offset)
+                Band(context, style, grid, top, HEADER + LIST_GAP - top, openTop = false, openBottom = true)
+                Header(context, style, grid, density, habits, data)
             }
             LazyColumn(modifier = GlanceModifier.fillMaxWidth().defaultWeight()) {
                 items(habits.length()) { index ->
                     habits.optJSONObject(index)?.let {
-                        HabitRow(context, style, grid, density, it, keys, offset, index == last)
+                        HabitRow(context, style, grid, density, it, keys, index == last, pastFirst)
                     }
                 }
             }
@@ -126,14 +142,13 @@ class HabitWidget : GlanceAppWidget() {
         context: Context,
         style: WidgetStyle,
         grid: Grid,
-        offset: Int,
         top: Float,
         height: Float,
         openTop: Boolean,
         openBottom: Boolean,
     ) {
-        val column = TODAY_INDEX - offset
-        if (column !in 0..6) return
+        val column = TODAY_INDEX - grid.first
+        if (column !in 0 until grid.span) return
         val width = grid.dot + 6f
         val left = grid.name + grid.cell * column + (grid.cell - width) / 2f
         Column(modifier = GlanceModifier.fillMaxSize()) {
@@ -157,20 +172,23 @@ class HabitWidget : GlanceAppWidget() {
         grid: Grid,
         density: Float,
         habits: JSONArray,
-        days: JSONArray,
-        offset: Int,
+        data: JSONObject,
     ) {
         var due = 0
         var done = 0
-        val ratios = List(7) { column ->
-            val (d, k) = tally(habits, offset + column)
+        val ratios = List(grid.span) { column ->
+            val (d, k) = tally(habits, grid.first + column)
             due += d
             done += k
-            if (d == 0 || offset + column > TODAY_INDEX) 0f else k / d.toFloat()
+            if (d == 0 || grid.first + column > TODAY_INDEX) 0f else k / d.toFloat()
         }
         Row(modifier = GlanceModifier.fillMaxWidth().height(HEADER.dp)) {
             Column(modifier = GlanceModifier.width(grid.name.dp)) {
-                val title = WidgetText.get(context, "this_week", "This week")
+                val title = if (grid.span > 7) {
+                    WidgetText.format(context, "last_days", "Last ${grid.span} days", "{count}" to grid.span.toString())
+                } else {
+                    WidgetText.get(context, "this_week", "This week")
+                }
                 Drawn(WidgetDraw.text(context, title, 19f, style.content, 800, grid.name - 4f), density, title)
                 if (due > 0) {
                     val line = WidgetText.format(
@@ -186,7 +204,7 @@ class HabitWidget : GlanceAppWidget() {
             }
             Column {
                 Row {
-                    for (column in 0 until 7) {
+                    for (column in 0 until grid.span) {
                         Box(modifier = GlanceModifier.width(grid.cell.dp), contentAlignment = Alignment.Center) {
                             Drawn(WidgetDraw.bar(context, 5f, BAR_H, ratios[column], style.content), density)
                         }
@@ -194,14 +212,14 @@ class HabitWidget : GlanceAppWidget() {
                 }
                 Spacer(GlanceModifier.height(BAR_GAP.dp))
                 Row {
-                    for (column in 0 until 7) {
-                        val day = days.optJSONObject(offset + column)
+                    for (column in 0 until grid.span) {
+                        val day = dayAt(data, grid.first + column)
                         val letter = day?.optString("label").orEmpty()
                         Box(
                             modifier = GlanceModifier.width(grid.cell.dp).height(LETTER_ROW.dp),
                             contentAlignment = Alignment.Center,
                         ) {
-                            if (offset + column == TODAY_INDEX) {
+                            if (grid.first + column == TODAY_INDEX) {
                                 Drawn(WidgetDraw.pill(context, grid.dot, letter, style.content), density, letter)
                             } else {
                                 Drawn(
@@ -223,10 +241,9 @@ class HabitWidget : GlanceAppWidget() {
         for (i in 0 until habits.length()) {
             val habit = habits.optJSONObject(i) ?: continue
             if (habit.optBoolean("tracking", false)) continue
-            val scheduled = habit.optJSONArray("scheduled")
-            if (scheduled != null && !scheduled.optBoolean(day, false)) continue
+            if (habit.has("scheduled") && series(habit, "scheduled", day) != true) continue
             due++
-            if (habit.optJSONArray("completions")?.optBoolean(day, false) == true) done++
+            if (series(habit, "completions", day) == true) done++
         }
         return due to done
     }
@@ -239,14 +256,11 @@ class HabitWidget : GlanceAppWidget() {
         density: Float,
         habit: JSONObject,
         keys: List<String>,
-        offset: Int,
         last: Boolean,
+        pastFirst: Boolean,
     ) {
         val habitId = habit.optString("id")
         val color = Color(habit.optInt("color", FALLBACK_COLOR))
-        val completions = habit.optJSONArray("completions") ?: JSONArray()
-        val counts = habit.optJSONArray("counts")
-        val scheduled = habit.optJSONArray("scheduled")
         val kind = habit.optInt("kind", 0)
         val target = habit.optDouble("perDayTarget", 1.0).coerceAtLeast(1.0)
         val quantified = kind == KIND_QUANTITATIVE || target > 1
@@ -256,7 +270,7 @@ class HabitWidget : GlanceAppWidget() {
 
         Box(modifier = GlanceModifier.fillMaxWidth().height((ROW + ROW_GAP).dp)) {
             Band(
-                context, style, grid, offset, 0f,
+                context, style, grid, 0f,
                 if (last) ROW / 2f + grid.dot / 2f + 3f else ROW + ROW_GAP,
                 openTop = true, openBottom = !last,
             )
@@ -287,11 +301,11 @@ class HabitWidget : GlanceAppWidget() {
                 }
                 Spacer(GlanceModifier.width(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    for (column in 0 until 7) {
-                        val i = offset + column
-                        val completed = i < completions.length() && completions.optBoolean(i, false)
-                        val count = counts?.optDouble(i, 0.0) ?: 0.0
-                        val planned = scheduled?.optBoolean(i, true) != false
+                    for (column in 0 until grid.span) {
+                        val i = grid.first + column
+                        val completed = series(habit, "completions", i) == true
+                        val count = (series(habit, "counts", i) as? Number)?.toDouble() ?: 0.0
+                        val planned = series(habit, "scheduled", i) != false
                         val future = i > TODAY_INDEX
                         val mark = when {
                             future -> if (planned) WeekMark.EMPTY else WeekMark.OFF
@@ -303,16 +317,13 @@ class HabitWidget : GlanceAppWidget() {
                             else -> WeekMark.MISSED
                         }
                         val cell = GlanceModifier.width(grid.cell.dp).height(ROW.dp)
+                        val key = keys.getOrElse(column) { WidgetPayload.todayKey(context) }
                         Box(
-                            modifier = if (future) cell else cell.clickable(
-                                actionSendBroadcast(
-                                    WidgetActionReceiver.intent(
-                                        context,
-                                        habitId,
-                                        keys.getOrElse(i) { WidgetPayload.todayKey(context) },
-                                    ),
-                                ),
-                            ),
+                            modifier = when {
+                                future -> cell
+                                i < TODAY_INDEX && pastFirst -> cell.clickable(openPageAction(context, "day:$habitId:$key"))
+                                else -> cell.clickable(actionSendBroadcast(WidgetActionReceiver.intent(context, habitId, key)))
+                            },
                             contentAlignment = Alignment.Center,
                         ) {
                             Drawn(

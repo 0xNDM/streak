@@ -58,6 +58,13 @@ object WidgetConfig {
         prefs(context).edit().putBoolean("todosAll_$id", value).commit()
     }
 
+    fun span(context: Context, id: Int): Int =
+        prefs(context).getInt("span_$id", 7).coerceIn(7, 9)
+
+    fun setSpan(context: Context, id: Int, value: Int) {
+        prefs(context).edit().putInt("span_$id", value).commit()
+    }
+
     fun habits(context: Context, id: Int): Set<String> =
         prefs(context).getStringSet("habits_$id", null)?.toSet() ?: emptySet()
 
@@ -106,6 +113,7 @@ object WidgetConfig {
             .remove("image_$id")
             .remove("todosAll_$id")
             .remove("art_$id")
+            .remove("span_$id")
             .remove("round_$id")
             .remove("habits_$id")
             .apply()

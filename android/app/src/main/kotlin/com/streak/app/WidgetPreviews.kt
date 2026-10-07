@@ -154,15 +154,21 @@ fun TodosSample(s: WidgetStyle, art: Boolean) {
 }
 
 @Composable
-fun WeekSample(s: WidgetStyle) {
+fun WeekSample(s: WidgetStyle, span: Int = 7) {
     val context = LocalContext.current
-    val letters = listOf("M", "T", "W", "T", "F", "S", "S")
-    val today = 1
+    val week = listOf("M", "T", "W", "T", "F", "S", "S")
+    val letters = List(span) { week[it % 7] }
+    val today = if (span > 7) span - 1 else 1
     BoxWithConstraints(Modifier.fillMaxSize().padding(14.dp)) {
         val inner = maxWidth.value
         val name = inner * 0.40f
-        val cell = (inner - name - 8f) / 7f
+        val cell = (inner - name - 8f) / span
         val dot = minOf(22f, cell - 4f)
+        val title = if (span > 7) {
+            WidgetText.format(context, "last_days", "Last $span days", "{count}" to span.toString())
+        } else {
+            sample(context, "this_week", "This week")
+        }
         val bandTop = 16f + 5f + (22f - dot) / 2f - 3f
         val bandBottom = 44f + 6f + 45f + 40f / 2f + dot / 2f + 3f
         Box(Modifier.offset(x = (name + cell * today + (cell - dot - 6f) / 2f).dp, y = bandTop.dp)) {
@@ -171,7 +177,7 @@ fun WeekSample(s: WidgetStyle) {
         Column {
             Row(Modifier.height(44.dp)) {
                 Column(Modifier.width(name.dp)) {
-                    Bmp(WidgetDraw.text(context, sample(context, "this_week", "This week"), 19f, s.content, 800, name - 4f), context)
+                    Bmp(WidgetDraw.text(context, title, 19f, s.content, 800, name - 4f), context)
                     val line = WidgetText.format(context, "week_done", "3 of 4", "{done}" to "3", "{total}" to "4") + "  ·  75%"
                     Bmp(WidgetDraw.text(context, line, 11.5f, s.content.copy(alpha = 0.6f), 600, name - 4f), context)
                 }
@@ -209,7 +215,7 @@ fun WeekSample(s: WidgetStyle) {
                         Bmp(WidgetDraw.text(context, habit.name, 12.5f, s.content, 650, name - 17f), context)
                     }
                     Spacer(Modifier.width(4.dp))
-                    (0 until 7).forEach { i ->
+                    (0 until span).forEach { i ->
                         val mark = when {
                             i > today -> WeekMark.EMPTY
                             i == today && row == 1 -> WeekMark.PART

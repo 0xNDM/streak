@@ -1017,6 +1017,11 @@
   "widget_done_today": "done today",
   "widget_streak_days": "Streak days",
   "widget_this_week": "This week",
+  "widget_last_days": "Last {count} days",
+  "@widget_last_days": {
+    "placeholders": { "count": { "type": "String" } }
+  },
+  "widget_cfg_days": "Days shown",
   "widget_week_done": "{done} of {total}",
   "@widget_week_done": {
     "placeholders": {
