@@ -23,6 +23,7 @@ class WidgetActionService {
     await HomeWidgetService.prepare();
     final pending = await _read();
     if (pending.isEmpty) return false;
+    await _clear(pending.length);
 
     final today = AppClock.now();
     final quiet = {
@@ -65,7 +66,6 @@ class WidgetActionService {
     for (final todo in ticked) {
       await LocalStore.writeTodo(todo);
     }
-    await _clear(pending.length);
     return touched.isNotEmpty || ticked.isNotEmpty;
   }
 
