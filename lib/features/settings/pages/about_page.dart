@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:streak/app/theme/app_theme.dart';
 import 'package:streak/app/theme/app_tokens.dart';
 import 'package:streak/core/extensions/inset_extensions.dart';
 import 'package:streak/core/i18n/l10n.dart';
@@ -66,9 +67,9 @@ class _AboutPageState extends State<AboutPage> {
         ),
       1 => MinimalType.display(46, color: scheme.onSurface, height: 1),
       _ => TextStyle(
-          fontFamily: 'PlayfairDisplay',
+          fontFamily: AppTheme.classicFont,
           fontSize: 46,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w800,
           height: 1.0,
           letterSpacing: -1,
           color: scheme.onSurface,
@@ -79,8 +80,8 @@ class _AboutPageState extends State<AboutPage> {
       2 => ExpressType.headline.at(18, height: 1.35, weight: 700, color: muted),
       1 => MinimalType.body(18, height: 1.35, color: muted, weight: 500),
       _ => TextStyle(
-          fontFamily: 'PlayfairDisplay',
-          fontStyle: FontStyle.italic,
+          fontFamily: AppTheme.classicFont,
+          fontWeight: FontWeight.w500,
           fontSize: 18,
           height: 1.3,
           color: muted,
