@@ -47,6 +47,7 @@ import 'package:streak/features/habits/widgets/focus_only_dialog.dart';
 import 'package:streak/features/habits/widgets/unscheduled_day_dialog.dart';
 import 'package:streak/features/habits/widgets/vacation_sheet.dart';
 import 'package:streak/features/settings/pages/settings_page.dart';
+import 'package:streak/features/habits/widgets/day_actions_sheet.dart';
 import 'package:streak/features/settings/state/settings_controller.dart';
 import 'package:streak/features/statistics/pages/statistics_page.dart';
 import 'package:streak/features/todos/pages/todos_page.dart';
@@ -807,6 +808,16 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _toggle(Habit habit, DateTime date) async {
     final controller = context.read<HabitsController>();
+    final settings = context.read<SettingsController>();
+    if (!settings.quickPast && date.atMidnight.isBefore(AppClock.today())) {
+      await showDayActionsSheet(
+        context,
+        habit: habit,
+        date: date,
+        notesEnabled: settings.notesEnabled,
+      );
+      return;
+    }
     if (habit.kind == HabitKind.negative && !isRelapse(habit, date)) {
       if (date.atMidnight.isAfter(AppClock.today())) return;
       if (!await confirmRelapse(context, habit)) return;

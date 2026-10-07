@@ -135,6 +135,16 @@ class _HabitDetailsPageState extends State<HabitDetailsPage> {
         }
 
         void toggle(DateTime date) {
+          final prefs = context.read<SettingsController>();
+          if (!prefs.quickPast && date.atMidnight.isBefore(AppClock.today())) {
+            showDayActionsSheet(
+              context,
+              habit: habit,
+              date: date,
+              notesEnabled: prefs.notesEnabled,
+            );
+            return;
+          }
           switch (habit.kind) {
             case HabitKind.positive:
               unawaited(toggleDay(date));

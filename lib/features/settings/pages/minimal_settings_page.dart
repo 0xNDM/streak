@@ -496,6 +496,15 @@ class _PreferencesPage extends StatelessWidget {
                 onChanged: settings.setHideDone,
               ),
             ),
+            SoftRow(
+              icon: LucideIcons.history,
+              title: context.l10n.quick_past,
+              subtitle: context.l10n.quick_past_sub,
+              trailing: _SoftSwitch(
+                value: settings.quickPast,
+                onChanged: settings.setQuickPast,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 22),

@@ -893,6 +893,17 @@
   "today_only_sub": "Hides the habits that are not scheduled for today",
   "hide_done": "Hide completed",
   "hide_done_sub": "What you finish today leaves the list",
+  "quick_past": "Change past days with one tap",
+  "quick_past_sub": "When off, tapping a past day opens it first so nothing changes by mistake",
+  "day_not_done": "Not done",
+  "day_clean": "Clean",
+  "day_relapsed": "Relapse logged",
+  "day_log_relapse": "Log relapse",
+  "day_clear_relapse": "Remove",
+  "day_amount": "{value} of {goal}",
+  "@day_amount": {
+    "placeholders": { "value": { "type": "String" }, "goal": { "type": "String" } }
+  },
   "today_filter": "Show",
   "today_fold_done": "Done ({count})",
   "@today_fold_done": {

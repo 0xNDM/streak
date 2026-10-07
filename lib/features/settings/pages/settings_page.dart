@@ -446,6 +446,17 @@ class _ClassicPreferencesPage extends StatelessWidget {
                       onChanged: (i) => settings.setHideDone(i == 1),
                     ),
                   ),
+                  settingsDivider(context),
+                  SettingRow(
+                    icon: LucideIcons.history,
+                    title: context.l10n.quick_past,
+                    subtitle: context.l10n.quick_past_sub,
+                    trailing: Segmented(
+                      options: [context.l10n.off, context.l10n.on],
+                      index: settings.quickPast ? 1 : 0,
+                      onChanged: (i) => settings.setQuickPast(i == 1),
+                    ),
+                  ),
                 ],
               ),
             ),

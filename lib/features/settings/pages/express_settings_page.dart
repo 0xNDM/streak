@@ -620,6 +620,13 @@ List<Widget> _preferenceTiles(BuildContext context) {
           value: settings.hideDone,
           onChanged: settings.setHideDone,
         ),
+        _Toggle(
+          icon: LucideIcons.history,
+          title: context.l10n.quick_past,
+          subtitle: context.l10n.quick_past_sub,
+          value: settings.quickPast,
+          onChanged: settings.setQuickPast,
+        ),
       ],
     ),
     const SizedBox(height: 24),

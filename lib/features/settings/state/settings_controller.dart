@@ -81,6 +81,7 @@ class SettingsController extends ChangeNotifier {
     _sortCompletedLast = LocalStore.setting('sortCompletedLast', true);
     _todayOnly = LocalStore.setting('todayOnly', false);
     _hideDone = LocalStore.setting('hideDone', false);
+    _quickPast = LocalStore.setting('quickPast', false);
     _hideTracking = LocalStore.setting('hideTracking', false);
     _notesEnabled = LocalStore.setting('notesEnabled', true);
     _trackingOption = LocalStore.setting('trackingOption', false);
@@ -174,6 +175,7 @@ class SettingsController extends ChangeNotifier {
   late bool _sortCompletedLast;
   late bool _todayOnly;
   late bool _hideDone;
+  late bool _quickPast;
   late bool _hideTracking;
   late bool _notesEnabled;
   late bool _islandEnabled;
@@ -394,6 +396,7 @@ class SettingsController extends ChangeNotifier {
   bool get sortCompletedLast => _sortCompletedLast;
   bool get todayOnly => _todayOnly;
   bool get hideDone => _hideDone;
+  bool get quickPast => _quickPast;
   bool get hideTracking => _hideTracking;
   bool get notesEnabled => _notesEnabled;
 
@@ -812,6 +815,12 @@ class SettingsController extends ChangeNotifier {
   Future<void> setHideDone(bool value) async {
     _hideDone = value;
     await LocalStore.writeSetting('hideDone', value);
+    notifyListeners();
+  }
+
+  Future<void> setQuickPast(bool value) async {
+    _quickPast = value;
+    await LocalStore.writeSetting('quickPast', value);
     notifyListeners();
   }
 
