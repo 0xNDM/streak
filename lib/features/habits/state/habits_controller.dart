@@ -229,6 +229,18 @@ class HabitsController extends ChangeNotifier {
     await _apply(habit, CompletionOps.retime(habit, dayKey, from, to));
   }
 
+  Future<void> setMissReason(String id, String dayKey, String? reason) async {
+    final habit = _habits[id];
+    if (habit == null) return;
+    final reasons = {...habit.missReasons};
+    if (reason == null || reason.trim().isEmpty) {
+      reasons.remove(dayKey);
+    } else {
+      reasons[dayKey] = reason.trim();
+    }
+    await update(habit.copyWith(missReasons: reasons));
+  }
+
   Future<void> clearRelapse(String id, DateTime date) async {
     final habit = _habits[id];
     if (habit == null) return;
@@ -553,6 +565,7 @@ class HabitsController extends ChangeNotifier {
           : ours.copyWith(
               completions:
                   FolderSync.mergeCompletions(ours.completions, theirs.completions),
+              missReasons: {...theirs.missReasons, ...ours.missReasons},
             );
       _habits[habit.id] = habit;
       await LocalStore.writeHabit(habit);

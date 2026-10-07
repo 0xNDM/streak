@@ -72,6 +72,7 @@ class FolderSync {
           ? theirs
           : theirs.copyWith(
               completions: mergeCompletions(ours.completions, theirs.completions),
+              missReasons: {...theirs.missReasons, ...ours.missReasons},
             );
       if (ours != null && _same(ours, merged)) continue;
       brought++;

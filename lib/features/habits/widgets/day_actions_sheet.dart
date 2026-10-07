@@ -18,6 +18,7 @@ import 'package:streak/features/habits/state/habits_controller.dart';
 import 'package:streak/features/habits/state/notes_controller.dart';
 import 'package:streak/features/habits/widgets/focus_only_dialog.dart';
 import 'package:streak/features/habits/widgets/habit_checklist.dart';
+import 'package:streak/features/habits/widgets/miss_reasons.dart';
 import 'package:streak/features/habits/widgets/relapse_dialog.dart';
 import 'package:streak/features/habits/widgets/unscheduled_day_dialog.dart';
 import 'package:streak/core/extensions/color_extensions.dart';
@@ -45,7 +46,7 @@ Future<void> showDayActionsSheet(
     builder: (sheet) => SafeArea(
       top: false,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+        padding: EdgeInsets.fromLTRB(20, 0, 20, 14 + MediaQuery.viewInsetsOf(sheet).bottom),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -60,6 +61,7 @@ Future<void> showDayActionsSheet(
             if (reachable) ...[
               _DayStatus(habitId: habit.id, date: date),
               const SizedBox(height: 12),
+              MissReasonPicker(habitId: habit.id, date: date),
             ],
             if (habit.hasSubsteps && reachable) ...[
               Consumer<HabitsController>(

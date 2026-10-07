@@ -31,6 +31,7 @@ import 'package:streak/features/habits/state/habits_controller.dart';
 import 'package:streak/features/habits/state/notes_controller.dart';
 import 'package:streak/features/habits/widgets/activity_calendar.dart';
 import 'package:streak/features/habits/widgets/day_actions_sheet.dart';
+import 'package:streak/features/habits/widgets/miss_reasons.dart';
 import 'package:streak/core/minimal/minimal_kit.dart';
 import 'package:streak/features/habits/widgets/minimal_detail_parts.dart';
 import 'package:streak/features/habits/widgets/note_widgets.dart';
@@ -355,6 +356,7 @@ class _HabitDetailsPageState extends State<HabitDetailsPage> {
                 const SizedBox(height: 20),
                 CheckHistoryTile(habit: habit),
                 const SizedBox(height: 12),
+                MissReasonsTile(habit: habit),
                 if (minimal)
                   MinimalVacationRow(habit: habit)
                 else

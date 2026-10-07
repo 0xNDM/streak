@@ -77,6 +77,7 @@ class Habit {
     this.substeps = const [],
     this.vacations = const [],
     this.restDays = const [],
+    this.missReasons = const {},
     this.archivedAt,
     this.scheduleStart,
     this.fromLastDone = false,
@@ -252,6 +253,8 @@ class Habit {
   final List<VacationPeriod> vacations;
 
   final List<int> restDays;
+
+  final Map<String, String> missReasons;
 
   final DateTime? archivedAt;
 
@@ -730,6 +733,7 @@ class Habit {
     List<Substep>? substeps,
     List<VacationPeriod>? vacations,
     List<int>? restDays,
+    Map<String, String>? missReasons,
     DateTime? archivedAt,
     bool clearArchived = false,
     DateTime? scheduleStart,
@@ -775,6 +779,7 @@ class Habit {
       substeps: substeps ?? this.substeps,
       vacations: vacations ?? this.vacations,
       restDays: restDays ?? this.restDays,
+      missReasons: missReasons ?? this.missReasons,
       archivedAt: clearArchived ? null : (archivedAt ?? this.archivedAt),
       scheduleStart: clearScheduleStart
           ? null
@@ -833,6 +838,7 @@ class Habit {
         'substeps': substeps.map((s) => s.toMap()).toList(),
         'vacations': vacations.map((v) => v.toMap()).toList(),
         'restDays': restDays,
+        if (missReasons.isNotEmpty) 'missReasons': missReasons,
         if (archivedAt != null) 'archivedAt': archivedAt!.toIso8601String(),
       };
 
@@ -908,6 +914,9 @@ class Habit {
                 .toList(),
         restDays:
             (map['restDays'] as List?)?.map((e) => e as int).toList() ?? const [],
+        missReasons: map['missReasons'] == null
+            ? const {}
+            : Map<String, String>.from(map['missReasons'] as Map),
         archivedAt: map['archivedAt'] == null
             ? null
             : DateTime.tryParse(map['archivedAt'] as String),
