@@ -481,6 +481,32 @@ class NotificationService {
     bool daily = false,
   }) async {
     final when = tz.TZDateTime.from(next, tz.local);
+    if (Platform.isWindows && !when.isBefore(from)) {
+      final details = await _details(habit, body, strings);
+      final ids = <int>{};
+      for (var turn = 1; turn <= (daily ? 14 : 8); turn++) {
+        final turnId = ReminderSchedule.quietId(id, turn);
+        ids.add(turnId);
+        await _zonedSchedule(
+          turnId,
+          habit.name,
+          body,
+          tz.TZDateTime.from(
+            DateTime(
+              next.year,
+              next.month,
+              next.day + (daily ? 1 : 7) * (turn - 1),
+              next.hour,
+              next.minute,
+            ),
+            tz.local,
+          ),
+          details,
+          payload: habit.id,
+        );
+      }
+      return ids;
+    }
     if (!when.isBefore(from)) {
       await _zonedSchedule(
         id,
