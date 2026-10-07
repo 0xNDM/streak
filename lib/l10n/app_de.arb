@@ -1331,8 +1331,6 @@
   "focus_repeat_one": "Einen wiederholen",
   "pin_paste": "Code einfügen",
   "todo_add_subtask": "Unteraufgabe hinzufügen",
-  "category_order": "Kategorie-Reihenfolge",
-  "category_order_sub": "Ziehe die Kategorien an die gewünschte Position",
   "category_order_empty": "Ordne einer Gewohnheit eine Kategorie zu, um sie hier zu sehen",
   "notif_streak_week": "🔥 {streak} Wochenserie",
   "@notif_streak_week": {

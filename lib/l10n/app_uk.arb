@@ -1339,8 +1339,6 @@
   "focus_restart_body": "Час, який ви витратили в цьому раунді, буде втрачено.",
   "focus_end_add_time": "Додати час зосередження",
   "focus_repeat_one": "Повторювати знову",
-  "category_order": "Порядок категорій",
-  "category_order_sub": "Перетягніть їх у потрібному вам порядку",
   "category_order_empty": "Призначте звичці категорію, і вона з’явиться тут",
   "notif_streak_week": "🔥 {streak}-тижнева серія",
   "@notif_streak_week": {

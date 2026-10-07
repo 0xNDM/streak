@@ -821,7 +821,7 @@ class _HomePageState extends State<HomePage> {
   Future<void> _toggle(Habit habit, DateTime date) async {
     final controller = context.read<HabitsController>();
     final settings = context.read<SettingsController>();
-    if (!settings.quickPast && date.atMidnight.isBefore(AppClock.today())) {
+    if (settings.pastFirst && date.atMidnight.isBefore(AppClock.today())) {
       await showDayActionsSheet(
         context,
         habit: habit,

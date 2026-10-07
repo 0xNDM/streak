@@ -1204,8 +1204,6 @@
   "focus_restart_title": "Redémarrer ce tour ?",
   "focus_restart_body": "Le temps de concentration de ce tour sera perdu.",
   "focus_repeat_one": "Répéter une fois",
-  "category_order": "Ordre des catégories",
-  "category_order_sub": "Déplacer les dans l'ordre que vous souhaitez",
   "category_order_empty": "Ajouter une catégorie a une habitude, elle apparaîtra ici",
   "today_progress_option": "Progression aujourd'hui",
   "quiet_when_done_sub": "Aucun rappel pour aujourd'hui vous avez complété toutes vos habitudes",

@@ -907,8 +907,6 @@
   "colors_tab": "Culori",
   "reorder": "Reordonează",
   "reorder_hint": "Trage obiceiurile pentru a le reordona",
-  "category_order": "Ordinea categoriilor",
-  "category_order_sub": "Trage-le în ordinea dorită",
   "category_order_empty": "Atribuie unui obicei o categorie și va apărea aici",
   "done": "Gata",
   "accent_color": "Culoare de accent",

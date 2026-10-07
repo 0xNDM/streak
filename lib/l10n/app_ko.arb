@@ -1436,8 +1436,6 @@
     }
   },
   "about_legal": "© InlitX. Streak는 GNU GPLv3 하에 배포되는 자유 소프트웨어이고, 해당 라이선스 내 제7조의 추가 조항이 적용되며, 보증 책임을 지지 않습니다. 눌러서 라이선스를 확인할 수 있습니다.",
-  "category_order": "분류 순서",
-  "category_order_sub": "원하는 순서대로 드래그",
   "category_order_empty": "습관에 분류를 추가하면 여기에 나타나요",
   "plan_todos_sub": "해당 날짜의 할 일을 습관 밑에 표시해요.",
   "plan_todos": "계획된 작업",

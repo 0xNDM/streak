@@ -18,7 +18,6 @@ import 'package:streak/core/utils/app_dirs.dart';
 import 'package:streak/core/utils/responsive.dart';
 import 'package:streak/core/widgets/section_label.dart';
 import 'package:streak/core/widgets/number_keypad_dialog.dart';
-import 'package:streak/features/habits/widgets/category_editor_sheet.dart';
 import 'package:streak/features/settings/data_folder_actions.dart';
 import 'package:streak/features/settings/pages/about_page.dart';
 import 'package:streak/features/settings/pages/app_style_page.dart';
@@ -555,12 +554,6 @@ List<Widget> _preferenceTiles(BuildContext context) {
             onSelected: settings.setStartView,
           ),
         ),
-        ExpressTile(
-          icon: LucideIcons.tags,
-          title: context.l10n.category_order,
-          subtitle: context.l10n.category_order_sub,
-          onTap: () => showCategoryOrderSheet(context),
-        ),
         _Toggle(
           icon: LucideIcons.layoutGrid,
           title: context.l10n.card_activity,
@@ -622,10 +615,10 @@ List<Widget> _preferenceTiles(BuildContext context) {
         ),
         _Toggle(
           icon: LucideIcons.history,
-          title: context.l10n.quick_past,
-          subtitle: context.l10n.quick_past_sub,
-          value: settings.quickPast,
-          onChanged: settings.setQuickPast,
+          title: context.l10n.past_first,
+          subtitle: context.l10n.past_first_sub,
+          value: settings.pastFirst,
+          onChanged: settings.setPastFirst,
         ),
       ],
     ),

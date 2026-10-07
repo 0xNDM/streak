@@ -68,7 +68,7 @@ const backupSettingKeys = {
   'themeMode',
   'todayOnly',
   'hideDone',
-  'quickPast',
+  'pastFirst',
   'hideTracking',
   'todoLowFirst',
   'todosEnabled',

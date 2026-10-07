@@ -11,7 +11,6 @@ import 'package:streak/core/utils/app_dirs.dart';
 import 'package:streak/core/widgets/entrance.dart';
 import 'package:streak/core/widgets/number_keypad_dialog.dart';
 import 'package:streak/core/widgets/section_label.dart';
-import 'package:streak/features/habits/widgets/category_editor_sheet.dart';
 import 'package:streak/features/settings/data_folder_actions.dart';
 import 'package:streak/features/settings/pages/about_page.dart';
 import 'package:streak/features/settings/pages/app_style_page.dart';
@@ -322,6 +321,13 @@ class _ClassicPreferencesPage extends StatelessWidget {
                       onSelected: settings.setCelebration,
                     ),
                   ),
+                  settingsDivider(context),
+                  NavRow(
+                    icon: LucideIcons.quote,
+                    title: context.l10n.quotes,
+                    subtitle: context.l10n.quotes_sub,
+                    onTap: () => AppNavigator.push(const QuotesPage()),
+                  ),
                 ],
               ),
             ),
@@ -349,13 +355,93 @@ class _ClassicPreferencesPage extends StatelessWidget {
                     ),
                   ),
                   settingsDivider(context),
-                  NavRow(
-                    icon: LucideIcons.tags,
-                    title: context.l10n.category_order,
-                    subtitle: context.l10n.category_order_sub,
-                    onTap: () => showCategoryOrderSheet(context),
+                  SettingRow(
+                    icon: LucideIcons.arrowDownWideNarrow,
+                    title: context.l10n.sort_completed_last,
+                    subtitle: context.l10n.sort_completed_last_sub,
+                    trailing: Segmented(
+                      options: [context.l10n.off, context.l10n.on],
+                      index: settings.sortCompletedLast ? 1 : 0,
+                      onChanged: (i) => settings.setSortCompletedLast(i == 1),
+                    ),
                   ),
                   settingsDivider(context),
+                  SettingRow(
+                    icon: LucideIcons.calendarCheck,
+                    title: context.l10n.today_only,
+                    subtitle: context.l10n.today_only_sub,
+                    trailing: Segmented(
+                      options: [context.l10n.off, context.l10n.on],
+                      index: settings.todayOnly ? 1 : 0,
+                      onChanged: (i) => settings.setTodayOnly(i == 1),
+                    ),
+                  ),
+                  settingsDivider(context),
+                  SettingRow(
+                    icon: LucideIcons.listChecks,
+                    title: context.l10n.hide_done,
+                    subtitle: context.l10n.hide_done_sub,
+                    trailing: Segmented(
+                      options: [context.l10n.off, context.l10n.on],
+                      index: settings.hideDone ? 1 : 0,
+                      onChanged: (i) => settings.setHideDone(i == 1),
+                    ),
+                  ),
+                  settingsDivider(context),
+                  SettingRow(
+                    icon: LucideIcons.history,
+                    title: context.l10n.past_first,
+                    subtitle: context.l10n.past_first_sub,
+                    trailing: Segmented(
+                      options: [context.l10n.off, context.l10n.on],
+                      index: settings.pastFirst ? 1 : 0,
+                      onChanged: (i) => settings.setPastFirst(i == 1),
+                    ),
+                  ),
+                  settingsDivider(context),
+                  SettingRow(
+                    icon: LucideIcons.chartPie,
+                    title: context.l10n.today_progress_option,
+                    subtitle: context.l10n.today_progress_option_sub,
+                    trailing: Segmented(
+                      options: [context.l10n.off, context.l10n.on],
+                      index: settings.showTodayProgress ? 1 : 0,
+                      onChanged: (i) => settings.setShowTodayProgress(i == 1),
+                    ),
+                  ),
+                  settingsDivider(context),
+                  SettingRow(
+                    icon: LucideIcons.moveHorizontal,
+                    title: context.l10n.swipe_cards,
+                    subtitle: context.l10n.swipe_cards_sub,
+                    trailing: Segmented(
+                      options: [context.l10n.off, context.l10n.on],
+                      index: settings.swipeCards ? 1 : 0,
+                      onChanged: (i) => settings.setSwipeCards(i == 1),
+                    ),
+                  ),
+                  settingsDivider(context),
+                  SettingRow(
+                    icon: LucideIcons.palmtree,
+                    title: context.l10n.vacation_all,
+                    subtitle: context.l10n.vacation_all_sub,
+                    trailing: Segmented(
+                      options: [context.l10n.off, context.l10n.on],
+                      index: settings.vacationAll ? 1 : 0,
+                      onChanged: (i) => SettingsActions.setVacationAll(context, i == 1),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Entrance(index: 4, child: SectionLabel(context.l10n.prefs_cards)),
+          Entrance(
+            index: 5,
+            child: Card(
+              child: Column(
+                children: [
                   SettingRow(
                     icon: LucideIcons.layoutGrid,
                     title: context.l10n.card_activity,
@@ -402,59 +488,48 @@ class _ClassicPreferencesPage extends StatelessWidget {
                       onChanged: (i) => settings.setHeatmapRolling(i == 1),
                     ),
                   ),
-                  settingsDivider(context),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Entrance(index: 6, child: SectionLabel(context.l10n.prefs_habits)),
+          Entrance(
+            index: 7,
+            child: Card(
+              child: Column(
+                children: [
                   SettingRow(
-                    icon: LucideIcons.arrowDownWideNarrow,
-                    title: context.l10n.sort_completed_last,
-                    subtitle: context.l10n.sort_completed_last_sub,
+                    icon: LucideIcons.activity,
+                    title: context.l10n.just_tracking_option,
+                    subtitle: context.l10n.just_tracking_option_sub,
                     trailing: Segmented(
                       options: [context.l10n.off, context.l10n.on],
-                      index: settings.sortCompletedLast ? 1 : 0,
-                      onChanged: (i) => settings.setSortCompletedLast(i == 1),
+                      index: settings.trackingOption ? 1 : 0,
+                      onChanged: (i) => settings.setTrackingOption(i == 1),
                     ),
                   ),
                   settingsDivider(context),
                   SettingRow(
-                    icon: LucideIcons.palmtree,
-                    title: context.l10n.vacation_all,
-                    subtitle: context.l10n.vacation_all_sub,
+                    icon: LucideIcons.mountain,
+                    title: context.l10n.difficulty_option,
+                    subtitle: context.l10n.difficulty_option_sub,
                     trailing: Segmented(
                       options: [context.l10n.off, context.l10n.on],
-                      index: settings.vacationAll ? 1 : 0,
-                      onChanged: (i) => SettingsActions.setVacationAll(context, i == 1),
+                      index: settings.difficultyOption ? 1 : 0,
+                      onChanged: (i) => settings.setDifficultyOption(i == 1),
                     ),
                   ),
                   settingsDivider(context),
                   SettingRow(
-                    icon: LucideIcons.calendarCheck,
-                    title: context.l10n.today_only,
-                    subtitle: context.l10n.today_only_sub,
+                    icon: LucideIcons.bellOff,
+                    title: context.l10n.quiet_when_done,
+                    subtitle: context.l10n.quiet_when_done_sub,
                     trailing: Segmented(
                       options: [context.l10n.off, context.l10n.on],
-                      index: settings.todayOnly ? 1 : 0,
-                      onChanged: (i) => settings.setTodayOnly(i == 1),
-                    ),
-                  ),
-                  settingsDivider(context),
-                  SettingRow(
-                    icon: LucideIcons.listChecks,
-                    title: context.l10n.hide_done,
-                    subtitle: context.l10n.hide_done_sub,
-                    trailing: Segmented(
-                      options: [context.l10n.off, context.l10n.on],
-                      index: settings.hideDone ? 1 : 0,
-                      onChanged: (i) => settings.setHideDone(i == 1),
-                    ),
-                  ),
-                  settingsDivider(context),
-                  SettingRow(
-                    icon: LucideIcons.history,
-                    title: context.l10n.quick_past,
-                    subtitle: context.l10n.quick_past_sub,
-                    trailing: Segmented(
-                      options: [context.l10n.off, context.l10n.on],
-                      index: settings.quickPast ? 1 : 0,
-                      onChanged: (i) => settings.setQuickPast(i == 1),
+                      index: settings.quietWhenDone ? 1 : 0,
+                      onChanged: (i) =>
+                          SettingsActions.toggleQuietWhenDone(context, i == 1),
                     ),
                   ),
                 ],
@@ -462,9 +537,9 @@ class _ClassicPreferencesPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          Entrance(index: 4, child: SectionLabel(context.l10n.prefs_features)),
+          Entrance(index: 8, child: SectionLabel(context.l10n.prefs_features)),
           Entrance(
-            index: 5,
+            index: 9,
             child: Card(
               child: Column(
                 children: [
@@ -537,17 +612,6 @@ class _ClassicPreferencesPage extends StatelessWidget {
                     ),
                   ],
                   settingsDivider(context),
-                  SettingRow(
-                    icon: LucideIcons.palmtree,
-                    title: context.l10n.gamification_beta,
-                    subtitle: context.l10n.island_enable_sub,
-                    trailing: Segmented(
-                      options: [context.l10n.off, context.l10n.on],
-                      index: settings.islandEnabled ? 1 : 0,
-                      onChanged: (i) => settings.setIslandEnabled(i == 1),
-                    ),
-                  ),
-                  settingsDivider(context),
                   PickerRow(
                     icon: LucideIcons.calendarClock,
                     title: context.l10n.plan_day,
@@ -558,75 +622,23 @@ class _ClassicPreferencesPage extends StatelessWidget {
                   ),
                   settingsDivider(context),
                   SettingRow(
-                    icon: LucideIcons.moveHorizontal,
-                    title: context.l10n.swipe_cards,
-                    subtitle: context.l10n.swipe_cards_sub,
+                    icon: LucideIcons.palmtree,
+                    title: context.l10n.gamification_beta,
+                    subtitle: context.l10n.island_enable_sub,
                     trailing: Segmented(
                       options: [context.l10n.off, context.l10n.on],
-                      index: settings.swipeCards ? 1 : 0,
-                      onChanged: (i) => settings.setSwipeCards(i == 1),
+                      index: settings.islandEnabled ? 1 : 0,
+                      onChanged: (i) => settings.setIslandEnabled(i == 1),
                     ),
-                  ),
-                  settingsDivider(context),
-                  SettingRow(
-                    icon: LucideIcons.activity,
-                    title: context.l10n.just_tracking_option,
-                    subtitle: context.l10n.just_tracking_option_sub,
-                    trailing: Segmented(
-                      options: [context.l10n.off, context.l10n.on],
-                      index: settings.trackingOption ? 1 : 0,
-                      onChanged: (i) => settings.setTrackingOption(i == 1),
-                    ),
-                  ),
-                  settingsDivider(context),
-                  SettingRow(
-                    icon: LucideIcons.mountain,
-                    title: context.l10n.difficulty_option,
-                    subtitle: context.l10n.difficulty_option_sub,
-                    trailing: Segmented(
-                      options: [context.l10n.off, context.l10n.on],
-                      index: settings.difficultyOption ? 1 : 0,
-                      onChanged: (i) => settings.setDifficultyOption(i == 1),
-                    ),
-                  ),
-                  settingsDivider(context),
-                  SettingRow(
-                    icon: LucideIcons.chartPie,
-                    title: context.l10n.today_progress_option,
-                    subtitle: context.l10n.today_progress_option_sub,
-                    trailing: Segmented(
-                      options: [context.l10n.off, context.l10n.on],
-                      index: settings.showTodayProgress ? 1 : 0,
-                      onChanged: (i) => settings.setShowTodayProgress(i == 1),
-                    ),
-                  ),
-                  settingsDivider(context),
-                  SettingRow(
-                    icon: LucideIcons.bellOff,
-                    title: context.l10n.quiet_when_done,
-                    subtitle: context.l10n.quiet_when_done_sub,
-                    trailing: Segmented(
-                      options: [context.l10n.off, context.l10n.on],
-                      index: settings.quietWhenDone ? 1 : 0,
-                      onChanged: (i) =>
-                          SettingsActions.toggleQuietWhenDone(context, i == 1),
-                    ),
-                  ),
-                  settingsDivider(context),
-                  NavRow(
-                    icon: LucideIcons.quote,
-                    title: context.l10n.quotes,
-                    subtitle: context.l10n.quotes_sub,
-                    onTap: () => AppNavigator.push(const QuotesPage()),
                   ),
                 ],
               ),
             ),
           ),
           const SizedBox(height: 24),
-          Entrance(index: 6, child: SectionLabel(context.l10n.prefs_privacy)),
+          Entrance(index: 10, child: SectionLabel(context.l10n.prefs_privacy)),
           Entrance(
-            index: 7,
+            index: 11,
             child: Card(
               child: Column(
                 children: [

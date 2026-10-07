@@ -10,7 +10,6 @@ import 'package:streak/core/i18n/l10n.dart';
 import 'package:streak/core/routing/app_navigator.dart';
 import 'package:streak/core/utils/app_dirs.dart';
 import 'package:streak/core/widgets/section_label.dart';
-import 'package:streak/features/habits/widgets/category_editor_sheet.dart';
 import 'package:streak/features/settings/data_folder_actions.dart';
 import 'package:streak/features/settings/pages/about_page.dart';
 import 'package:streak/features/settings/pages/app_style_page.dart';
@@ -428,12 +427,6 @@ class _PreferencesPage extends StatelessWidget {
               ),
             ),
             SoftRow(
-              icon: LucideIcons.tags,
-              title: context.l10n.category_order,
-              subtitle: context.l10n.category_order_sub,
-              onTap: () => showCategoryOrderSheet(context),
-            ),
-            SoftRow(
               icon: LucideIcons.layoutList,
               title: context.l10n.view_switcher,
               subtitle: context.l10n.view_switcher_sub,
@@ -498,11 +491,11 @@ class _PreferencesPage extends StatelessWidget {
             ),
             SoftRow(
               icon: LucideIcons.history,
-              title: context.l10n.quick_past,
-              subtitle: context.l10n.quick_past_sub,
+              title: context.l10n.past_first,
+              subtitle: context.l10n.past_first_sub,
               trailing: _SoftSwitch(
-                value: settings.quickPast,
-                onChanged: settings.setQuickPast,
+                value: settings.pastFirst,
+                onChanged: settings.setPastFirst,
               ),
             ),
           ],

@@ -136,7 +136,7 @@ class _HabitDetailsPageState extends State<HabitDetailsPage> {
 
         void toggle(DateTime date) {
           final prefs = context.read<SettingsController>();
-          if (!prefs.quickPast && date.atMidnight.isBefore(AppClock.today())) {
+          if (prefs.pastFirst && date.atMidnight.isBefore(AppClock.today())) {
             showDayActionsSheet(
               context,
               habit: habit,
