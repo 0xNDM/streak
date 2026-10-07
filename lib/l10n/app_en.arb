@@ -898,9 +898,11 @@
   "quick_past_sub": "When off, tapping a past day opens it first so nothing changes by mistake",
   "day_not_done": "Not done",
   "day_clean": "Clean",
-  "day_relapsed": "Relapse logged",
+  "day_relapses": "{count, plural, =1{1 relapse} other{{count} relapses}}",
+  "@day_relapses": {
+    "placeholders": { "count": { "type": "int" } }
+  },
   "day_log_relapse": "Log relapse",
-  "day_clear_relapse": "Remove",
   "day_amount": "{value} of {goal}",
   "@day_amount": {
     "placeholders": { "value": { "type": "String" }, "goal": { "type": "String" } }

@@ -163,10 +163,6 @@ class _DayStatus extends StatelessWidget {
 
   Future<void> _relapse(BuildContext context, Habit habit) async {
     final controller = context.read<HabitsController>();
-    if (habit.isRelapseOn(date)) {
-      await controller.clearRelapse(habit.id, date);
-      return;
-    }
     if (!await confirmRelapse(context, habit)) return;
     await controller.logRelapse(habit.id, date);
   }
@@ -205,11 +201,12 @@ class _DayStatus extends StatelessWidget {
     final counted = !negative && !habit.hasSubsteps && (quantity || habit.perDayTarget > 1);
     final done = habit.isCompletedOn(date);
     final relapsed = habit.isRelapseOn(date);
+    final relapses = relapsed ? count.round().clamp(1, 999) : 0;
     final unit = habit.isTimeAmount || habit.unitLabel.isEmpty ? '' : ' ${habit.unitLabel}';
     String amount(double value) => '${habit.amountText(value)}$unit';
 
     final status = negative
-        ? (relapsed ? context.l10n.day_relapsed : context.l10n.day_clean)
+        ? (relapsed ? context.l10n.day_relapses(relapses) : context.l10n.day_clean)
         : counted
             ? context.l10n.day_amount(amount(count), amount(habit.perDayTarget))
             : (done ? context.l10n.done : context.l10n.day_not_done);
@@ -270,17 +267,41 @@ class _DayStatus extends StatelessWidget {
                   ],
                 ),
               ),
-              if (negative)
+              if (negative && !relapsed)
                 _Pill(
-                  label: relapsed ? context.l10n.day_clear_relapse : context.l10n.day_log_relapse,
+                  label: context.l10n.day_log_relapse,
                   color: context.colors.error,
-                  filled: !relapsed,
+                  filled: true,
                   onTap: () => _relapse(context, habit),
                 )
               else if (!counted && !habit.hasSubsteps)
                 _CheckButton(done: done, color: color, onTap: () => _toggle(context, habit)),
             ],
           ),
+          if (relapsed) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                _RoundIcon(
+                  icon: LucideIcons.minus,
+                  color: context.colors.error,
+                  onTap: () => context.read<HabitsController>().dropRelapse(habit.id, date),
+                ),
+                Expanded(
+                  child: Text(
+                    '$relapses',
+                    textAlign: TextAlign.center,
+                    style: sheetTitleStyle(context, size: 24, color: context.colors.error),
+                  ),
+                ),
+                _RoundIcon(
+                  icon: LucideIcons.plus,
+                  color: context.colors.error,
+                  onTap: () => context.read<HabitsController>().addRelapse(habit.id, date),
+                ),
+              ],
+            ),
+          ],
           if (counted) ...[
             const SizedBox(height: 14),
             ClipRRect(

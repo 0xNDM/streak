@@ -104,6 +104,35 @@ class CompletionOps {
     return completions;
   }
 
+  static Map<String, Completion> addRelapse(Habit habit, DateTime date) {
+    final entry = habit.completions[date.dayKey];
+    if (entry == null) return logRelapse(habit, date);
+    if (_isFuture(date)) return habit.completions;
+    return {
+      ...habit.completions,
+      date.dayKey: entry.copyWith(
+        count: entry.count.roundToDouble() + 1,
+        hour: AppClock.wallNow().hour,
+        minute: AppClock.wallNow().minute,
+        marks: entry.plus(_nowMinutes()),
+      ),
+    };
+  }
+
+  static Map<String, Completion> dropRelapse(Habit habit, DateTime date) {
+    final entry = habit.completions[date.dayKey];
+    if (entry == null || entry.count <= 1) return clearRelapse(habit, date);
+    return {
+      ...habit.completions,
+      date.dayKey: entry.copyWith(
+        count: entry.count.roundToDouble() - 1,
+        marks: entry.marks.isEmpty
+            ? entry.marks
+            : entry.marks.sublist(0, entry.marks.length - 1),
+      ),
+    };
+  }
+
   static Map<String, Completion> retime(
     Habit habit,
     String dayKey,

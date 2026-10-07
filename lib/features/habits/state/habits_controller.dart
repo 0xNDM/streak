@@ -209,6 +209,18 @@ class HabitsController extends ChangeNotifier {
     await _apply(habit, CompletionOps.logRelapse(habit, date));
   }
 
+  Future<void> addRelapse(String id, DateTime date) async {
+    final habit = _habits[id];
+    if (habit == null) return;
+    await _apply(habit, CompletionOps.addRelapse(habit, date));
+  }
+
+  Future<void> dropRelapse(String id, DateTime date) async {
+    final habit = _habits[id];
+    if (habit == null) return;
+    await _apply(habit, CompletionOps.dropRelapse(habit, date));
+  }
+
   Future<void> retime(String id, String dayKey, int? from, int to) async {
     final habit = _habits[id];
     if (habit == null) return;
