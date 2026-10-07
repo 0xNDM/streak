@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:intl/intl.dart';
@@ -605,6 +606,11 @@ class _GridYearStripState extends State<_GridYearStrip> {
     final months = DateFormat.MMM(Localizations.localeOf(context).languageCode);
     final path = heatmapPathOn(context);
     final gap = path ? heatmapPathGap : 3.0;
+    final pitch = _cell + gap;
+    final colors = [
+      for (var i = 0; i < _weeks * 7; i++)
+        heatmapCellColor(context, widget.habit, start.addDays(i)),
+    ];
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_scrolled && _scroll.hasClients) {
@@ -629,71 +635,97 @@ class _GridYearStripState extends State<_GridYearStrip> {
               ? heatmapPathColor(context, widget.habit.color.shownIn(context))
               : context.colors.surfaceContainerHighest;
         },
-        child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: List.generate(_weeks, (column) {
-          final first = start.addDays(column * 7);
-          final previous = start.addDays((column - 1) * 7);
-          final newMonth = column == 0 || first.month != previous.month;
-
-          return Padding(
-            padding: EdgeInsets.only(right: gap),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTapUp: (details) {
+            final column = (details.localPosition.dx / pitch).floor();
+            final row = ((details.localPosition.dy - 14) / pitch).floor();
+            if (column < 0 || column >= _weeks || row < 0 || row > 6) return;
+            final date = start.addDays(column * 7 + row);
+            if (date.isAfter(today)) return;
+            widget.onToggle(date);
+          },
+          child: SizedBox(
+            width: _weeks * pitch,
+            height: 14 + 7 * pitch,
+            child: Stack(
+              clipBehavior: Clip.none,
               children: [
-                SizedBox(
-                  height: 14,
-                  width: _cell,
-                  child: newMonth
-                      ? OverflowBox(
-                          maxWidth: 40,
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            months.format(first),
-                            textScaler: MediaQuery.textScalerOf(context)
-                                .clamp(maxScaleFactor: 1.2),
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: context.tokens.muted,
-                            ),
-                          ),
-                        )
-                      : null,
-                ),
-                for (var row = 0; row < 7; row++)
-                  Padding(
-                    padding: EdgeInsets.only(bottom: gap),
-                    child: _yearCell(context, first.addDays(row)),
+                Positioned.fill(
+                  child: RepaintBoundary(
+                    child: CustomPaint(
+                      painter: _YearCells(
+                        colors: colors,
+                        cell: _cell,
+                        gap: gap,
+                        radius: widget.circle ? _cell / 2 : 3,
+                      ),
+                    ),
                   ),
+                ),
+                for (var column = 0; column < _weeks; column++)
+                  if (column == 0 ||
+                      start.addDays(column * 7).month !=
+                          start.addDays((column - 1) * 7).month)
+                    Positioned(
+                      left: column * pitch,
+                      top: 0,
+                      height: 14,
+                      child: Text(
+                        months.format(start.addDays(column * 7)),
+                        textScaler: MediaQuery.textScalerOf(context)
+                            .clamp(maxScaleFactor: 1.2),
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: context.tokens.muted,
+                        ),
+                      ),
+                    ),
               ],
-            ),
-          );
-        }),
-        ),
-      ),
-    );
-  }
-
-  Widget _yearCell(BuildContext context, DateTime date) {
-    return ExcludeSemantics(
-      child: GestureDetector(
-        onTap: date.isAfter(AppClock.today())
-            ? null
-            : () => widget.onToggle(date),
-        child: SizedBox(
-          width: _cell,
-          height: _cell,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: heatmapCellColor(context, widget.habit, date),
-              borderRadius: BorderRadius.circular(widget.circle ? _cell / 2 : 3),
             ),
           ),
         ),
       ),
     );
   }
+}
+
+class _YearCells extends CustomPainter {
+  const _YearCells({
+    required this.colors,
+    required this.cell,
+    required this.gap,
+    required this.radius,
+  });
+
+  final List<Color> colors;
+  final double cell;
+  final double gap;
+  final double radius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..isAntiAlias = true;
+    final pitch = cell + gap;
+    final corner = Radius.circular(radius);
+    for (var i = 0; i < colors.length; i++) {
+      final left = (i ~/ 7) * pitch;
+      final top = 14 + (i % 7) * pitch;
+      paint.color = colors[i];
+      canvas.drawRRect(
+        RRect.fromLTRBR(left, top, left + cell, top + cell, corner),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_YearCells old) =>
+      old.cell != cell ||
+      old.gap != gap ||
+      old.radius != radius ||
+      !listEquals(old.colors, colors);
 }
 
 class _GridMonthCalendar extends StatelessWidget {
