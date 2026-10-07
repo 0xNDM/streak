@@ -1020,7 +1020,9 @@ class NotificationActions {
         final goal = updated.effectiveTarget;
         await NotificationService().confirm(
           updated,
-          '${updated.amountText(done)} / ${updated.amountText(goal)}',
+          goal > 0
+              ? '${updated.amountText(done)} / ${updated.amountText(goal)}'
+              : updated.amountText(done),
           notificationId,
         );
       }

@@ -21,7 +21,6 @@ import 'package:streak/core/widgets/scrolling_text.dart';
 import 'package:streak/features/habits/data/day_plan.dart';
 import 'package:streak/features/habits/data/habit.dart';
 import 'package:streak/features/habits/widgets/amount_actions.dart';
-import 'package:streak/features/habits/data/quant_progress.dart';
 import 'package:streak/features/habits/state/habits_controller.dart';
 import 'package:streak/features/habits/widgets/frequency_chip.dart';
 import 'package:streak/features/habits/widgets/habit_checklist.dart';
@@ -300,8 +299,10 @@ class _QuantWave extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          '${habit.amountText(count)} / '
-          '${habit.amountText(habit.perDayTarget)}$unit',
+          habit.hasGoal
+              ? '${habit.amountText(count)} / '
+                  '${habit.amountText(habit.perDayTarget)}$unit'
+              : '${habit.amountText(count)}$unit',
           style: ExpressType.body.at(
             12.5,
             weight: 700,
@@ -377,10 +378,9 @@ class ExpressAction extends StatelessWidget {
       ),
       HabitKind.quantitative => (
         LucideIcons.plus,
-        QuantProgress.of(
-          count: habit.completions[today.dayKey]?.count ?? 0,
-          target: habit.perDayTarget,
-        ).activeColor(habit.color.shownIn(context)),
+        habit
+            .progressFor(habit.completions[today.dayKey]?.count ?? 0)
+            .activeColor(habit.color.shownIn(context)),
         () => _addAmount(context),
       ),
     };

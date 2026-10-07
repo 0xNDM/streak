@@ -16,7 +16,6 @@ import 'package:streak/core/widgets/scrolling_text.dart';
 import 'package:streak/features/habits/data/habit.dart';
 import 'package:streak/features/habits/widgets/relapse_dialog.dart';
 import 'package:streak/features/habits/widgets/amount_actions.dart';
-import 'package:streak/features/habits/data/quant_progress.dart';
 import 'package:streak/features/habits/state/habits_controller.dart';
 import 'package:streak/features/habits/widgets/habit_heatmap.dart';
 import 'package:streak/features/habits/widgets/heatmap_path.dart';
@@ -391,11 +390,8 @@ class _DayCell extends StatelessWidget {
                               Align(
                                 alignment: Alignment.bottomCenter,
                                 child: FractionallySizedBox(
-                                  heightFactor: QuantProgress.of(
-                                    count:
-                                        habit.completions[date.dayKey]?.count ??
-                                        0,
-                                    target: habit.perDayTarget,
+                                  heightFactor: habit.progressFor(
+                                    habit.completions[date.dayKey]?.count ?? 0,
                                   ).fraction,
                                   widthFactor: 1,
                                   child: ColoredBox(color: habit.color.shownIn(context)),

@@ -61,7 +61,7 @@ class QuantRangeBars extends StatelessWidget {
       color: habit.color.shownIn(context),
       height: height,
       barWidth: _barWidth,
-      goal: range == QuantRange.year ? null : habit.perDayTarget,
+      goal: range == QuantRange.year || !habit.hasGoal ? null : habit.perDayTarget,
       label: (index) => _label(context, index),
       tooltip: (value) => amountWithUnit(habit, value),
       axisFormat: (value) => habit.amountText(value),

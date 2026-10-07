@@ -303,6 +303,25 @@ class _MonthCell extends StatelessWidget {
                   tabular: true,
                 ),
               ),
+              if (habit.kind == HabitKind.quantitative &&
+                  !future &&
+                  (habit.completions[date.dayKey]?.count ?? 0) > 0)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      habit.amountText(habit.completions[date.dayKey]!.count),
+                      maxLines: 1,
+                      style: ExpressType.rounded.at(
+                        9.5,
+                        weight: 750,
+                        color: ink.withValues(alpha: 0.85),
+                        tabular: true,
+                      ),
+                    ),
+                  ),
+                ),
               if (showNotes)
                 Padding(
                   padding: const EdgeInsets.only(top: 3),

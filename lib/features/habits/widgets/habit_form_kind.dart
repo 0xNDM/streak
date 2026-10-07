@@ -269,6 +269,32 @@ class TrackingToggle extends StatelessWidget {
       );
 }
 
+class NoGoalToggle extends StatelessWidget {
+  const NoGoalToggle({
+    super.key,
+    required this.value,
+    required this.color,
+    required this.onChanged,
+    this.compact = false,
+  });
+
+  final bool value;
+  final Color color;
+  final ValueChanged<bool> onChanged;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) => HabitFlagToggle(
+        icon: LucideIcons.chartLine,
+        title: context.l10n.no_goal,
+        hint: context.l10n.no_goal_sub,
+        value: value,
+        color: color,
+        onChanged: onChanged,
+        compact: compact,
+      );
+}
+
 class AnyAmountToggle extends StatelessWidget {
   const AnyAmountToggle({
     super.key,
@@ -707,6 +733,7 @@ class QuantitativeFields extends StatelessWidget {
     required this.onUnitChanged,
     required this.onTargetChanged,
     required this.onIncrementChanged,
+    this.showGoal = true,
   });
 
   final QuantKind quantKind;
@@ -717,6 +744,7 @@ class QuantitativeFields extends StatelessWidget {
   final VoidCallback onUnitChanged;
   final ValueChanged<double> onTargetChanged;
   final ValueChanged<double> onIncrementChanged;
+  final bool showGoal;
 
   double get _step => switch (quantKind) {
         QuantKind.water => 50,
@@ -782,8 +810,8 @@ class QuantitativeFields extends StatelessWidget {
                 onChanged: (_) => onUnitChanged(),
               ),
             ],
-            const SizedBox(height: 12),
-            _QuantityStepperRow(
+            if (showGoal) const SizedBox(height: 12),
+            if (showGoal) _QuantityStepperRow(
               label: context.l10n.quant_daily_goal,
               value: target,
               unit: unit,

@@ -35,7 +35,7 @@ class QuantitativeProgress extends StatelessWidget {
       title: context.l10n.quant_edit_title,
       value: current,
       unit: habit.unitLabel,
-      target: habit.perDayTarget,
+      target: habit.hasGoal ? habit.perDayTarget : null,
       decimals: true,
       clock: habit.isTimeAmount,
       accent: habit.color.shownIn(context),
@@ -67,7 +67,7 @@ class QuantitativeProgress extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
         child: Column(
           children: [
-            switch (habit.quantKind) {
+            switch (habit.hasGoal ? habit.quantKind : QuantKind.generic) {
               QuantKind.water =>
                 _WaterCups(count: count, target: habit.perDayTarget),
               QuantKind.reading =>
@@ -88,9 +88,12 @@ class QuantitativeProgress extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        '${habit.amountText(count)} / '
-                        '${habit.amountText(habit.perDayTarget)}'
-                        '${habit.isTimeAmount ? '' : ' ${habit.unitLabel}'}',
+                        habit.hasGoal
+                            ? '${habit.amountText(count)} / '
+                                '${habit.amountText(habit.perDayTarget)}'
+                                '${habit.isTimeAmount ? '' : ' ${habit.unitLabel}'}'
+                            : '${habit.amountText(count)}'
+                                '${habit.isTimeAmount ? '' : ' ${habit.unitLabel}'}',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w800,

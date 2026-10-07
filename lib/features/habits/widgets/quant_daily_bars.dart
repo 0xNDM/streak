@@ -37,7 +37,7 @@ class QuantDailyBars extends StatelessWidget {
         color: habit.color.shownIn(context),
         window: 10,
         height: 176,
-        goal: habit.perDayTarget,
+        goal: habit.hasGoal ? habit.perDayTarget : null,
         format: label,
         axisFormat: axis,
         label: (index) => '${start.addDays(index).day}',
@@ -53,7 +53,7 @@ class QuantDailyBars extends StatelessWidget {
       color: habit.color.shownIn(context),
       startDate: start,
       height: 132,
-      goal: habit.perDayTarget,
+      goal: habit.hasGoal ? habit.perDayTarget : null,
       format: label,
       axisFormat: axis,
     );

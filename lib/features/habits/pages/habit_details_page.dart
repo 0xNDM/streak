@@ -115,7 +115,7 @@ class _HabitDetailsPageState extends State<HabitDetailsPage> {
             ).format(date),
             value: current,
             unit: habit.unitLabel,
-            target: habit.perDayTarget,
+            target: habit.hasGoal ? habit.perDayTarget : null,
             decimals: true,
             clock: habit.isTimeAmount,
             accent: habit.color.shownIn(context),

@@ -456,6 +456,8 @@
   "just_tracking_option_sub": "Adds the switch when you create a habit",
   "just_tracking": "Just tracking",
   "just_tracking_sub": "Keep its own grid and numbers, but leave it out of Progress and the day's count",
+  "no_goal": "No daily goal",
+  "no_goal_sub": "Just log the value, like your weight. Any amount marks the day.",
   "any_amount": "Any amount counts",
   "any_amount_sub": "Logging any amount marks the day as done, even below the goal.",
   "any_step": "Done with some steps",

@@ -183,6 +183,7 @@ class _CalendarCell extends StatelessWidget {
     final tappable = isCurrentMonth && !future;
     final danger = context.tokens.danger;
     final count = future ? 0.0 : (habit.completions[date.dayKey]?.count ?? 0);
+    final quantity = habit.kind == HabitKind.quantitative;
 
     final Color? fillColor;
     if (paused) {
@@ -244,7 +245,7 @@ class _CalendarCell extends StatelessWidget {
               : null,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 280),
-            height: 38,
+            height: quantity ? 44 : 38,
             decoration: BoxDecoration(
               color: fillColor ??
                   (isToday ? scheme.surfaceContainerHighest : Colors.transparent),
@@ -260,6 +261,23 @@ class _CalendarCell extends StatelessWidget {
                   '${date.day}',
                   style: TextStyle(color: textColor, fontWeight: FontWeight.w600),
                 ),
+                if (quantity && isCurrentMonth && count > 0)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        habit.amountText(count),
+                        maxLines: 1,
+                        style: TextStyle(
+                          color: textColor.withValues(alpha: 0.85),
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w700,
+                          height: 1.1,
+                        ),
+                      ),
+                    ),
+                  ),
                 if (types.isNotEmpty) ...[
                   const SizedBox(height: 2),
                   NoteDots(types: types, size: 4),

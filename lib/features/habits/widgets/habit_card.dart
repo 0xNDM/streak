@@ -389,8 +389,10 @@ class _AmountLabel extends StatelessWidget {
         ? ''
         : ' ${habit.unitLabel}';
     return Text(
-      '·  ${habit.amountText(count)}/'
-      '${habit.amountText(habit.perDayTarget)}$unit',
+      habit.hasGoal
+          ? '·  ${habit.amountText(count)}/'
+              '${habit.amountText(habit.perDayTarget)}$unit'
+          : '·  ${habit.amountText(count)}$unit',
       style: TextStyle(
         fontSize: 13,
         fontWeight: FontWeight.w700,
@@ -481,7 +483,7 @@ class _ActionButton extends StatelessWidget {
         final today = AppClock.now();
         final count = habit.completions[today.dayKey]?.count ?? 0;
         final ratio = habit.perDayTarget <= 0
-            ? 0.0
+            ? (count > 0 ? 1.0 : 0.0)
             : count / habit.perDayTarget;
         Future<void> addProgress() async {
           final controller = context.read<HabitsController>();

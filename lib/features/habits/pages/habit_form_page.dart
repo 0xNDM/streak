@@ -77,6 +77,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
   HabitKind _kind = HabitKind.positive;
   QuantKind _quantKind = QuantKind.generic;
   double _quantTarget = 8;
+  bool _noGoal = false;
   double _quantIncrement = 1;
   String _bookCover = '';
   bool _focusOnly = false;
@@ -159,7 +160,8 @@ class _HabitFormPageState extends State<HabitFormPage> {
       _reminders = List.of(habit.reminders);
       _kind = habit.kind;
       _quantKind = habit.quantKind;
-      _quantTarget = habit.kind == HabitKind.quantitative ? habit.perDayTarget : 8;
+      _noGoal = habit.kind == HabitKind.quantitative && habit.perDayTarget <= 0;
+      _quantTarget = habit.kind == HabitKind.quantitative && !_noGoal ? habit.perDayTarget : 8;
       _quantIncrement = habit.incrementAmount;
       _bookCover = habit.bookCoverPath;
       _focusOnly = habit.focusOnly;
@@ -273,7 +275,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
           coverPath: _cover,
           coverClarity: _coverClarity,
           dailyCost: dailyCost,
-          perDayTarget: quantitative ? _quantTarget : widget.habit!.perDayTarget,
+          perDayTarget: quantitative ? (_noGoal ? 0 : _quantTarget) : widget.habit!.perDayTarget,
           unitLabel: quantitative ? _quantUnit : widget.habit!.unitLabel,
           incrementAmount:
               quantitative ? _quantIncrement : widget.habit!.incrementAmount,
@@ -319,7 +321,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
         coverClarity: _coverClarity,
         kind: _kind,
         dailyCost: dailyCost,
-        perDayTarget: quantitative ? _quantTarget : 1,
+        perDayTarget: quantitative ? (_noGoal ? 0 : _quantTarget) : 1,
         unitLabel: quantitative ? _quantUnit : '',
         incrementAmount: quantitative ? _quantIncrement : 1,
         quantKind: quantitative ? _quantKind : QuantKind.generic,
@@ -522,9 +524,16 @@ class _HabitFormPageState extends State<HabitFormPage> {
           onUnitChanged: () => setState(() {}),
           onTargetChanged: (v) => setState(() => _quantTarget = v),
           onIncrementChanged: (v) => setState(() => _quantIncrement = v),
+          showGoal: !_noGoal,
         ),
         const SizedBox(height: 12),
-        AnyAmountToggle(
+        NoGoalToggle(
+          value: _noGoal,
+          color: _color,
+          onChanged: (v) => setState(() => _noGoal = v),
+        ),
+        if (!_noGoal) const SizedBox(height: 12),
+        if (!_noGoal) AnyAmountToggle(
           value: _anyAmount,
           color: _color,
           onChanged: (v) => setState(() => _anyAmount = v),
@@ -818,8 +827,8 @@ class _HabitFormPageState extends State<HabitFormPage> {
                   onChanged: (_) => setState(() {}),
                 ),
               ],
-              const SizedBox(height: 10),
-              CompactStepperRow(
+              if (!_noGoal) const SizedBox(height: 10),
+              if (!_noGoal) CompactStepperRow(
                 label: context.l10n.quant_daily_goal,
                 value: _quantTarget,
                 unit: _quantUnit,
@@ -846,7 +855,14 @@ class _HabitFormPageState extends State<HabitFormPage> {
           ),
         ),
         const SizedBox(height: 16),
-        AnyAmountToggle(
+        NoGoalToggle(
+          value: _noGoal,
+          color: _color,
+          compact: true,
+          onChanged: (v) => setState(() => _noGoal = v),
+        ),
+        if (!_noGoal) const SizedBox(height: 16),
+        if (!_noGoal) AnyAmountToggle(
           value: _anyAmount,
           color: _color,
           compact: true,
@@ -1156,9 +1172,16 @@ class _HabitFormPageState extends State<HabitFormPage> {
                 onUnitChanged: () => setState(() {}),
                 onTargetChanged: (v) => setState(() => _quantTarget = v),
                 onIncrementChanged: (v) => setState(() => _quantIncrement = v),
+                showGoal: !_noGoal,
               ),
               const SizedBox(height: 12),
-              AnyAmountToggle(
+              NoGoalToggle(
+                value: _noGoal,
+                color: _color,
+                onChanged: (v) => setState(() => _noGoal = v),
+              ),
+              if (!_noGoal) const SizedBox(height: 12),
+              if (!_noGoal) AnyAmountToggle(
                 value: _anyAmount,
                 color: _color,
                 onChanged: (v) => setState(() => _anyAmount = v),

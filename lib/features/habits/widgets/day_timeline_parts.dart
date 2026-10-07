@@ -58,6 +58,7 @@ class TimelineBlock extends StatelessWidget {
       final unit = habit.isTimeAmount || habit.unitLabel.isEmpty
           ? ''
           : ' ${habit.unitLabel}';
+      if (!habit.hasGoal) return '${habit.amountText(count)}$unit';
       return '${habit.amountText(count)}/'
           '${habit.amountText(habit.perDayTarget)}$unit';
     }

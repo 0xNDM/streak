@@ -181,7 +181,7 @@ class _DayStatus extends StatelessWidget {
       title: DateFormat.yMMMMd(Localizations.localeOf(context).toString()).format(date),
       value: current,
       unit: habit.unitLabel,
-      target: habit.perDayTarget,
+      target: habit.hasGoal ? habit.perDayTarget : null,
       decimals: true,
       clock: habit.isTimeAmount,
       accent: habit.color.shownIn(context),
@@ -208,7 +208,9 @@ class _DayStatus extends StatelessWidget {
     final status = negative
         ? (relapsed ? context.l10n.day_relapses(relapses) : context.l10n.day_clean)
         : counted
-            ? context.l10n.day_amount(amount(count), amount(habit.perDayTarget))
+            ? (habit.hasGoal
+                ? context.l10n.day_amount(amount(count), amount(habit.perDayTarget))
+                : amount(count))
             : (done ? context.l10n.done : context.l10n.day_not_done);
     final good = negative ? !relapsed : done;
     final step = quantity ? habit.incrementAmount : 1.0;
@@ -309,7 +311,7 @@ class _DayStatus extends StatelessWidget {
               child: TweenAnimationBuilder<double>(
                 tween: Tween(
                   end: habit.perDayTarget <= 0
-                      ? 0
+                      ? (count > 0 ? 1 : 0)
                       : (count / habit.perDayTarget).clamp(0, 1).toDouble(),
                 ),
                 duration: const Duration(milliseconds: 260),

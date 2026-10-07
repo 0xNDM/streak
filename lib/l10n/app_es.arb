@@ -419,6 +419,8 @@
   "just_tracking_option_sub": "Añade el interruptor al crear un hábito",
   "just_tracking": "Solo seguimiento",
   "just_tracking_sub": "Mantiene su rejilla y sus números, pero se queda fuera de Progreso y del recuento del día",
+  "no_goal": "Sin objetivo diario",
+  "no_goal_sub": "Solo apuntas el valor, como tu peso. Cualquier cantidad marca el día.",
   "any_amount": "Cualquier cantidad cuenta",
   "any_amount_sub": "Apuntar cualquier cantidad da el día por hecho, aunque no llegues a la meta.",
   "any_step": "Hecho con algunos pasos",

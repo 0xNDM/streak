@@ -378,13 +378,16 @@ class Habit {
     return substeps.where(checked).length >= stepsNeeded.clamp(1, substeps.length);
   }
 
-  bool get acceptsAnyAmount => anyAmount && kind == HabitKind.quantitative;
+  bool get hasGoal => perDayTarget > 0;
+
+  bool get acceptsAnyAmount =>
+      kind == HabitKind.quantitative && (anyAmount || !hasGoal);
 
   bool reaches(double count) =>
       acceptsAnyAmount ? count > 0 : count >= perDayTarget;
 
   QuantProgress progressFor(double count) =>
-      acceptsAnyAmount && count > 0 && count < perDayTarget
+      acceptsAnyAmount && count > 0 && (!hasGoal || count < perDayTarget)
           ? const QuantProgress(laps: 1, fraction: 0)
           : QuantProgress.of(count: count, target: perDayTarget);
 
