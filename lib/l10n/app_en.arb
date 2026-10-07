@@ -458,8 +458,12 @@
   "just_tracking_sub": "Keep its own grid and numbers, but leave it out of Progress and the day's count",
   "any_amount": "Any amount counts",
   "any_amount_sub": "Logging any amount marks the day as done, even below the goal.",
-  "any_step": "Any step counts",
+  "any_step": "Done with some steps",
   "any_step_sub": "Checking one step marks the day as done, without doing them all.",
+  "steps_needed_sub": "The day counts as done with {needed} of {total} steps.",
+  "@steps_needed_sub": {
+    "placeholders": { "needed": { "type": "int" }, "total": { "type": "int" } }
+  },
   "sched_start": "Starts on",
   "from_last_done": "Count from the last time",
   "month_weekday": "Same weekday every month",

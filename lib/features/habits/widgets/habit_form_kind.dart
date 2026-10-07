@@ -301,24 +301,57 @@ class AnyStepsToggle extends StatelessWidget {
     required this.value,
     required this.color,
     required this.onChanged,
+    required this.needed,
+    required this.total,
+    required this.onNeeded,
     this.compact = false,
   });
 
   final bool value;
   final Color color;
   final ValueChanged<bool> onChanged;
+  final int needed;
+  final int total;
+  final ValueChanged<int> onNeeded;
   final bool compact;
 
   @override
-  Widget build(BuildContext context) => HabitFlagToggle(
-        icon: LucideIcons.listChecks,
-        title: context.l10n.any_step,
-        hint: context.l10n.any_step_sub,
-        value: value,
-        color: color,
-        onChanged: onChanged,
-        compact: compact,
-      );
+  Widget build(BuildContext context) {
+    final shown = needed.clamp(1, total < 1 ? 1 : total);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        HabitFlagToggle(
+          icon: LucideIcons.listChecks,
+          title: context.l10n.any_step,
+          hint: value && total > 1
+              ? context.l10n.steps_needed_sub(shown, total)
+              : context.l10n.any_step_sub,
+          value: value,
+          color: color,
+          onChanged: onChanged,
+          compact: compact,
+        ),
+        if (value && total > 2) ...[
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (var n = 1; n < total; n++)
+                ChoiceChip(
+                  label: Text('$n'),
+                  selected: n == shown,
+                  showCheckmark: false,
+                  selectedColor: color.withValues(alpha: 0.22),
+                  onSelected: (_) => onNeeded(n),
+                ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
 }
 
 class FromLastDoneToggle extends StatelessWidget {

@@ -83,6 +83,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
   bool _tracking = false;
   bool _anyAmount = false;
   bool _anySteps = false;
+  int _stepsNeeded = 1;
   int _difficulty = 0;
   int _focusMinutes = 25;
   bool _pomodoro = false;
@@ -165,6 +166,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
       _tracking = habit.tracking;
       _anyAmount = habit.anyAmount;
       _anySteps = habit.anySteps;
+      _stepsNeeded = habit.stepsNeeded;
       _difficulty = habit.difficulty;
       _focusMinutes = habit.focusMinutes;
       _pomodoro = habit.focusBreakMinutes > 0;
@@ -281,6 +283,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
           tracking: _tracking,
           anyAmount: quantitative && _anyAmount,
           anySteps: substeps.isNotEmpty && _anySteps,
+          stepsNeeded: _stepsNeeded.clamp(1, substeps.isEmpty ? 1 : substeps.length),
           difficulty: _difficulty,
           focusMinutes: _focusMinutes,
           focusBreakMinutes: _pomodoro ? _breakMinutes : 0,
@@ -325,6 +328,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
         tracking: _tracking,
         anyAmount: quantitative && _anyAmount,
         anySteps: substeps.isNotEmpty && _anySteps,
+        stepsNeeded: _stepsNeeded.clamp(1, substeps.isEmpty ? 1 : substeps.length),
         difficulty: _difficulty,
         focusMinutes: _focusMinutes,
         focusBreakMinutes: _pomodoro ? _breakMinutes : 0,
@@ -640,13 +644,16 @@ class _HabitFormPageState extends State<HabitFormPage> {
         SubstepsEditor(
           substeps: _substeps,
           color: _color,
-          onChanged: (list) => _substeps = list,
+          onChanged: (list) => setState(() => _substeps = list),
         ),
         const SizedBox(height: 12),
         AnyStepsToggle(
           value: _anySteps,
           color: _color,
           onChanged: (v) => setState(() => _anySteps = v),
+          needed: _stepsNeeded,
+          total: _substeps.length,
+          onNeeded: (n) => setState(() => _stepsNeeded = n),
         ),
       ],
       if (_offersTracking) ...[
@@ -996,7 +1003,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
         CompactSubstepsEditor(
           substeps: _substeps,
           color: _color,
-          onChanged: (list) => _substeps = list,
+          onChanged: (list) => setState(() => _substeps = list),
         ),
         const SizedBox(height: 16),
         AnyStepsToggle(
@@ -1004,6 +1011,9 @@ class _HabitFormPageState extends State<HabitFormPage> {
           color: _color,
           compact: true,
           onChanged: (v) => setState(() => _anySteps = v),
+          needed: _stepsNeeded,
+          total: _substeps.length,
+          onNeeded: (n) => setState(() => _stepsNeeded = n),
         ),
       ],
       if (_offersTracking) ...[
@@ -1273,13 +1283,16 @@ class _HabitFormPageState extends State<HabitFormPage> {
               SubstepsEditor(
                 substeps: _substeps,
                 color: _color,
-                onChanged: (list) => _substeps = list,
+                onChanged: (list) => setState(() => _substeps = list),
               ),
               const SizedBox(height: 12),
               AnyStepsToggle(
                 value: _anySteps,
                 color: _color,
                 onChanged: (v) => setState(() => _anySteps = v),
+                needed: _stepsNeeded,
+                total: _substeps.length,
+                onNeeded: (n) => setState(() => _stepsNeeded = n),
               ),
             ],
             if (_offersTracking) ...[

@@ -70,6 +70,7 @@ class Habit {
     this.tracking = false,
     this.anyAmount = false,
     this.anySteps = false,
+    this.stepsNeeded = 1,
     this.difficulty = 0,
     this.startMinute = -1,
     this.durationMinutes = 0,
@@ -205,6 +206,8 @@ class Habit {
   final bool anyAmount;
 
   final bool anySteps;
+
+  final int stepsNeeded;
 
   final int difficulty;
 
@@ -371,7 +374,8 @@ class Habit {
   bool isDoneEntry(Completion entry) {
     if (!hasSubsteps) return reaches(entry.count);
     bool checked(Substep step) => entry.steps.contains(step.id);
-    return anySteps ? substeps.any(checked) : substeps.every(checked);
+    if (!anySteps) return substeps.every(checked);
+    return substeps.where(checked).length >= stepsNeeded.clamp(1, substeps.length);
   }
 
   bool get acceptsAnyAmount => anyAmount && kind == HabitKind.quantitative;
@@ -716,6 +720,7 @@ class Habit {
     bool? tracking,
     bool? anyAmount,
     bool? anySteps,
+    int? stepsNeeded,
     int? difficulty,
     int? startMinute,
     int? durationMinutes,
@@ -759,6 +764,7 @@ class Habit {
       tracking: tracking ?? this.tracking,
       anyAmount: anyAmount ?? this.anyAmount,
       anySteps: anySteps ?? this.anySteps,
+      stepsNeeded: stepsNeeded ?? this.stepsNeeded,
       difficulty: difficulty ?? this.difficulty,
       focusBreakMinutes: focusBreakMinutes ?? this.focusBreakMinutes,
       startMinute: startMinute ?? this.startMinute,
@@ -817,6 +823,7 @@ class Habit {
         'tracking': tracking,
         'anyAmount': anyAmount,
         'anySteps': anySteps,
+        'stepsNeeded': stepsNeeded,
         'difficulty': difficulty,
         'startMinute': startMinute,
         'durationMinutes': durationMinutes,
@@ -881,6 +888,7 @@ class Habit {
         tracking: (map['tracking'] ?? false) as bool,
         anyAmount: (map['anyAmount'] ?? false) as bool,
         anySteps: (map['anySteps'] ?? false) as bool,
+        stepsNeeded: (map['stepsNeeded'] as num?)?.toInt() ?? 1,
         difficulty: ((map['difficulty'] ?? 0) as num).toInt().clamp(0, 3),
         startMinute: ((map['startMinute'] ?? -1) as num).toInt(),
         durationMinutes: ((map['durationMinutes'] ?? 0) as num).toInt(),
