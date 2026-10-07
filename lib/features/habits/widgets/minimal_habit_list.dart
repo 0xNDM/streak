@@ -45,21 +45,17 @@ class MinimalHabitList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 560),
-      reverseDuration: const Duration(milliseconds: 150),
+      duration: const Duration(milliseconds: 440),
+      reverseDuration: const Duration(milliseconds: 220),
+      switchInCurve: Curves.linear,
+      switchOutCurve: Curves.easeOut,
       layoutBuilder: (current, previous) => Stack(
         alignment: Alignment.topCenter,
         children: [...previous, ?current],
       ),
       transitionBuilder: (child, animation) => child.key == ValueKey(mode)
           ? _SwitchIn(animation: animation, child: child)
-          : FadeTransition(
-              opacity: animation,
-              child: ScaleTransition(
-                scale: Tween(begin: 0.98, end: 1.0).animate(animation),
-                child: child,
-              ),
-            ),
+          : FadeTransition(opacity: animation, child: child),
       child: KeyedSubtree(
         key: ValueKey(mode),
         child: mode == HeatmapMode.month ? _monthGrid(context) : _list(context),
@@ -207,20 +203,17 @@ class _Cascade extends StatelessWidget {
     final parent =
         context.dependOnInheritedWidgetOfExactType<_SwitchIn>()?.animation;
     if (parent == null) return child;
-    final start = 0.1 + 0.07 * index.clamp(0, 7);
+    final start = 0.05 * index.clamp(0, 6);
     final curve = CurvedAnimation(
       parent: parent,
-      curve: Interval(start, start + 0.4, curve: Curves.easeOutCubic),
+      curve: Interval(start, start + 0.6, curve: Curves.easeOutCubic),
     );
     return FadeTransition(
       opacity: curve,
       child: SlideTransition(
-        position: Tween(begin: const Offset(0, 0.16), end: Offset.zero)
+        position: Tween(begin: const Offset(0, 0.06), end: Offset.zero)
             .animate(curve),
-        child: ScaleTransition(
-          scale: Tween(begin: 0.97, end: 1.0).animate(curve),
-          child: child,
-        ),
+        child: RepaintBoundary(child: child),
       ),
     );
   }
