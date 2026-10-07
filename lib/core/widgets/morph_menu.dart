@@ -316,12 +316,14 @@ class MorphMenuButton extends StatelessWidget {
     required this.tooltip,
     required this.style,
     required this.onTap,
+    this.active = false,
   });
 
   final IconData icon;
   final String tooltip;
   final MorphMenuStyle style;
   final VoidCallback onTap;
+  final bool active;
 
   @override
   Widget build(BuildContext context) {
@@ -341,13 +343,19 @@ class MorphMenuButton extends StatelessWidget {
                   sigmaX: style.blur * 0.6,
                   sigmaY: style.blur * 0.6,
                 ),
-                child: DecoratedBox(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutCubic,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: style.closed,
-                    border: Border.all(color: style.edge),
+                    color: active ? style.ink : style.closed,
+                    border: Border.all(color: active ? style.ink : style.edge),
                   ),
-                  child: Icon(icon, size: 19, color: style.ink),
+                  child: Icon(
+                    icon,
+                    size: 19,
+                    color: active ? Theme.of(context).colorScheme.surface : style.ink,
+                  ),
                 ),
               ),
             ),

@@ -392,6 +392,14 @@ class _HomePageState extends State<HomePage> {
                   const FocusPill(compact: true),
                   const SizedBox(width: 6),
                 ],
+                MorphMenuButton(
+                  icon: LucideIcons.listFilter,
+                  tooltip: context.l10n.today_filter,
+                  style: MorphMenuStyle.paper(context),
+                  active: todayFiltered(settings),
+                  onTap: () => showTodayFilterSheet(context),
+                ),
+                const SizedBox(width: 10),
                 Builder(
                   builder: (button) => MorphMenuButton(
                     icon: LucideIcons.plus,
@@ -677,17 +685,21 @@ class _HomePageState extends State<HomePage> {
                           SizedBox(height: settings.showTodayProgress ? 20 : 6),
                           _ViewSelector(mode: _mode, onChanged: _changeMode),
                         ],
-                        const SizedBox(height: 14),
-                        _CategoryBar(
-                          categories: categories,
-                          selected: _category,
-                          onSelected: _pickCategory,
-                          tracked: tracked,
-                          hideTracking: settings.hideTracking,
-                          onTracking: toggleTracking,
-                          filtered: todayFiltered(settings),
-                          onFilter: openFilter,
-                        ),
+                        if (!minimal ||
+                            categories.isNotEmpty ||
+                            tracked > 0) ...[
+                          const SizedBox(height: 14),
+                          _CategoryBar(
+                            categories: categories,
+                            selected: _category,
+                            onSelected: _pickCategory,
+                            tracked: tracked,
+                            hideTracking: settings.hideTracking,
+                            onTracking: toggleTracking,
+                            filtered: todayFiltered(settings),
+                            onFilter: minimal ? null : openFilter,
+                          ),
+                        ],
                         const SizedBox(height: 14),
                         if (allDone) const TodayAllDone(),
                       ],
@@ -1100,11 +1112,12 @@ class _CategoryBar extends StatelessWidget {
   final bool hideTracking;
   final VoidCallback onTracking;
   final bool filtered;
-  final VoidCallback onFilter;
+  final VoidCallback? onFilter;
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.colors;
+    final filter = onFilter;
     return Row(
       children: [
         Expanded(child: SizedBox(
@@ -1135,13 +1148,14 @@ class _CategoryBar extends StatelessWidget {
         ],
       ),
         )),
+        if (filter != null) ...[
         const SizedBox(width: 8),
         Semantics(
           button: true,
           selected: filtered,
           label: context.l10n.today_filter,
           child: GestureDetector(
-            onTap: onFilter,
+            onTap: filter,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 220),
               curve: Curves.easeOutCubic,
@@ -1159,6 +1173,7 @@ class _CategoryBar extends StatelessWidget {
             ),
           ),
         ),
+        ],
       ],
     );
   }
