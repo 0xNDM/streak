@@ -12,6 +12,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -21,14 +22,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,13 +39,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -55,10 +65,14 @@ import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.io.File
 
-private val screenBg = Color(0xFF0D0D11)
-private val cardColor = Color(0xFF1B1B22)
+private val screenBg = Color(0xFF0E0E12)
+private val cardColor = Color(0xFF19191F)
+private val fieldColor = Color(0xFF26262E)
+private val barColor = Color(0xFF131318)
+private val lineColor = Color(0x0FFFFFFF)
 private val brand = Color(0xFF7C5CFC)
-private val mutedColor = Color(0xFF9CA3AF)
+private val ink = Color(0xFFF5F5F7)
+private val mutedColor = Color(0xFF9A9AA6)
 
 private val swatches = listOf(
     0x101014, 0x1B1B22, 0x3A3A44, 0xF2F2F5, 0x7C5CFC, 0x2196F3, 0x00BCD4,
@@ -76,6 +90,21 @@ class WidgetConfigActivity : ComponentActivity() {
     private var appWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID
     private var providerClass = ""
     private var type = WType.HABIT
+
+    private val rounded by lazy {
+        val weights = listOf(
+            "Regular" to FontWeight.Normal,
+            "Medium" to FontWeight.Medium,
+            "SemiBold" to FontWeight.SemiBold,
+            "Bold" to FontWeight.Bold,
+            "ExtraBold" to FontWeight.ExtraBold,
+        )
+        try {
+            FontFamily(weights.map { (name, weight) -> Font("flutter_assets/fonts/GoogleSansRounded-$name.ttf", assets, weight) })
+        } catch (e: Exception) {
+            FontFamily.Default
+        }
+    }
 
     private val imageState = mutableStateOf<String?>(null)
     private val bgModeState = mutableStateOf(0)
@@ -124,7 +153,7 @@ class WidgetConfigActivity : ComponentActivity() {
                 initialFollowSystem = WidgetConfig.followSystem(this, appWidgetId),
                 initialBgLight = WidgetConfig.bgLight(this, appWidgetId),
                 initialTodosAll = WidgetConfig.todosAll(this, appWidgetId),
-                initialRound = WidgetConfig.round(this, appWidgetId),
+                initialArt = WidgetConfig.art(this, appWidgetId),
                 initialChosen = WidgetConfig.habits(this, appWidgetId),
                 isEdit = WidgetConfig.exists(this, appWidgetId),
             )
@@ -159,14 +188,11 @@ class WidgetConfigActivity : ComponentActivity() {
 
     private fun tr(key: String, fallback: String) = WidgetText.get(this, key, fallback)
 
-    private fun trf(key: String, fallback: String, vararg subs: Pair<String, String>) =
-        WidgetText.format(this, key, fallback, *subs)
-
     private fun save(
         bg: Int, opacity: Int, border: Boolean, borderWidth: Int,
         habitId: String?, allColor: Int, layout: Int,
-        followSystem: Boolean, bgLight: Int, todosAll: Boolean, round: Boolean,
-        chosen: Set<String>,
+        followSystem: Boolean, bgLight: Int, todosAll: Boolean,
+        chosen: Set<String>, art: Boolean,
     ) {
         val image = if (bgModeState.value == 1) imageState.value else null
         WidgetConfig.set(
@@ -175,7 +201,7 @@ class WidgetConfigActivity : ComponentActivity() {
         )
         if (image != originalImage) WidgetConfig.deleteImage(this, originalImage)
         if (type == WType.TODOS) WidgetConfig.setTodosAll(this, appWidgetId, todosAll)
-        WidgetConfig.setRound(this, appWidgetId, round)
+        if (type == WType.STATS || type == WType.TODOS) WidgetConfig.setArt(this, appWidgetId, art)
         if (filters) WidgetConfig.setHabits(this, appWidgetId, chosen)
         if (type == WType.HEATMAP) {
             HeatmapConfig.setHabit(this, appWidgetId, habitId)
@@ -271,7 +297,7 @@ class WidgetConfigActivity : ComponentActivity() {
         initialFollowSystem: Boolean,
         initialBgLight: Int,
         initialTodosAll: Boolean,
-        initialRound: Boolean,
+        initialArt: Boolean,
         initialChosen: Set<String>,
         isEdit: Boolean,
     ) {
@@ -287,7 +313,7 @@ class WidgetConfigActivity : ComponentActivity() {
         var bgLight by remember { mutableStateOf(initialBgLight) }
         var lightCustom by remember { mutableStateOf(false) }
         var todosAll by remember { mutableStateOf(initialTodosAll) }
-        var round by remember { mutableStateOf(initialRound) }
+        var art by remember { mutableStateOf(initialArt) }
         var chosen by remember { mutableStateOf(initialChosen) }
         val mode by bgModeState
         val image by imageState
@@ -298,271 +324,297 @@ class WidgetConfigActivity : ComponentActivity() {
             WidgetStyle.image(image!!, opacity, border, borderWidth)
         } else {
             WidgetStyle.from(shown, opacity, border, borderWidth)
-        }.copy(round = round)
+        }
 
-        Column(modifier = Modifier.fillMaxSize().background(screenBg)) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Brush.verticalGradient(listOf(Color(0xFF231F3A), screenBg)))
-                    .padding(start = 20.dp, end = 20.dp, top = 22.dp, bottom = 18.dp),
-            ) {
-                Text(
-                    tr("cfg_title", "Customize widget"),
-                    color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold,
-                )
-                Spacer(Modifier.height(18.dp))
-                Preview(style, image.takeIf { mode == 1 }, layout, habitId, allColor, todosAll)
-            }
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp),
-            ) {
+        val hasArt = type == WType.STATS || type == WType.TODOS
+        val hasPicker = filters && habits.size > 1
+        val hasContent = type == WType.HEATMAP || type == WType.TODOS || hasArt || hasPicker
 
-                if (type == WType.HEATMAP) {
-                    Spacer(Modifier.height(18.dp))
-                    Segmented(
-                        left = tr("cfg_style_classic", "Classic"),
-                        right = tr("cfg_style_card", "Card"),
-                        selected = if (layout == HeatmapConfig.LAYOUT_CARD) 1 else 0,
-                        onLeft = { layout = HeatmapConfig.LAYOUT_CLASSIC },
-                        onRight = { layout = HeatmapConfig.LAYOUT_CARD },
-                    )
-                }
-
-                Spacer(Modifier.height(6.dp))
-                Section(tr("cfg_color", "Color")) {
-                    Segmented(
-                        left = tr("cfg_color", "Color"),
-                        right = tr("cfg_image", "Image"),
-                        selected = mode,
-                        onLeft = { bgModeState.value = 0 },
-                        onRight = {
-                            if (image != null) bgModeState.value = 1 else pickImage.launch("image/*")
-                        },
-                    )
+        CompositionLocalProvider(LocalTextStyle provides TextStyle(fontFamily = rounded, color = ink)) {
+            Column(modifier = Modifier.fillMaxSize().background(screenBg)) {
+                Column(modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 22.dp)) {
+                    Text(tr("cfg_title", "Customize widget"), fontSize = 24.sp, fontWeight = FontWeight.ExtraBold)
                     Spacer(Modifier.height(16.dp))
-                    if (mode == 1) {
-                        FilledButton(
-                            if (image == null) tr("cfg_choose_image", "Choose image")
-                            else tr("cfg_change_image", "Change image"),
-                            Color(0xFF26262F),
-                        ) { pickImage.launch("image/*") }
-                    } else {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                tr("cfg_follow_system", "Follow system theme"),
-                                color = Color.White, fontSize = 15.sp,
-                                fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f),
-                            )
-                            Switch(
-                                checked = followSystem,
-                                onCheckedChange = { followSystem = it },
-                                colors = SwitchDefaults.colors(checkedTrackColor = brand),
-                            )
-                        }
-                        Spacer(Modifier.height(14.dp))
-                        if (followSystem) {
-                            Label(tr("cfg_dark_color", "Dark theme"))
-                            Spacer(Modifier.height(10.dp))
-                        }
-                        Swatches(bg, custom) { bg = it; custom = false }
-                        Spacer(Modifier.height(14.dp))
-                        Chip(tr("cfg_custom_color", "Custom color"), custom) { custom = !custom }
-                        if (custom) {
-                            Spacer(Modifier.height(12.dp))
-                            HsvPicker(bg) { bg = it }
-                        }
-                        if (followSystem) {
-                            Spacer(Modifier.height(20.dp))
-                            Label(tr("cfg_light_color", "Light theme"))
-                            Spacer(Modifier.height(10.dp))
-                            Swatches(bgLight, lightCustom) { bgLight = it; lightCustom = false }
-                            Spacer(Modifier.height(14.dp))
-                            Chip(tr("cfg_custom_color", "Custom color"), lightCustom) {
-                                lightCustom = !lightCustom
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(28.dp))
+                            .background(Brush.linearGradient(listOf(Color(0xFF2B2640), Color(0xFF16161D))))
+                            .padding(18.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Preview(style, image.takeIf { mode == 1 }, layout, habitId, allColor, art)
+                    }
+                }
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 20.dp),
+                ) {
+                    Spacer(Modifier.height(8.dp))
+                    if (hasContent) {
+                        Group(tr("cfg_content", "Content")) {
+                            if (type == WType.HEATMAP) {
+                                Inset {
+                                    Segmented(
+                                        left = tr("cfg_style_classic", "Classic"),
+                                        right = tr("cfg_style_card", "Card"),
+                                        selected = if (layout == HeatmapConfig.LAYOUT_CARD) 1 else 0,
+                                        onLeft = { layout = HeatmapConfig.LAYOUT_CLASSIC },
+                                        onRight = { layout = HeatmapConfig.LAYOUT_CARD },
+                                    )
+                                }
                             }
-                            if (lightCustom) {
-                                Spacer(Modifier.height(12.dp))
-                                HsvPicker(bgLight) { bgLight = it }
+                            if (type == WType.TODOS) {
+                                ToggleRow(
+                                    tr("cfg_todos_all", "Show every task"),
+                                    tr("cfg_todos_hint", "Off: only today, late and undated tasks"),
+                                    todosAll,
+                                ) { todosAll = it }
+                            }
+                            if (hasArt) {
+                                if (type == WType.TODOS) Line()
+                                ToggleRow(tr("cfg_show_art", "Show illustration"), null, art) { art = it }
                             }
                         }
-                    }
-                    Spacer(Modifier.height(16.dp))
-                    SliderRow(
-                        label(tr("cfg_opacity", "Opacity")),
-                        "$opacity%",
-                        opacity.toFloat(),
-                        0f..100f,
-                    ) { opacity = it.toInt() }
-                }
-
-                Spacer(Modifier.height(14.dp))
-                Section(tr("cfg_border", "Border")) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            tr("cfg_border", "Border"), color = Color.White, fontSize = 15.sp,
-                            fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f),
-                        )
-                        Switch(
-                            checked = border, onCheckedChange = { border = it },
-                            colors = SwitchDefaults.colors(checkedTrackColor = brand),
-                        )
-                    }
-                    if (border) {
-                        Spacer(Modifier.height(6.dp))
-                        SliderRow(
-                            label(tr("cfg_thickness", "Thickness")),
-                            "${borderWidth}dp",
-                            borderWidth.toFloat(),
-                            1f..8f,
-                        ) { borderWidth = it.toInt() }
-                    }
-                }
-
-                if (type == WType.TODAY || type == WType.HABIT || type == WType.TODOS) {
-                    Spacer(Modifier.height(14.dp))
-                    Section(tr("cfg_checks", "Checks")) {
-                        Segmented(
-                            left = tr("cfg_square", "Square"),
-                            right = tr("cfg_circle", "Circle"),
-                            selected = if (round) 1 else 0,
-                            onLeft = { round = false },
-                            onRight = { round = true },
-                        )
-                    }
-                }
-
-                if (type == WType.TODOS) {
-                    Spacer(Modifier.height(14.dp))
-                    Section(tr("cfg_todos_scope", "Tasks")) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                tr("cfg_todos_all", "Show every task"),
-                                color = Color.White, fontSize = 15.sp,
-                                fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f),
-                            )
-                            Switch(
-                                checked = todosAll, onCheckedChange = { todosAll = it },
-                                colors = SwitchDefaults.colors(checkedTrackColor = brand),
-                            )
-                        }
-                        Spacer(Modifier.height(6.dp))
-                        Text(
-                            tr("cfg_todos_hint", "Off: only today, late and undated tasks"),
-                            color = Color(0xFF9CA3AF), fontSize = 12.sp,
-                        )
-                    }
-                }
-
-                if (filters && habits.size > 1) {
-                    Spacer(Modifier.height(14.dp))
-                    Section(tr("cfg_show_habits", "Habits to show")) {
-                        habits.forEachIndexed { index, o ->
-                            if (index > 0) Spacer(Modifier.height(8.dp))
-                            val id = o.id
-                            HabitRow(o, if (id == null) chosen.isEmpty() else id in chosen) {
-                                chosen = when {
-                                    id == null -> emptySet()
-                                    id in chosen -> chosen - id
-                                    else -> chosen + id
+                        if (type == WType.HEATMAP && habits.isNotEmpty()) {
+                            Group(tr("cfg_show_activity", "Show activity of")) {
+                                habits.forEachIndexed { index, o ->
+                                    if (index > 0) Line()
+                                    HabitRow(o, o.id == habitId) { habitId = o.id }
+                                }
+                                if (habitId == null) {
+                                    Line()
+                                    Inset {
+                                        Label(tr("cfg_dot_color", "Dot color"))
+                                        Spacer(Modifier.height(12.dp))
+                                        Swatches(allColor, custom = false) { allColor = 0xFF000000.toInt() or it }
+                                    }
                                 }
                             }
                         }
-                        if (type == WType.STATS) {
-                            Spacer(Modifier.height(10.dp))
-                            Text(
-                                tr("cfg_show_habits_hint", "With one habit, the summary shows its streak."),
-                                color = Color(0xFF9CA3AF), fontSize = 12.sp,
-                            )
-                        }
-                    }
-                }
-
-                if (type == WType.HEATMAP && habits.isNotEmpty()) {
-                    Spacer(Modifier.height(14.dp))
-                    Section(tr("cfg_show_activity", "Show activity of")) {
-                        habits.forEachIndexed { index, o ->
-                            if (index > 0) Spacer(Modifier.height(8.dp))
-                            HabitRow(o, o.id == habitId) { habitId = o.id }
-                        }
-                        if (habitId == null) {
-                            Spacer(Modifier.height(18.dp))
-                            Label(tr("cfg_dot_color", "Dot color"))
-                            Spacer(Modifier.height(10.dp))
-                            Swatches(allColor, custom = false) {
-                                allColor = 0xFF000000.toInt() or it
+                        if (hasPicker) {
+                            Group(
+                                tr("cfg_show_habits", "Habits to show"),
+                                if (type == WType.STATS) {
+                                    tr("cfg_show_habits_hint", "With one habit, the summary shows its streak.")
+                                } else {
+                                    null
+                                },
+                            ) {
+                                habits.forEachIndexed { index, o ->
+                                    if (index > 0) Line()
+                                    val id = o.id
+                                    HabitRow(o, if (id == null) chosen.isEmpty() else id in chosen) {
+                                        chosen = when {
+                                            id == null -> emptySet()
+                                            id in chosen -> chosen - id
+                                            else -> chosen + id
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
-                }
 
-                Spacer(Modifier.height(24.dp))
-            }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFF141419))
-                    .padding(horizontal = 20.dp, vertical = 14.dp),
-            ) {
-                FilledButton(
-                    if (isEdit) tr("cfg_save", "Save") else tr("cfg_add", "Add widget"),
-                    brand, height = 54.dp, bold = true,
-                ) {
-                    save(
-                        bg, opacity, border, borderWidth, habitId, allColor, layout,
-                        followSystem, bgLight, todosAll, round, chosen,
-                    )
-                }
-                Box(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
-                        .clickable {
-                            bg = WidgetConfig.DEFAULT_BG
-                            bgLight = WidgetConfig.DEFAULT_BG_LIGHT
-                            followSystem = false
-                            opacity = 100
-                            border = false
-                            borderWidth = 2
-                            custom = false
-                            lightCustom = false
-                            allColor = brand.toArgb()
-                            layout = HeatmapConfig.LAYOUT_CLASSIC
-                            round = false
-                            chosen = emptySet()
-                            bgModeState.value = 0
-                            imageState.value = null
+                    Group(tr("cfg_background", "Background")) {
+                        Inset {
+                            Segmented(
+                                left = tr("cfg_color", "Color"),
+                                right = tr("cfg_image", "Image"),
+                                selected = mode,
+                                onLeft = { bgModeState.value = 0 },
+                                onRight = {
+                                    if (image != null) bgModeState.value = 1 else pickImage.launch("image/*")
+                                },
+                            )
+                            Spacer(Modifier.height(16.dp))
+                            if (mode == 1) {
+                                SoftButton(
+                                    if (image == null) tr("cfg_choose_image", "Choose image")
+                                    else tr("cfg_change_image", "Change image"),
+                                ) { pickImage.launch("image/*") }
+                            } else {
+                                if (followSystem) {
+                                    Label(tr("cfg_dark_color", "Dark theme"))
+                                    Spacer(Modifier.height(12.dp))
+                                }
+                                Swatches(bg, custom) { bg = it; custom = false }
+                                Spacer(Modifier.height(14.dp))
+                                Chip(tr("cfg_custom_color", "Custom color"), custom) { custom = !custom }
+                                if (custom) {
+                                    Spacer(Modifier.height(12.dp))
+                                    HsvPicker(bg) { bg = it }
+                                }
+                                if (followSystem) {
+                                    Spacer(Modifier.height(22.dp))
+                                    Label(tr("cfg_light_color", "Light theme"))
+                                    Spacer(Modifier.height(12.dp))
+                                    Swatches(bgLight, lightCustom) { bgLight = it; lightCustom = false }
+                                    Spacer(Modifier.height(14.dp))
+                                    Chip(tr("cfg_custom_color", "Custom color"), lightCustom) {
+                                        lightCustom = !lightCustom
+                                    }
+                                    if (lightCustom) {
+                                        Spacer(Modifier.height(12.dp))
+                                        HsvPicker(bgLight) { bgLight = it }
+                                    }
+                                }
+                            }
                         }
-                        .padding(vertical = 10.dp),
-                    contentAlignment = Alignment.Center,
+                        if (mode == 0) {
+                            Line()
+                            ToggleRow(tr("cfg_follow_system", "Follow system theme"), null, followSystem) {
+                                followSystem = it
+                            }
+                        }
+                        Line()
+                        Inset {
+                            SliderRow(label(tr("cfg_opacity", "Opacity")), "$opacity%", opacity.toFloat(), 0f..100f) {
+                                opacity = it.toInt()
+                            }
+                        }
+                    }
+
+                    Group(tr("cfg_border", "Border")) {
+                        ToggleRow(tr("cfg_border", "Border"), null, border) { border = it }
+                        if (border) {
+                            Line()
+                            Inset {
+                                SliderRow(
+                                    label(tr("cfg_thickness", "Thickness")),
+                                    "${borderWidth}dp",
+                                    borderWidth.toFloat(),
+                                    1f..8f,
+                                ) { borderWidth = it.toInt() }
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(24.dp))
+                }
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(barColor)
+                        .navigationBarsPadding()
+                        .padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 6.dp),
                 ) {
-                    Text(
-                        tr("cfg_reset", "Reset to default"),
-                        color = mutedColor, fontSize = 13.sp, fontWeight = FontWeight.Medium,
-                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(54.dp)
+                            .clip(RoundedCornerShape(18.dp))
+                            .background(brand)
+                            .clickable {
+                                save(
+                                    bg, opacity, border, borderWidth, habitId, allColor, layout,
+                                    followSystem, bgLight, todosAll, chosen, art,
+                                )
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            if (isEdit) tr("cfg_save", "Save") else tr("cfg_add", "Add widget"),
+                            color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold,
+                        )
+                    }
+                    Box(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                bg = WidgetConfig.DEFAULT_BG
+                                bgLight = WidgetConfig.DEFAULT_BG_LIGHT
+                                followSystem = false
+                                opacity = 100
+                                border = false
+                                borderWidth = 2
+                                custom = false
+                                lightCustom = false
+                                allColor = brand.toArgb()
+                                layout = HeatmapConfig.LAYOUT_CLASSIC
+                                art = true
+                                todosAll = false
+                                chosen = emptySet()
+                                bgModeState.value = 0
+                                imageState.value = null
+                            }
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            tr("cfg_reset", "Reset to default"),
+                            color = mutedColor, fontSize = 14.sp, fontWeight = FontWeight.Bold,
+                        )
+                    }
                 }
             }
         }
     }
 
     @Composable
-    private fun Section(title: String, content: @Composable () -> Unit) = Column(
+    private fun Group(title: String, hint: String? = null, content: @Composable ColumnScope.() -> Unit) {
+        Spacer(Modifier.height(22.dp))
+        Text(
+            title,
+            color = mutedColor,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.ExtraBold,
+            modifier = Modifier.padding(start = 6.dp, bottom = 10.dp),
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp))
+                .background(cardColor),
+            content = content,
+        )
+        if (hint != null) {
+            Text(
+                hint,
+                color = mutedColor,
+                fontSize = 12.5.sp,
+                modifier = Modifier.padding(start = 6.dp, end = 6.dp, top = 8.dp),
+            )
+        }
+    }
+
+    @Composable
+    private fun Inset(content: @Composable ColumnScope.() -> Unit) =
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp), content = content)
+
+    @Composable
+    private fun Line() = Box(
+        Modifier.padding(start = 16.dp).fillMaxWidth().height(1.dp).background(lineColor),
+    )
+
+    @Composable
+    private fun ToggleRow(title: String, sub: String?, checked: Boolean, onChange: (Boolean) -> Unit) = Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(22.dp))
-            .background(cardColor)
-            .padding(18.dp),
+            .clickable { onChange(!checked) }
+            .padding(start = 16.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            title.uppercase(),
-            color = mutedColor,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
+        Column(Modifier.weight(1f)) {
+            Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            if (sub != null) {
+                Spacer(Modifier.height(2.dp))
+                Text(sub, color = mutedColor, fontSize = 12.5.sp)
+            }
+        }
+        Spacer(Modifier.width(12.dp))
+        Switch(
+            checked = checked,
+            onCheckedChange = onChange,
+            colors = SwitchDefaults.colors(
+                checkedTrackColor = brand,
+                checkedThumbColor = Color.White,
+                uncheckedTrackColor = fieldColor,
+                uncheckedThumbColor = mutedColor,
+                uncheckedBorderColor = Color.Transparent,
+            ),
         )
-        Spacer(Modifier.height(14.dp))
-        content()
     }
 
     @Composable
@@ -575,25 +627,26 @@ class WidgetConfigActivity : ComponentActivity() {
     ) = Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(Color(0xFF26262F))
+            .clip(RoundedCornerShape(16.dp))
+            .background(fieldColor)
             .padding(4.dp),
     ) {
         listOf(left to onLeft, right to onRight).forEachIndexed { index, (label, action) ->
+            val on = selected == index
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(11.dp))
-                    .background(if (selected == index) brand else Color.Transparent)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(if (on) Color(0xFF3A3A46) else Color.Transparent)
                     .clickable(onClick = action)
                     .padding(vertical = 11.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     label,
-                    color = if (selected == index) Color.White else mutedColor,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
+                    color = if (on) ink else mutedColor,
+                    fontSize = 14.5.sp,
+                    fontWeight = FontWeight.ExtraBold,
                 )
             }
         }
@@ -608,15 +661,12 @@ class WidgetConfigActivity : ComponentActivity() {
         onChange: (Float) -> Unit,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                title, color = Color.White, fontSize = 15.sp,
-                fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f),
-            )
+            Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
             Box(
-                Modifier.clip(RoundedCornerShape(8.dp)).background(Color(0xFF26262F))
+                Modifier.clip(RoundedCornerShape(10.dp)).background(fieldColor)
                     .padding(horizontal = 10.dp, vertical = 4.dp),
             ) {
-                Text(value, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text(value, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
             }
         }
         ThemedSlider(current, range, onChange)
@@ -629,12 +679,12 @@ class WidgetConfigActivity : ComponentActivity() {
         layout: Int,
         habitId: String?,
         allColor: Int,
-        todosAll: Boolean,
+        art: Boolean,
     ) = Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        val frame = if (type == WType.STATS) {
-            Modifier.size(158.dp)
-        } else {
-            Modifier.fillMaxWidth().height(150.dp)
+        val frame = when (type) {
+            WType.STATS -> Modifier.size(158.dp)
+            WType.TODAY, WType.HABIT -> Modifier.fillMaxWidth().height(176.dp)
+            else -> Modifier.fillMaxWidth().height(150.dp)
         }
         Box(
             modifier = frame
@@ -664,202 +714,25 @@ class WidgetConfigActivity : ComponentActivity() {
                 Image(bmp, null, Modifier.matchParentSize(), contentScale = ContentScale.Crop)
                 Box(Modifier.matchParentSize().background(style.scrim))
             }
-            Box(Modifier.padding(14.dp)) {
-                when (type) {
-                    WType.HABIT -> HabitPreview(style)
-                    WType.TODAY -> TodayPreview(style)
-                    WType.STATS -> StatsPreview(style)
-                    WType.HEATMAP -> LivePreview(style, layout, habitId, allColor)
-                    WType.TODOS -> TodosPreview(style, todosAll)
-                }
-            }
-        }
-    }
-
-    @Composable
-    private fun HabitPreview(s: WidgetStyle) = Column(Modifier.fillMaxSize()) {
-        val days = listOf("M", "T", "W", "T", "F", "S", "S")
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Row(Modifier.width(92.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("67%", color = s.content, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-            }
-            Row(Modifier.weight(1f)) {
-                days.forEachIndexed { i, day ->
-                    Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                        val today = i == 6
-                        Box(
-                            Modifier.size(20.dp).clip(CircleShape)
-                                .background(if (today) s.content else Color.Transparent),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                day, fontSize = 10.sp, fontWeight = FontWeight.Bold,
-                                color = if (today) inverse(s) else s.muted,
-                            )
-                        }
-                    }
-                }
-            }
-        }
-        Spacer(Modifier.height(8.dp))
-        listOf(
-            Triple(tr("demo_read", "Read"), Color(0xFF7C5CFC), listOf(1, 1, 0, 1, 1, 0, 1)),
-            Triple(tr("demo_run", "Run"), Color(0xFF2196F3), listOf(0, 1, 1, 0, 1, 1, 0)),
-            Triple(tr("demo_water", "Water"), Color(0xFF00BCD4), listOf(1, 1, 1, 1, 1, 1, 0)),
-        ).forEach { (name, color, pattern) ->
-            Row(
-                Modifier.fillMaxWidth().padding(vertical = 3.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    name, color = s.content, fontSize = 13.sp, fontWeight = FontWeight.Medium,
-                    maxLines = 1, modifier = Modifier.width(92.dp),
-                )
-                Row(Modifier.weight(1f)) {
-                    pattern.forEachIndexed { i, done ->
-                        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                            when {
-                                done == 1 -> DoneDot(color, s, 18.dp)
-                                i == 6 -> RingDot(color, s, 18.dp)
-                                else -> EmptyDot(s, 18.dp)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    @Composable
-    private fun TodayPreview(s: WidgetStyle) = Column(Modifier.fillMaxSize()) {
-        Text(
-            trf("today_progress", "Today  2/3", "{done}" to "2", "{total}" to "3"),
-            color = s.content, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1,
-        )
-        Spacer(Modifier.height(8.dp))
-        listOf(
-            Triple(tr("demo_read", "Read"), Color(0xFF7C5CFC), true),
-            Triple(tr("demo_run", "Run"), Color(0xFF2196F3), true),
-            Triple(tr("demo_water", "Water"), Color(0xFF00BCD4), false),
-        ).forEach { (name, color, done) ->
-            Row(
-                Modifier.fillMaxWidth().padding(vertical = 3.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    name, color = s.content, fontSize = 13.sp, fontWeight = FontWeight.Medium,
-                    maxLines = 1, modifier = Modifier.weight(1f),
-                )
-                FlameCount(if (done) 12 else 4, s)
-                Spacer(Modifier.width(10.dp))
-                if (done) DoneDot(color, s, 24.dp) else FadedDot(color, s, 24.dp)
-            }
-        }
-    }
-
-    @Composable
-    private fun TodosPreview(s: WidgetStyle, all: Boolean) = Column(Modifier.fillMaxSize()) {
-        val rows = if (all) 3 else 2
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                WidgetText.title(this@WidgetConfigActivity, "todos_open", "To-do"),
-                color = s.content, fontSize = 15.sp, fontWeight = FontWeight.Bold,
-            )
-            Spacer(Modifier.width(8.dp))
-            Box(
-                Modifier.clip(RoundedCornerShape(10.dp))
-                    .background(WidgetInk.done.copy(alpha = 0.18f))
-                    .padding(horizontal = 8.dp, vertical = 2.dp),
-            ) {
-                Text("$rows", color = WidgetInk.done, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-            }
-        }
-        Spacer(Modifier.height(10.dp))
-        listOf(
-            tr("demo_read", "Read") to Color(0xFFEF4444),
-            tr("demo_run", "Run") to null,
-            tr("demo_water", "Water") to Color(0xFFF59E0B),
-        ).take(rows).forEach { (name, priority) ->
-            Row(
-                Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                RingDot(s.muted, s, 20.dp)
-                Spacer(Modifier.width(10.dp))
-                if (priority != null) {
-                    Box(Modifier.size(7.dp).clip(CircleShape).background(priority))
-                    Spacer(Modifier.width(7.dp))
-                }
-                Text(
-                    name, color = s.content, fontSize = 13.sp, fontWeight = FontWeight.Medium,
-                    modifier = Modifier.weight(1f),
+            if (type == WType.STATS && art) {
+                Image(
+                    painterResource(
+                        if (style.content.luminance() < 0.5f) R.drawable.widget_streak_flame_light
+                        else R.drawable.widget_streak_flame,
+                    ),
+                    null,
+                    Modifier.matchParentSize(),
                 )
             }
-        }
-    }
-
-    @Composable
-    private fun StatsPreview(s: WidgetStyle) = Column(
-        Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Image(painterResource(R.drawable.widget_flame_3d), null, Modifier.size(36.dp))
-            Spacer(Modifier.width(9.dp))
-            Column {
-                Caps(tr("done_today", "done today"), s)
-                Row(verticalAlignment = Alignment.Bottom) {
-                    Text("2", color = s.content, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                    Text(
-                        "/3", color = s.muted, fontSize = 13.sp, fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(start = 2.dp, bottom = 3.dp),
-                    )
-                }
+            when (type) {
+                WType.HABIT -> WeekSample(style)
+                WType.TODAY -> TodaySample(style)
+                WType.STATS -> StatsSample(style, art)
+                WType.HEATMAP -> Box(Modifier.padding(14.dp)) { LivePreview(style, layout, habitId, allColor) }
+                WType.TODOS -> TodosSample(style, art)
             }
         }
     }
-
-    @Composable
-    private fun Caps(text: String, s: WidgetStyle) = Text(
-        text.uppercase(), color = s.muted, fontSize = 10.sp,
-        fontWeight = FontWeight.Bold, maxLines = 1,
-    )
-
-    private fun markShape(s: WidgetStyle) =
-        if (s.round) CircleShape else RoundedCornerShape(30)
-
-    @Composable
-    private fun DoneDot(color: Color, s: WidgetStyle, size: androidx.compose.ui.unit.Dp) = Box(
-        Modifier.size(size).clip(markShape(s)).background(color),
-        contentAlignment = Alignment.Center,
-    ) {
-        Image(painterResource(R.drawable.ic_widget_check), null, Modifier.size(size * 0.6f))
-    }
-
-    @Composable
-    private fun RingDot(color: Color, s: WidgetStyle, size: androidx.compose.ui.unit.Dp) = Box(
-        Modifier.size(size).clip(markShape(s)).background(color.copy(alpha = 0.14f))
-            .border(2.dp, color, markShape(s)),
-    )
-
-    @Composable
-    private fun FadedDot(color: Color, s: WidgetStyle, size: androidx.compose.ui.unit.Dp) =
-        Box(Modifier.size(size).clip(markShape(s)).background(color.copy(alpha = 0.18f)))
-
-    @Composable
-    private fun EmptyDot(s: WidgetStyle, size: androidx.compose.ui.unit.Dp) =
-        Box(Modifier.size(size).clip(markShape(s)).background(s.cell))
-
-    @Composable
-    private fun FlameCount(streak: Int, s: WidgetStyle) =
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Image(painterResource(R.drawable.widget_flame_3d), null, Modifier.size(15.dp))
-            Spacer(Modifier.width(2.dp))
-            Text("$streak", color = s.content, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-        }
-
-    private fun inverse(s: WidgetStyle): Color =
-        if (s.content == Color.White) Color(0xFF111114) else Color.White
 
     @Composable
     private fun LivePreview(
@@ -887,7 +760,8 @@ class WidgetConfigActivity : ComponentActivity() {
             if (classic) {
                 Text(
                     data.name, color = style.content, fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold, maxLines = 1,
+                    fontWeight = FontWeight.ExtraBold, maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Center,
                 )
@@ -906,11 +780,16 @@ class WidgetConfigActivity : ComponentActivity() {
                     )
                     Spacer(Modifier.width(10.dp))
                     Column(Modifier.weight(1f)) {
-                        Text(data.name, color = style.content, fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold, maxLines = 1)
+                        Text(
+                            data.name, color = style.content, fontSize = 15.sp,
+                            fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        )
                         if (data.description.isNotEmpty()) {
-                            Text(data.description, color = style.content.copy(alpha = 0.72f),
-                                fontSize = 11.sp, maxLines = 1)
+                            Text(
+                                data.description, color = style.content.copy(alpha = 0.72f),
+                                fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
+                                maxLines = 1, overflow = TextOverflow.Ellipsis,
+                            )
                         }
                     }
                     if (data.id != null) {
@@ -936,7 +815,7 @@ class WidgetConfigActivity : ComponentActivity() {
                     .onSizeChanged { gridSize = it },
             ) {
                 if (gridSize.width > 0 && gridSize.height > 0) {
-                    val grid = remember(gridSize, data.id, classic, data.levels.size) {
+                    val grid = remember(gridSize, data.id, classic, data.levels.size, style.cell) {
                         CardBitmaps.grid(
                             gridSize.width, gridSize.height, data.levels, data.color,
                             if (classic) style.cell.toArgb() else null,
@@ -967,40 +846,40 @@ class WidgetConfigActivity : ComponentActivity() {
 
     @Composable
     private fun Label(text: String) =
-        Text(text, color = mutedColor, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+        Text(text, color = mutedColor, fontSize = 13.sp, fontWeight = FontWeight.Bold)
 
     @Composable
     private fun ThemedSlider(value: Float, range: ClosedFloatingPointRange<Float>, onChange: (Float) -> Unit) =
         Slider(
             value = value, onValueChange = onChange, valueRange = range,
             colors = SliderDefaults.colors(
-                thumbColor = brand, activeTrackColor = brand, inactiveTrackColor = cardColor,
+                thumbColor = Color.White, activeTrackColor = brand, inactiveTrackColor = fieldColor,
             ),
         )
 
     @Composable
-    private fun FilledButton(
-        text: String, color: Color, height: androidx.compose.ui.unit.Dp = 48.dp,
-        bold: Boolean = false, onClick: () -> Unit,
-    ) = Button(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth().height(height),
-        shape = RoundedCornerShape(14.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = color),
+    private fun SoftButton(text: String, onClick: () -> Unit) = Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(50.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(fieldColor)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
     ) {
-        Text(text, color = Color.White, fontWeight = if (bold) FontWeight.Bold else FontWeight.Medium)
+        Text(text, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold)
     }
 
     @Composable
     private fun Chip(label: String, on: Boolean, onClick: () -> Unit) = Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(if (on) brand.copy(alpha = 0.22f) else cardColor)
-            .then(if (on) Modifier.border(1.5.dp, brand, RoundedCornerShape(10.dp)) else Modifier)
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (on) brand.copy(alpha = 0.22f) else fieldColor)
+            .then(if (on) Modifier.border(1.5.dp, brand, RoundedCornerShape(12.dp)) else Modifier)
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 10.dp),
     ) {
-        Text(label, color = if (on) Color.White else mutedColor, fontWeight = FontWeight.Bold)
+        Text(label, color = if (on) ink else mutedColor, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
     }
 
     @Composable
@@ -1032,12 +911,12 @@ class WidgetConfigActivity : ComponentActivity() {
                         val chosen = !custom && (c and 0x00FFFFFF) == rgbSel
                         Box(
                             Modifier.weight(1f).aspectRatio(1f).clip(CircleShape)
+                                .then(if (chosen) Modifier.border(2.dp, ink, CircleShape) else Modifier)
+                                .clickable { onPick(c) }
+                                .padding(if (chosen) 4.dp else 0.dp)
+                                .clip(CircleShape)
                                 .background(Color(0xFF000000.toInt() or c))
-                                .border(
-                                    if (chosen) 3.dp else 1.dp,
-                                    if (chosen) Color.White else Color(0x33FFFFFF), CircleShape,
-                                )
-                                .clickable { onPick(c) },
+                                .border(1.dp, Color(0x1FFFFFFF), CircleShape),
                         )
                     }
                     repeat(7 - row.size) { Spacer(Modifier.weight(1f)) }
@@ -1050,15 +929,33 @@ class WidgetConfigActivity : ComponentActivity() {
     private fun HabitRow(option: HabitOption, selected: Boolean, onClick: () -> Unit) = Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(if (selected) brand.copy(alpha = 0.22f) else cardColor)
-            .then(if (selected) Modifier.border(1.5.dp, brand, RoundedCornerShape(14.dp)) else Modifier)
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.size(14.dp).clip(CircleShape).background(option.color))
+        Box(Modifier.size(12.dp).clip(CircleShape).background(option.color))
         Spacer(Modifier.width(14.dp))
-        Text(option.name, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+        Text(
+            option.name, fontSize = 16.sp, fontWeight = FontWeight.Bold,
+            maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
+        )
+        Spacer(Modifier.width(12.dp))
+        Tick(selected)
+    }
+
+    @Composable
+    private fun Tick(on: Boolean) = Canvas(Modifier.size(24.dp)) {
+        val r = size.minDimension / 2f
+        if (on) {
+            drawCircle(brand, r)
+            val path = Path().apply {
+                moveTo(size.width * 0.29f, size.height * 0.52f)
+                lineTo(size.width * 0.44f, size.height * 0.67f)
+                lineTo(size.width * 0.72f, size.height * 0.36f)
+            }
+            drawPath(path, Color.White, style = Stroke(width = 2.4.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+        } else {
+            drawCircle(Color(0x40FFFFFF), r - 1.dp.toPx(), style = Stroke(width = 2.dp.toPx()))
+        }
     }
 }

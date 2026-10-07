@@ -10,6 +10,7 @@ object WidgetPayload {
 
     const val WEEK = 7
     const val TODAY = WEEK - 1
+    private const val SPAN = WEEK + TODAY
 
     fun todayKey(context: Context): String =
         raw(context)?.optString("todayKey").orEmpty().ifEmpty { systemDayKey() }
@@ -129,6 +130,10 @@ object WidgetPayload {
         }
 
         root.put("days", sliceDays(days, start, todayKey))
+        if (end > TODAY) {
+            val since = TODAY - root.optInt("weekOffset", 0) + end - TODAY
+            root.put("weekOffset", TODAY - since % WEEK)
+        }
 
         val habits = root.optJSONArray("habits") ?: return root
         var due = 0
@@ -167,12 +172,13 @@ object WidgetPayload {
 
     private fun sliceDays(days: JSONArray, start: Int, todayKey: String): JSONArray {
         val out = JSONArray()
-        for (i in 0 until WEEK) {
+        for (i in 0 until SPAN) {
             val day = days.optJSONObject(start + i) ?: continue
             out.put(
                 JSONObject()
                     .put("key", day.optString("key"))
                     .put("label", day.optString("label"))
+                    .put("short", day.optString("short"))
                     .put("isToday", day.optString("key") == todayKey),
             )
         }
@@ -182,7 +188,7 @@ object WidgetPayload {
     private fun slice(values: JSONArray?, start: Int): JSONArray {
         val out = JSONArray()
         if (values == null) return out
-        for (i in 0 until WEEK) out.put(values.opt(start + i) ?: JSONObject.NULL)
+        for (i in 0 until SPAN) out.put(values.opt(start + i) ?: JSONObject.NULL)
         return out
     }
 }

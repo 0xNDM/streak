@@ -37,13 +37,9 @@ data class WidgetStyle(
     val cell: Color,
     val imagePath: String?,
     val scrim: Color,
-    val round: Boolean = false,
 ) {
     companion object {
-        fun loadFor(context: Context, id: Int): WidgetStyle =
-            base(context, id).copy(round = WidgetConfig.round(context, id))
-
-        private fun base(context: Context, id: Int): WidgetStyle {
+        fun loadFor(context: Context, id: Int): WidgetStyle {
             val opacity = WidgetConfig.opacity(context, id)
             val border = WidgetConfig.border(context, id)
             val bw = WidgetConfig.borderWidth(context, id)

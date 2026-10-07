@@ -2,11 +2,12 @@ package com.streak.app
 
 import android.content.Context
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
+import androidx.glance.Image
+import androidx.glance.ImageProvider
 import androidx.glance.LocalSize
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
@@ -15,18 +16,14 @@ import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.provideContent
 import androidx.glance.currentState
 import androidx.glance.layout.Alignment
+import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
-import androidx.glance.layout.fillMaxWidth
-import androidx.glance.layout.height
 import androidx.glance.layout.padding
+import androidx.glance.layout.size
 import androidx.glance.layout.width
-import androidx.glance.text.FontWeight
-import androidx.glance.text.Text
-import androidx.glance.text.TextStyle
-import androidx.glance.unit.ColorProvider
 import org.json.JSONObject
 import kotlin.math.min
 
@@ -46,140 +43,72 @@ class StatsWidget : GlanceAppWidget() {
     private fun Content(context: Context, style: WidgetStyle, appWidgetId: Int) {
         val data = WidgetPayload.forWidget(context, appWidgetId)
         val single = WidgetPayload.single(context, appWidgetId, data)
-        val summary = data?.optJSONObject("summary")
-        val done = single?.optInt("streak") ?: summary?.optInt("doneToday") ?: 0
-        val total = summary?.optInt("total") ?: 0
-        val best = single?.optInt("best") ?: summary?.optInt("bestStreak") ?: 0
+        val streak = single?.optInt("streak") ?: longest(data)
+        val art = WidgetConfig.art(context, appWidgetId)
 
         val size = LocalSize.current
-        val full = size.width.value >= 200f && size.height.value >= 150f
-        val pad = if (full) 16 else 13
-        val inner = (size.width.value - pad * 2).coerceAtLeast(0f).dp
+        val side = min(maxOf(size.width.value, size.height.value), size.width.value * 1.25f)
+        val pad = (side * 0.11f).coerceIn(12f, 20f)
+        val room = size.width.value - pad * 2
+        val density = WidgetDraw.density(context)
+        val label = (side * 0.1f).coerceIn(13f, 18f)
 
         WidgetSurface(style) {
-            Column(
+            Box(
                 modifier = GlanceModifier
                     .fillMaxSize()
-                    .padding(pad.dp)
                     .clickable(openPageAction(context, "stats")),
-                verticalAlignment = Alignment.CenterVertically,
+                contentAlignment = Alignment.BottomEnd,
             ) {
-                Row(
-                    modifier = GlanceModifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Flame(if (full) 44.dp else 36.dp)
-                    Spacer(GlanceModifier.width(10.dp))
-                    Column(modifier = GlanceModifier.defaultWeight()) {
-                        Caps(
-                            single?.optString("name")
-                                ?: WidgetText.get(context, "done_today", "done today"),
-                            style,
-                        )
-                        Row(verticalAlignment = Alignment.Bottom) {
-                            Text(
-                                text = WidgetText.compact(done),
-                                style = TextStyle(
-                                    color = ColorProvider(style.content),
-                                    fontSize = if (full) 30.sp else 24.sp,
-                                    fontWeight = FontWeight.Bold,
-                                ),
-                                maxLines = 1,
-                            )
-                            if (single == null) {
-                            Spacer(GlanceModifier.width(3.dp))
-                            Text(
-                                text = "/${WidgetText.compact(total)}",
-                                style = TextStyle(
-                                    color = ColorProvider(style.muted),
-                                    fontSize = if (full) 15.sp else 13.sp,
-                                    fontWeight = FontWeight.Medium,
-                                ),
-                                maxLines = 1,
-                                modifier = GlanceModifier.padding(bottom = if (full) 4.dp else 3.dp),
-                            )
-                            }
-                        }
-                    }
-                    if (full) Best(context, style, best)
-                }
-
-                if (full) {
-                    Spacer(GlanceModifier.height(12.dp))
-                    WidgetDivider(style)
-                    Spacer(GlanceModifier.height(12.dp))
-                    Week(style, data, inner)
-                }
-            }
-        }
-    }
-
-    @Composable
-    private fun Best(context: Context, style: WidgetStyle, best: Int) {
-        Column(horizontalAlignment = Alignment.End) {
-            Caps(WidgetText.get(context, "label_best", "Best"), style)
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Flame(16.dp)
-                Spacer(GlanceModifier.width(3.dp))
-                Text(
-                    text = WidgetText.compact(best),
-                    style = TextStyle(
-                        color = ColorProvider(style.content),
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Bold,
-                    ),
-                    maxLines = 1,
-                )
-            }
-        }
-    }
-
-    @Composable
-    private fun Week(style: WidgetStyle, data: JSONObject?, width: Dp) {
-        val days = data?.optJSONArray("days")
-        val marks = marksOf(data)
-        val dot = min(28f, width.value / WidgetPayload.WEEK - 8f).coerceAtLeast(14f).dp
-        Row(modifier = GlanceModifier.fillMaxWidth()) {
-            for (day in 0 until WidgetPayload.WEEK) {
-                val info = days?.optJSONObject(day)
-                val today = info?.optBoolean("isToday", false) == true
-                Column(
-                    modifier = GlanceModifier.defaultWeight(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    DayDot(marks[day], WidgetInk.done, style, dot)
-                    Spacer(GlanceModifier.height(5.dp))
-                    Text(
-                        text = info?.optString("label").orEmpty(),
-                        style = TextStyle(
-                            color = ColorProvider(if (today) style.content else style.muted),
-                            fontSize = 10.sp,
-                            fontWeight = if (today) FontWeight.Bold else FontWeight.Medium,
-                        ),
-                        maxLines = 1,
+                if (art) {
+                    Image(
+                        provider = ImageProvider(flameFor(style)),
+                        contentDescription = null,
+                        modifier = GlanceModifier.size(side.dp),
                     )
                 }
+                Column(modifier = GlanceModifier.fillMaxSize().padding(pad.dp)) {
+                    val number = WidgetText.compact(streak)
+                    Drawn(
+                        WidgetDraw.text(context, number, (side * 0.3f).coerceIn(30f, 60f), style.content, 800, room),
+                        density,
+                        number,
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (!art) {
+                            Flame(label.dp)
+                            Spacer(GlanceModifier.width(4.dp))
+                        }
+                        val days = WidgetText.get(context, "streak_days", "Streak days")
+                        Drawn(
+                            WidgetDraw.text(context, days, label, style.content, 800, room - if (art) 0f else label + 4f),
+                            density,
+                            days,
+                        )
+                    }
+                    if (single != null) {
+                        val name = single.optString("name")
+                        Drawn(
+                            WidgetDraw.text(context, name, (side * 0.08f).coerceIn(11f, 14f), style.muted, 600, room),
+                            density,
+                            name,
+                        )
+                    }
+                }
             }
         }
     }
 
-    private fun marksOf(data: JSONObject?): List<DayMark> {
-        val habits = data?.optJSONArray("habits")
-        return List(WidgetPayload.WEEK) { day ->
-            var due = 0
-            var done = 0
-            for (i in 0 until (habits?.length() ?: 0)) {
-                val habit = habits?.optJSONObject(i) ?: continue
-                val scheduled = habit.optJSONArray("scheduled")
-                if (scheduled != null && !scheduled.optBoolean(day, false)) continue
-                due++
-                if (habit.optJSONArray("completions")?.optBoolean(day, false) == true) done++
-            }
-            when {
-                due > 0 && done == due -> DayMark.DONE
-                day == WidgetPayload.TODAY -> DayMark.TODAY
-                else -> DayMark.MISSED
-            }
+    private fun flameFor(style: WidgetStyle): Int =
+        if (style.content.luminance() < 0.5f) R.drawable.widget_streak_flame_light
+        else R.drawable.widget_streak_flame
+
+    private fun longest(data: JSONObject?): Int {
+        val habits = data?.optJSONArray("habits") ?: return 0
+        var best = 0
+        for (i in 0 until habits.length()) {
+            best = maxOf(best, habits.optJSONObject(i)?.optInt("streak", 0) ?: 0)
         }
+        return best
     }
 }

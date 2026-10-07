@@ -25,8 +25,9 @@ object WidgetOptimistic {
                 for (i in 0 until habits.length()) {
                     val habit = habits.optJSONObject(i) ?: continue
                     if (habit.optString("id") != habitId) continue
+                    val before = doneOn(habit, today)
                     if (!mutate(habit, day, today, delta)) return@synchronized false
-                    resummarize(root, habits, today)
+                    if (day == today) resummarize(root, habit, today, before)
                     prefs.edit().putString(KEY, root.toString()).commit()
                     return@synchronized true
                 }
@@ -45,19 +46,19 @@ object WidgetOptimistic {
         return WidgetPayload.windowIndexOf(root, dayKey)
     }
 
-    private fun resummarize(root: JSONObject, habits: JSONArray, today: Int) {
+    private fun doneOn(habit: JSONObject, day: Int): Boolean =
+        day >= 0 && habit.optJSONArray("completions")?.optBoolean(day, false) == true
+
+    private fun resummarize(root: JSONObject, habit: JSONObject, today: Int, before: Boolean) {
         val summary = root.optJSONObject("summary") ?: return
-        if (today < 0) return
+        if (today < 0 || habit.optBoolean("tracking", false)) return
+        if (habit.optJSONArray("scheduled")?.optBoolean(today, true) == false) return
+        val after = doneOn(habit, today)
+        if (after == before) return
         summary.remove("ratio")
-        var done = 0
-        for (i in 0 until habits.length()) {
-            val habit = habits.optJSONObject(i) ?: continue
-            val scheduled = habit.optJSONArray("scheduled")
-            if (scheduled != null && !scheduled.optBoolean(today, false)) continue
-            val completions = habit.optJSONArray("completions") ?: continue
-            if (completions.length() > today && completions.optBoolean(today, false)) done++
-        }
-        summary.put("doneToday", done)
+        val total = summary.optInt("total", 0)
+        val done = summary.optInt("doneToday", 0) + if (after) 1 else -1
+        summary.put("doneToday", done.coerceIn(0, total))
     }
 
     private fun mutate(habit: JSONObject, day: Int, today: Int, delta: Double): Boolean {

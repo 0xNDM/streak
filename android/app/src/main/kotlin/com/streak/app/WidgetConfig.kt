@@ -44,11 +44,11 @@ object WidgetConfig {
     fun image(context: Context, id: Int): String? =
         prefs(context).getString("image_$id", null)
 
-    fun round(context: Context, id: Int): Boolean =
-        prefs(context).getBoolean("round_$id", false)
+    fun art(context: Context, id: Int): Boolean =
+        prefs(context).getBoolean("art_$id", true)
 
-    fun setRound(context: Context, id: Int, value: Boolean) {
-        prefs(context).edit().putBoolean("round_$id", value).commit()
+    fun setArt(context: Context, id: Int, value: Boolean) {
+        prefs(context).edit().putBoolean("art_$id", value).commit()
     }
 
     fun todosAll(context: Context, id: Int): Boolean =
@@ -105,6 +105,7 @@ object WidgetConfig {
             .remove("bgMode_$id")
             .remove("image_$id")
             .remove("todosAll_$id")
+            .remove("art_$id")
             .remove("round_$id")
             .remove("habits_$id")
             .apply()
