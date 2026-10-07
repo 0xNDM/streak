@@ -248,8 +248,7 @@ class HabitsController extends ChangeNotifier {
         periods.add(VacationPeriod(start: AppClock.now(), bulk: bulk));
       }
     } else {
-      final yesterday =
-          AppClock.today().subtract(const Duration(days: 1));
+      final yesterday = AppClock.today().addDays(-1);
       final next = <VacationPeriod>[];
       for (final p in periods) {
         if (!p.isOngoing) {
@@ -294,8 +293,8 @@ class HabitsController extends ChangeNotifier {
     final habit = _habits[id];
     if (habit == null) return;
     final day = date.atMidnight;
-    final previous = day.subtract(const Duration(days: 1));
-    final next = day.add(const Duration(days: 1));
+    final previous = day.addDays(-1);
+    final next = day.addDays(1);
 
     if (!habit.isPausedOn(day)) {
       await update(
