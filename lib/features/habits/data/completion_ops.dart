@@ -104,6 +104,32 @@ class CompletionOps {
     return completions;
   }
 
+  static Map<String, Completion> retime(
+    Habit habit,
+    String dayKey,
+    int? from,
+    int to,
+  ) {
+    final entry = habit.completions[dayKey];
+    if (entry == null) return habit.completions;
+    final marks = [...entry.times];
+    final index = from == null ? -1 : marks.indexOf(from);
+    if (index < 0) {
+      marks.add(to);
+    } else {
+      marks[index] = to;
+    }
+    marks.sort();
+    return {
+      ...habit.completions,
+      dayKey: entry.copyWith(
+        hour: marks.last ~/ 60,
+        minute: marks.last % 60,
+        marks: marks,
+      ),
+    };
+  }
+
   static Map<String, Completion> clearRelapse(Habit habit, DateTime date) {
     final completions = {...habit.completions};
     completions.remove(date.dayKey);

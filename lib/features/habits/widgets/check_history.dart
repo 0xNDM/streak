@@ -7,9 +7,11 @@ import 'package:streak/core/express/express_surface.dart';
 import 'package:streak/core/extensions/date_extensions.dart';
 import 'package:streak/core/i18n/l10n.dart';
 import 'package:streak/core/minimal/minimal_kit.dart';
+import 'package:streak/core/widgets/time_picker.dart';
 import 'package:streak/core/widgets/sheet_type.dart';
 import 'package:streak/features/habits/data/completion.dart';
 import 'package:streak/features/habits/data/habit.dart';
+import 'package:streak/features/habits/state/habits_controller.dart';
 import 'package:streak/features/habits/widgets/habit_heatmap.dart';
 import 'package:streak/features/habits/state/notes_controller.dart';
 import 'package:streak/features/settings/state/settings_controller.dart';
@@ -209,9 +211,27 @@ class _EntryState extends State<_Entry> {
     );
   }
 
+  Future<void> _retime(int? from) async {
+    final start = from ?? AppClock.wallNow().hour * 60 + AppClock.wallNow().minute;
+    final picked = await pickTime(
+      context,
+      TimeOfDay(hour: start ~/ 60, minute: start % 60),
+    );
+    if (picked == null || !mounted) return;
+    final to = picked.hour * 60 + picked.minute;
+    if (to == from) return;
+    await context
+        .read<HabitsController>()
+        .retime(widget.habit.id, widget.entry.date, from, to);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final entry = widget.entry;
+    final entry = context
+            .watch<HabitsController>()
+            .byId(widget.habit.id)
+            ?.completions[widget.entry.date] ??
+        widget.entry;
     final day = entry.day;
     final label = day == null
         ? entry.date
@@ -233,7 +253,9 @@ class _EntryState extends State<_Entry> {
         children: [
           InkWell(
             borderRadius: BorderRadius.circular(10),
-            onTap: many ? () => setState(() => _open = !_open) : null,
+            onTap: many
+                ? () => setState(() => _open = !_open)
+                : () => _retime(times.isEmpty ? null : times.first),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 6),
               child: Row(
@@ -260,12 +282,14 @@ class _EntryState extends State<_Entry> {
                         : _clock(context, entry),
                     style: sheetHeadingStyle(context, size: 14),
                   ),
-                  if (many)
-                    Icon(
-                      _open ? LucideIcons.chevronUp : LucideIcons.chevronDown,
-                      size: 16,
-                      color: context.tokens.muted,
-                    ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    many
+                        ? (_open ? LucideIcons.chevronUp : LucideIcons.chevronDown)
+                        : LucideIcons.pencil,
+                    size: many ? 16 : 13,
+                    color: context.tokens.muted,
+                  ),
                 ],
               ),
             ),
@@ -311,7 +335,9 @@ class _EntryState extends State<_Entry> {
                 runSpacing: 6,
                 children: [
                   for (final at in times)
-                    Container(
+                    GestureDetector(
+                      onTap: () => _retime(at),
+                      child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 9,
                         vertical: 4,
@@ -324,6 +350,7 @@ class _EntryState extends State<_Entry> {
                         _at(at),
                         style: sheetLabelStyle(context, size: 12),
                       ),
+                    ),
                     ),
                 ],
               ),
