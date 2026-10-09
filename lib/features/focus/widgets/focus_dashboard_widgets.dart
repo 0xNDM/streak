@@ -89,7 +89,7 @@ class FocusTodayHero extends StatelessWidget {
                     Text(
                       context.l10n.today.toUpperCase(),
                       style: express
-                          ? ExpressType.caption.at(
+                          ? ExpressType.body.at(
                               11.5,
                               weight: 800,
                               color: context.tokens.muted,
@@ -289,7 +289,7 @@ class FocusSessionCard extends StatelessWidget {
             ),
             alignment: Alignment.center,
             child: habit != null
-                ? HabitGlyph(habit: habit!, size: 18, color: habitColor)
+                ? HabitGlyph(glyph: habit!.glyph, size: 18, color: habitColor)
                 : Icon(LucideIcons.timer, size: 18, color: habitColor),
           ),
           const SizedBox(width: 14),
