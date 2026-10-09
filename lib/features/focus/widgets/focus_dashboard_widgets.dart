@@ -289,7 +289,7 @@ class FocusSessionCard extends StatelessWidget {
             ),
             alignment: Alignment.center,
             child: habit != null
-                ? HabitGlyph(glyph: habit!.glyph, size: 18, color: habitColor)
+                ? HabitGlyph(glyph: habit!.icon, size: 18, color: habitColor)
                 : Icon(LucideIcons.timer, size: 18, color: habitColor),
           ),
           const SizedBox(width: 14),
