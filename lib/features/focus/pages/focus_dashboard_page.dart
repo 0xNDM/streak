@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:streak/app/theme/app_tokens.dart';
-import 'package:streak/core/express/express_page.dart';
 import 'package:streak/core/extensions/date_extensions.dart';
 import 'package:streak/core/extensions/inset_extensions.dart';
 import 'package:streak/core/i18n/l10n.dart';
@@ -286,7 +285,6 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsController>();
-    final express = settings.isExpressStyle;
     final scheme = context.colors;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -317,12 +315,10 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: express
-            ? ExpressHeadline(title: context.l10n.focus)
-            : Text(
-                context.l10n.focus,
-                style: const TextStyle(fontWeight: FontWeight.w800),
-              ),
+        title: Text(
+          context.l10n.focus,
+          style: const TextStyle(fontWeight: FontWeight.w800),
+        ),
         centerTitle: false,
         actions: [
           // Start Session Button (dark green lock-in styling)

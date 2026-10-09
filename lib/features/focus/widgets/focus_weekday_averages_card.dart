@@ -142,46 +142,61 @@ class _FocusWeekdayAveragesCardState extends State<FocusWeekdayAveragesCard> {
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    for (var i = 0; i < 7; i++) ...[
-                      final weekday = orderedWeekdays[i];
-                      final avgSec = weekdayAverages[weekday] ?? 0.0;
-                      final factor = maxWeekdayAvg > 0 ? (avgSec / maxWeekdayAvg).clamp(0.05, 1.0) : 0.05;
-                      final isBest = maxWeekdayAvg > 0 && weekday == bestWeekday;
+                    for (var i = 0; i < 7; i++)
+                      Builder(
+                        builder: (context) {
+                          final weekday = orderedWeekdays[i];
+                          final avgSec = weekdayAverages[weekday] ?? 0.0;
+                          final factor = maxWeekdayAvg > 0
+                              ? (avgSec / maxWeekdayAvg).clamp(0.05, 1.0)
+                              : 0.05;
+                          final isBest =
+                              maxWeekdayAvg > 0 && weekday == bestWeekday;
 
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            avgSec > 0 ? formatHoursShort(avgSec.round()) : '—',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: isBest ? FontWeight.w800 : FontWeight.w600,
-                              color: isBest ? const Color(0xFF10B981) : context.tokens.muted,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Container(
-                            width: barWidth,
-                            height: 110 * factor,
-                            decoration: BoxDecoration(
-                              color: avgSec > 0
-                                  ? (isBest ? const Color(0xFF10B981) : const Color(0xFF059669))
-                                  : scheme.surfaceContainerHighest.withValues(alpha: 0.35),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            weekdayLabels[i],
-                            style: TextStyle(
-                              fontSize: 12.5,
-                              fontWeight: isBest ? FontWeight.w800 : FontWeight.w600,
-                              color: isBest ? scheme.onSurface : context.tokens.muted,
-                            ),
-                          ),
-                        ],
+                          return Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                avgSec > 0 ? formatHoursShort(avgSec.round()) : '—',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight:
+                                      isBest ? FontWeight.w800 : FontWeight.w600,
+                                  color: isBest
+                                      ? const Color(0xFF10B981)
+                                      : context.tokens.muted,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Container(
+                                width: barWidth,
+                                height: 110 * factor,
+                                decoration: BoxDecoration(
+                                  color: avgSec > 0
+                                      ? (isBest
+                                          ? const Color(0xFF10B981)
+                                          : const Color(0xFF059669))
+                                      : scheme.surfaceContainerHighest
+                                          .withValues(alpha: 0.35),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                weekdayLabels[i],
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight:
+                                      isBest ? FontWeight.w800 : FontWeight.w600,
+                                  color: isBest
+                                      ? scheme.onSurface
+                                      : context.tokens.muted,
+                                ),
+                              ),
+                            ],
+                          );
+                        },
                       ),
-                    ],
                   ],
                 );
               },

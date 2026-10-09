@@ -99,6 +99,8 @@ class MinimalSettingsPage extends StatelessWidget {
           const _Footer(),
         ],
       ),
+        ),
+      ),
     );
   }
 }
@@ -228,8 +230,6 @@ class _ProfileRow extends StatelessWidget {
           ),
         ),
       ],
-        ),
-      ),
     );
   }
 }
