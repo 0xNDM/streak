@@ -185,7 +185,7 @@ class _FocusSetupPageState extends State<FocusSetupPage> {
                       selected: _habitId.isEmpty,
                       onTap: () => setState(() {
                         _habitId = '';
-                        _label = '';
+                        _tags = {};
                       }),
                     ),
                   ),

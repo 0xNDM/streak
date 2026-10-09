@@ -1,7 +1,7 @@
 import 'package:streak/core/extensions/date_extensions.dart';
 
 class FocusSession {
-  const FocusSession({
+  FocusSession({
     required this.id,
     required this.habitId,
     required this.targetMinutes,
