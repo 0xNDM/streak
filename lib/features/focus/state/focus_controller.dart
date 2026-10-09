@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:streak/core/database/local_store.dart';
 import 'package:streak/core/extensions/date_extensions.dart';
 import 'package:streak/core/utils/app_dirs.dart';
@@ -33,6 +34,10 @@ class FocusController extends ChangeNotifier {
     if (map.isEmpty) return;
     _habitId = (map['habitId'] ?? '') as String;
     _label = map['label'] is String ? map['label'] as String : '';
+    final rawTags = map['tags'];
+    _tags = rawTags is List
+        ? List<String>.from(rawTags)
+        : (_label.isNotEmpty ? [_label] : []);
     _targetMinutes = ((map['target'] ?? 25) as num).toInt();
     _focusMinutes = ((map['focus'] ?? _targetMinutes) as num).toInt();
     _breakMinutes = ((map['break'] ?? 0) as num).toInt();
@@ -55,6 +60,7 @@ class FocusController extends ChangeNotifier {
     LocalStore.writeSetting('focusActive', {
       'habitId': _habitId,
       'label': _label,
+      'tags': _tags,
       'target': _targetMinutes,
       'focus': _focusMinutes,
       'break': _breakMinutes,
@@ -71,6 +77,7 @@ class FocusController extends ChangeNotifier {
 
   String _habitId = '';
   String _label = '';
+  List<String> _tags = [];
   int _targetMinutes = 25;
   int _focusMinutes = 25;
   int _breakMinutes = 0;
@@ -164,6 +171,7 @@ class FocusController extends ChangeNotifier {
 
   String get habitId => _habitId;
   String get label => _label;
+  List<String> get tags => List.unmodifiable(_tags);
   bool get isBreak => _isBreak;
   int get round => _round;
   bool get isPomodoro => _breakMinutes > 0;
@@ -212,10 +220,16 @@ class FocusController extends ChangeNotifier {
     required int targetMinutes,
     int breakMinutes = 0,
     String label = '',
+    List<String> tags = const [],
   }) {
     _habitId = habitId;
-    _label = label;
-    if (label.isNotEmpty) unawaited(rememberLabel(habitId, label));
+    _tags = tags.isNotEmpty
+        ? [...tags]
+        : (label.isNotEmpty ? [label] : []);
+    _label = _tags.isNotEmpty ? _tags.join(', ') : label;
+    for (final tag in _tags) {
+      if (tag.isNotEmpty) unawaited(rememberLabel(habitId, tag));
+    }
     _targetMinutes = targetMinutes;
     _focusMinutes = targetMinutes;
     _breakMinutes = targetMinutes <= 0 ? 0 : breakMinutes;
@@ -351,6 +365,7 @@ class FocusController extends ChangeNotifier {
         !completed &&
         LocalStore.setting('focusWholeRounds', false);
     final seconds = _isBreak || dropped ? 0 : elapsedAt(endedAt);
+    final sessionTags = [..._tags];
     final habitId = _habitId;
     final label = _label;
     final target = _focusMinutes;
@@ -364,6 +379,7 @@ class FocusController extends ChangeNotifier {
     _since = null;
     _habitId = '';
     _label = '';
+    _tags.clear();
     _tasks.clear();
     _celebrated = false;
     _isBreak = false;
@@ -388,6 +404,7 @@ class FocusController extends ChangeNotifier {
       completed: completed,
       startedAt: endedAt.subtract(Duration(seconds: seconds)),
       label: label,
+      tags: sessionTags,
     );
     await _keep(session);
     notifyListeners();
@@ -416,6 +433,7 @@ class FocusController extends ChangeNotifier {
               completed: true,
               startedAt: endedAt.subtract(Duration(seconds: seconds)),
               label: _label,
+              tags: [..._tags],
             ),
           ),
         );
@@ -622,14 +640,35 @@ class FocusController extends ChangeNotifier {
   }
 
   static const _labelsKey = 'focusLabels';
+  static const _labelColorsKey = 'focusLabelColors';
   static const maxLabels = 20;
+
+  static const defaultTagColors = [
+    Color(0xFF3B82F6), // Blue
+    Color(0xFF6366F1), // Indigo
+    Color(0xFF8B5CF6), // Purple
+    Color(0xFF10B981), // Emerald
+    Color(0xFFF59E0B), // Amber
+    Color(0xFFF43F5E), // Rose
+    Color(0xFF06B6D4), // Cyan
+    Color(0xFFF97316), // Orange
+  ];
+
+  Color colorForLabel(String label) {
+    if (label.isEmpty) return defaultTagColors[0];
+    final saved = LocalStore.settingMap(_labelColorsKey)[label];
+    if (saved is int) return Color(saved);
+    if (saved is num) return Color(saved.toInt());
+    final hash = label.hashCode.abs();
+    return defaultTagColors[hash % defaultTagColors.length];
+  }
 
   List<String> labelsFor(String habitId) {
     final saved = LocalStore.settingMap(_labelsKey)[habitId];
     return saved is List ? List<String>.from(saved) : const [];
   }
 
-  Future<void> rememberLabel(String habitId, String label) async {
+  Future<void> rememberLabel(String habitId, String label, {Color? color}) async {
     final all = LocalStore.settingMap(_labelsKey);
     final labels = [
       label,
@@ -637,6 +676,11 @@ class FocusController extends ChangeNotifier {
     ].take(maxLabels).toList();
     all[habitId] = labels;
     await LocalStore.writeSetting(_labelsKey, all);
+    if (color != null) {
+      final allColors = LocalStore.settingMap(_labelColorsKey);
+      allColors[label] = color.toARGB32();
+      await LocalStore.writeSetting(_labelColorsKey, allColors);
+    }
     notifyListeners();
   }
 

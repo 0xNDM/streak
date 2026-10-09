@@ -27,6 +27,7 @@ import 'package:streak/features/habits/pages/day_timeline_page.dart';
 import 'package:streak/features/habits/pages/habit_details_page.dart';
 import 'package:streak/features/habits/pages/habit_form_page.dart';
 import 'package:streak/features/habits/pages/note_editor_page.dart';
+import 'package:streak/features/habits/widgets/habit_details_dialog.dart';
 import 'package:streak/features/focus/widgets/focus_pill.dart';
 import 'package:streak/features/habits/state/categories_controller.dart';
 import 'package:streak/features/habits/widgets/category_editor_sheet.dart';
@@ -731,56 +732,61 @@ class _HomePageState extends State<HomePage> {
                       const Duration(milliseconds: 300));
                   controller.reload();
                 },
-                child: express
-                    ? ExpressHabitList(
-                        habits: visible,
-                        mode: _mode,
-                        reordering: _reordering,
-                        header: header,
-                        fold: fold,
-                        more: more,
-                        onReorder: (oldIndex, newIndex) =>
-                            controller.reorder(visible, oldIndex, newIndex),
-                        onOpen: _openDetails,
-                        onToggleToday: (habit) => _toggle(habit, today),
-                        onToggleDay: _toggle,
-                        onLongPress: (habit) =>
-                            _showHabitActions(controller, habit),
-                        onSwipe: swipe,
-                        leaving: _leaving,
-                      )
-                    : minimal && !_reordering
-                    ? MinimalHabitList(
-                        habits: visible,
-                        mode: _mode,
-                        header: header,
-                        fold: fold,
-                        more: more,
-                        onOpen: _openDetails,
-                        onToggleToday: (habit) => _toggle(habit, today),
-                        onToggleDay: _toggle,
-                        onLongPress: (habit) =>
-                            _showHabitActions(controller, habit),
-                        onSwipe: swipe,
-                        leaving: _leaving,
-                      )
-                    : ClassicHabitList(
-                        habits: visible,
-                        mode: _mode,
-                        reordering: _reordering,
-                        header: header,
-                        fold: fold,
-                        more: more,
-                        onReorder: (oldIndex, newIndex) =>
-                            controller.reorder(visible, oldIndex, newIndex),
-                        onOpen: _openDetails,
-                        onToggleToday: (habit) => _toggle(habit, today),
-                        onToggleDay: _toggle,
-                        onLongPress: (habit) =>
-                            _showHabitActions(controller, habit),
-                        onSwipe: swipe,
-                        leaving: _leaving,
-                      ),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 880),
+                    child: express
+                        ? ExpressHabitList(
+                            habits: visible,
+                            mode: _mode,
+                            reordering: _reordering,
+                            header: header,
+                            fold: fold,
+                            more: more,
+                            onReorder: (oldIndex, newIndex) =>
+                                controller.reorder(visible, oldIndex, newIndex),
+                            onOpen: _openDetails,
+                            onToggleToday: (habit) => _toggle(habit, today),
+                            onToggleDay: _toggle,
+                            onLongPress: (habit) =>
+                                _showHabitActions(controller, habit),
+                            onSwipe: swipe,
+                            leaving: _leaving,
+                          )
+                        : minimal && !_reordering
+                        ? MinimalHabitList(
+                            habits: visible,
+                            mode: _mode,
+                            header: header,
+                            fold: fold,
+                            more: more,
+                            onOpen: _openDetails,
+                            onToggleToday: (habit) => _toggle(habit, today),
+                            onToggleDay: _toggle,
+                            onLongPress: (habit) =>
+                                _showHabitActions(controller, habit),
+                            onSwipe: swipe,
+                            leaving: _leaving,
+                          )
+                        : ClassicHabitList(
+                            habits: visible,
+                            mode: _mode,
+                            reordering: _reordering,
+                            header: header,
+                            fold: fold,
+                            more: more,
+                            onReorder: (oldIndex, newIndex) =>
+                                controller.reorder(visible, oldIndex, newIndex),
+                            onOpen: _openDetails,
+                            onToggleToday: (habit) => _toggle(habit, today),
+                            onToggleDay: _toggle,
+                            onLongPress: (habit) =>
+                                _showHabitActions(controller, habit),
+                            onSwipe: swipe,
+                            leaving: _leaving,
+                          ),
+                  ),
+                ),
               );
             },
           ),
@@ -819,6 +825,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _openDetails(Habit habit) {
+    if (Platform.isWindows) {
+      showHabitDetailsDialog(context, habit);
+      return;
+    }
     AppNavigator.clearPane();
     if (isWideLayout(context)) AppNavigator.paneItem.value = habit.id;
     AppNavigator.push(HabitDetailsPage(habitId: habit.id), fade: true);

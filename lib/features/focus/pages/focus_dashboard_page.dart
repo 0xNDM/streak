@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
@@ -16,10 +18,12 @@ import 'package:streak/features/focus/data/focus_session.dart';
 import 'package:streak/features/focus/data/focus_stats.dart';
 import 'package:streak/features/focus/state/focus_actions.dart';
 import 'package:streak/features/focus/state/focus_controller.dart';
+import 'package:streak/features/focus/widgets/focus_analytics_widgets.dart';
 import 'package:streak/features/focus/widgets/focus_dashboard_widgets.dart';
 import 'package:streak/features/focus/widgets/focus_period_bar.dart';
 import 'package:streak/features/focus/widgets/focus_pill.dart';
 import 'package:streak/features/focus/widgets/focus_range_bars.dart';
+import 'package:streak/features/focus/widgets/focus_setup_dialog.dart';
 import 'package:streak/features/habits/state/habits_controller.dart';
 import 'package:streak/features/settings/state/settings_controller.dart';
 import 'package:streak/features/settings/widgets/settings_rows.dart';
@@ -36,9 +40,21 @@ class FocusDashboardPage extends StatefulWidget {
 }
 
 class _FocusDashboardPageState extends State<FocusDashboardPage> {
-  int _subTab = 0; // 0 = Today, 1 = Details
+  int _subTab = 0; // 0 = Today, 1 = Analytics
   FocusRange _range = FocusRange.week;
   int _offset = 0;
+
+  void _startFocus(BuildContext context, FocusController focus) {
+    if (focus.isActive) {
+      openFocus(context);
+    } else {
+      if (Platform.isWindows) {
+        showFocusSetupDialog(context);
+      } else {
+        openFocus(context);
+      }
+    }
+  }
 
   Future<void> _deleteSession(BuildContext context, FocusSession session) async {
     final confirmed = await showAppConfirmDialog(
@@ -105,40 +121,45 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
       ),
       body: SafeArea(
         top: false,
-        child: ListView(
-          padding: express
-              ? context.pagePadding(18, 4, 18, 32)
-              : minimal
-              ? context.pagePadding(20, 4, 20, 32)
-              : context.pagePadding(16, 4, 16, 32),
-          children: [
-            _buildSubTabs(context, express),
-            const SizedBox(height: 18),
-            if (_subTab == 0)
-              _buildTodayView(
-                context,
-                focus,
-                habits,
-                settings,
-                todaySeconds,
-                todaySessions,
-              )
-            else
-              _buildDetailsView(
-                context,
-                focus,
-                habits,
-                settings,
-                accent,
-              ),
-          ],
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 880),
+            child: ListView(
+              padding: express
+                  ? context.pagePadding(18, 4, 18, 32)
+                  : minimal
+                  ? context.pagePadding(20, 4, 20, 32)
+                  : context.pagePadding(16, 4, 16, 32),
+              children: [
+                _buildSubTabs(context, express),
+                const SizedBox(height: 18),
+                if (_subTab == 0)
+                  _buildTodayView(
+                    context,
+                    focus,
+                    habits,
+                    settings,
+                    todaySeconds,
+                    todaySessions,
+                  )
+                else
+                  _buildAnalyticsView(
+                    context,
+                    focus,
+                    habits,
+                    settings,
+                    accent,
+                  ),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 
   Widget _buildSubTabs(BuildContext context, bool express) {
-    final labels = [context.l10n.today, 'Details'];
+    final labels = [context.l10n.today, 'Analytics'];
     if (express) {
       return ExpressTabs(
         labels: labels,
@@ -219,7 +240,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
             todaySeconds: todaySeconds,
             sessionCount: todaySessions.length,
             dailyGoalMinutes: settings.focusDailyGoal,
-            onStartSession: () => openFocus(context),
+            onStartSession: () => _startFocus(context, focus),
           ),
         ),
         const SizedBox(height: 24),
@@ -316,13 +337,21 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
     );
   }
 
-  Widget _buildDetailsView(
+  Widget _buildAnalyticsView(
     BuildContext context,
     FocusController focus,
     HabitsController habits,
     SettingsController settings,
     Color accent,
   ) {
+    if (focus.sessions.isEmpty) {
+      return AppEmptyState(
+        icon: LucideIcons.timer,
+        title: context.l10n.no_data_yet,
+        message: context.l10n.focus_history_empty_sub,
+      );
+    }
+
     final stats = FocusStats.compute(
       sessions: focus.sessions,
       range: _range,
@@ -331,61 +360,32 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
       weekStart: settings.weekStart,
     );
 
-    if (stats.sessionCount == 0) {
-      return AppEmptyState(
-        icon: LucideIcons.timer,
-        title: context.l10n.no_data_yet,
-        message: context.l10n.focus_history_empty_sub,
-      );
-    }
+    final targetWeeklyHours = (settings.focusDailyGoal * 7) ~/ 60;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: FocusMetricCard(
-                title: context.l10n.week,
-                value: formatHoursShort(stats.weekSeconds),
-                icon: LucideIcons.calendarDays,
-                accent: context.tokens.info,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: FocusMetricCard(
-                title: context.l10n.month,
-                value: formatHoursShort(stats.monthSeconds),
-                icon: LucideIcons.calendarRange,
-                accent: context.tokens.warning,
-              ),
-            ),
-          ],
+        WeeklyFocusComparisonCard(
+          stats: stats,
+          targetHours: targetWeeklyHours <= 0 ? 10 : targetWeeklyHours,
+          accent: accent,
         ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: FocusMetricCard(
-                title: context.l10n.focus_total,
-                value: formatHoursShort(stats.totalSeconds),
-                icon: LucideIcons.timer,
-                accent: accent,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: FocusMetricCard(
-                title: context.l10n.focus_average,
-                value: formatHoursShort(stats.averageSeconds),
-                icon: LucideIcons.activity,
-                accent: context.tokens.success,
-              ),
-            ),
-          ],
+        const SizedBox(height: 16),
+        FocusKpiGrid(
+          stats: stats,
+          accent: accent,
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
+        WeeklyContinuousTimeline(
+          sessions: focus.sessions,
+          accent: accent,
+        ),
+        const SizedBox(height: 16),
+        ProductiveTimeCard(
+          stats: stats,
+          accent: accent,
+        ),
+        const SizedBox(height: 16),
         StatCard(
           title: context.l10n.focus_total,
           icon: LucideIcons.chartColumn,
@@ -425,7 +425,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
             ],
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
         StatCard(
           title: 'Activity Map',
           icon: LucideIcons.layoutGrid,
@@ -456,12 +456,21 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
             child: HabitRanking(
               entries: [
                 for (final entry in stats.labelRanking)
-                  (name: entry.key, color: accent, count: entry.value),
+                  (
+                    name: '#${entry.key}',
+                    color: focus.colorForLabel(entry.key),
+                    count: entry.value,
+                  ),
               ],
               format: formatHoursShort,
             ),
           ),
         ],
+        const SizedBox(height: 16),
+        FocusMilestonesSection(
+          milestones: stats.milestones,
+          accent: accent,
+        ),
       ],
     );
   }

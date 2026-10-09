@@ -268,6 +268,11 @@ class FocusSessionCard extends StatelessWidget {
     final habitColor = habit?.color ?? scheme.primary;
     final habitName = habit?.name ?? context.l10n.focus_free_session;
 
+    final focus = context.watch<FocusController>();
+    final sessionTags = session.tags.isNotEmpty
+        ? session.tags
+        : (session.label.isNotEmpty ? [session.label] : const <String>[]);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -310,26 +315,44 @@ class FocusSessionCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    if (session.label.isNotEmpty) ...[
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: scheme.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          session.label,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: context.tokens.muted,
-                          ),
-                        ),
-                      ),
-                    ],
                   ],
                 ),
+                if (sessionTags.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
+                    children: [
+                      for (final tag in sessionTags)
+                        Builder(
+                          builder: (context) {
+                            final tagColor = focus.colorForLabel(tag);
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 1.5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: tagColor.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: tagColor.withValues(alpha: 0.3),
+                                ),
+                              ),
+                              child: Text(
+                                '#$tag',
+                                style: TextStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: tagColor,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 3),
                 Text(
                   timeRange,

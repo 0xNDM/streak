@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
@@ -8,6 +10,7 @@ import 'package:streak/features/focus/data/focus_session.dart';
 import 'package:streak/features/focus/pages/focus_page.dart';
 import 'package:streak/features/focus/pages/focus_setup_page.dart';
 import 'package:streak/features/focus/state/focus_controller.dart';
+import 'package:streak/features/focus/widgets/focus_setup_dialog.dart';
 import 'package:streak/features/settings/state/settings_controller.dart';
 import 'package:streak/core/widgets/glass.dart';
 
@@ -114,10 +117,17 @@ class FocusPill extends StatelessWidget {
   }
 }
 
-void openFocus(BuildContext context) => context.read<FocusController>().isActive
-    ? AppNavigator.push(
-        const FocusPage(),
-        fade: true,
-        name: FocusPage.routeName,
-      )
-    : AppNavigator.push(const FocusSetupPage(), fullscreenDialog: true);
+void openFocus(BuildContext context) {
+  final focus = context.read<FocusController>();
+  if (focus.isActive) {
+    AppNavigator.push(
+      const FocusPage(),
+      fade: true,
+      name: FocusPage.routeName,
+    );
+  } else if (Platform.isWindows) {
+    showFocusSetupDialog(context);
+  } else {
+    AppNavigator.push(const FocusSetupPage(), fullscreenDialog: true);
+  }
+}

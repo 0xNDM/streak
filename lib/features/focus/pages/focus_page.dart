@@ -46,12 +46,14 @@ class FocusPage extends StatefulWidget implements FullWidthPage {
     this.startMinutes,
     this.breakMinutes,
     this.startLabel = '',
+    this.startTags = const [],
   });
 
   final String? startHabitId;
   final int? startMinutes;
   final int? breakMinutes;
   final String startLabel;
+  final List<String> startTags;
 
   static const routeName = 'focus';
 
@@ -91,6 +93,7 @@ class _FocusPageState extends State<FocusPage> {
         targetMinutes: widget.startMinutes!,
         breakMinutes: widget.breakMinutes ?? 0,
         label: widget.startLabel,
+        tags: widget.startTags,
       );
       unawaited(_startSavedTrack());
     });

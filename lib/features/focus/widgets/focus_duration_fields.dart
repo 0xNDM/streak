@@ -336,6 +336,7 @@ class FocusChip extends StatelessWidget {
     required this.onTap,
     this.icon,
     this.onLongPress,
+    this.color,
   });
 
   final String label;
@@ -343,6 +344,7 @@ class FocusChip extends StatelessWidget {
   final VoidCallback onTap;
   final IconData? icon;
   final VoidCallback? onLongPress;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
@@ -364,7 +366,7 @@ class FocusChip extends StatelessWidget {
     if (style.isMinimalStyle) {
       return MinimalChip(label: label, active: selected, onTap: onTap);
     }
-    final accent = context.colors.primary;
+    final accent = color ?? context.colors.primary;
     return Semantics(
       button: true,
       selected: selected,

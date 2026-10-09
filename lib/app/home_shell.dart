@@ -274,7 +274,7 @@ class _HomeShellState extends State<HomeShell>
         tabs,
         current,
         _SplitScaffold(
-        full: current == _Tab.stats,
+        full: Platform.isWindows || current == _Tab.stats,
         single: !wide,
         rail: _rail(context, tabs, current, settings.appStyle),
         page: FadeThrough(

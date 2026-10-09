@@ -36,7 +36,7 @@ class FocusSetupPage extends StatefulWidget {
 
 class _FocusSetupPageState extends State<FocusSetupPage> {
   late String _habitId = widget.habitId ?? '';
-  String _label = '';
+  Set<String> _tags = {};
   int _minutes = 25;
   bool _pomodoro = false;
   int _breakMinutes = 5;
@@ -57,7 +57,7 @@ class _FocusSetupPageState extends State<FocusSetupPage> {
 
   void _pick(Habit habit) {
     _habitId = habit.id;
-    _label = '';
+    _tags = {};
     _minutes = habit.focusMinutes;
     _pomodoro = habit.focusBreakMinutes > 0;
     if (_pomodoro) _breakMinutes = habit.focusBreakMinutes;
@@ -84,7 +84,8 @@ class _FocusSetupPageState extends State<FocusSetupPage> {
         startHabitId: _habitId,
         startMinutes: _minutes,
         breakMinutes: breakMinutes,
-        startLabel: _label,
+        startLabel: _tags.join(', '),
+        startTags: _tags.toList(),
       ),
       fade: true,
       name: FocusPage.routeName,
@@ -210,8 +211,8 @@ class _FocusSetupPageState extends State<FocusSetupPage> {
                         _Label(context.l10n.focus_label),
                         FocusLabelPicker(
                           habitId: _habitId,
-                          selected: _label,
-                          onChanged: (value) => setState(() => _label = value),
+                          selected: _tags,
+                          onChanged: (value) => setState(() => _tags = value),
                         ),
                       ],
                     ),

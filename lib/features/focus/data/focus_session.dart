@@ -9,8 +9,14 @@ class FocusSession {
     required this.completed,
     required this.startedAt,
     this.counted = false,
-    this.label = '',
-  });
+    String label = '',
+    List<String> tags = const [],
+  })  : _label = label,
+        tags = tags.isNotEmpty
+            ? tags
+            : (label.isNotEmpty
+                ? [label]
+                : const []);
 
   final String id;
   final String habitId;
@@ -19,7 +25,10 @@ class FocusSession {
   final bool completed;
   final DateTime startedAt;
   final bool counted;
-  final String label;
+  final String _label;
+  final List<String> tags;
+
+  String get label => tags.isNotEmpty ? tags.join(', ') : _label;
 
   int get minutes => seconds ~/ 60;
 
@@ -58,6 +67,7 @@ class FocusSession {
         startedAt: start,
         counted: counted,
         label: label,
+        tags: tags,
       );
 
   FocusSession get asCounted => FocusSession(
@@ -69,6 +79,7 @@ class FocusSession {
         startedAt: startedAt,
         counted: true,
         label: label,
+        tags: tags,
       );
 
   Map<String, dynamic> toMap() => {
@@ -80,19 +91,37 @@ class FocusSession {
         'startedAt': startedAt.toIso8601String(),
         if (counted) 'counted': true,
         if (label.isNotEmpty) 'label': label,
+        if (tags.isNotEmpty) 'tags': tags,
       };
 
-  factory FocusSession.fromMap(Map<String, dynamic> map) => FocusSession(
-        id: map['id'] as String,
-        habitId: (map['habitId'] ?? '') as String,
-        targetMinutes: ((map['targetMinutes'] ?? 0) as num).toInt(),
-        seconds: ((map['seconds'] ?? 0) as num).toInt(),
-        completed: (map['completed'] ?? false) as bool,
-        startedAt: DateTime.tryParse((map['startedAt'] ?? '') as String) ??
-            DateTime.now(),
-        counted: map['counted'] == true,
-        label: map['label'] is String ? map['label'] as String : '',
-      );
+  factory FocusSession.fromMap(Map<String, dynamic> map) {
+    final rawTags = map['tags'];
+    final parsedTags = rawTags is List
+        ? rawTags
+            .map((e) => e.toString().trim())
+            .where((e) => e.isNotEmpty)
+            .toList()
+        : <String>[];
+    final rawLabel = map['label'] is String ? map['label'] as String : '';
+    final finalTags = parsedTags.isNotEmpty
+        ? parsedTags
+        : (rawLabel.isNotEmpty
+            ? rawLabel.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList()
+            : const <String>[]);
+
+    return FocusSession(
+      id: map['id'] as String,
+      habitId: (map['habitId'] ?? '') as String,
+      targetMinutes: ((map['targetMinutes'] ?? 0) as num).toInt(),
+      seconds: ((map['seconds'] ?? 0) as num).toInt(),
+      completed: (map['completed'] ?? false) as bool,
+      startedAt: DateTime.tryParse((map['startedAt'] ?? '') as String) ??
+          DateTime.now(),
+      counted: map['counted'] == true,
+      label: rawLabel,
+      tags: finalTags,
+    );
+  }
 }
 
 DateTime dayBorderAfter(DateTime moment) {
