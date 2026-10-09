@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:streak/app/theme/app_tokens.dart';
 import 'package:streak/core/extensions/date_extensions.dart';
+import 'package:streak/features/focus/data/focus_session.dart';
 import 'package:streak/features/focus/state/focus_controller.dart';
+import 'package:streak/features/settings/widgets/settings_rows.dart';
 import 'package:streak/features/statistics/widgets/stat_charts.dart';
 import 'package:streak/features/statistics/widgets/stat_kit.dart';
 
@@ -10,7 +12,7 @@ class FocusTimeOfDayCard extends StatefulWidget {
   const FocusTimeOfDayCard({
     super.key,
     required this.focus,
-    required this.weekStart,
+    this.weekStart = 1,
     required this.accent,
   });
 

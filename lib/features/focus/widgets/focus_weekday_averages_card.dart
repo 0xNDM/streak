@@ -3,7 +3,9 @@ import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:streak/app/theme/app_tokens.dart';
 import 'package:streak/core/i18n/date_labels.dart';
+import 'package:streak/features/focus/data/focus_session.dart';
 import 'package:streak/features/focus/state/focus_controller.dart';
+import 'package:streak/features/settings/widgets/settings_rows.dart';
 import 'package:streak/features/statistics/widgets/stat_charts.dart';
 import 'package:streak/features/statistics/widgets/stat_kit.dart';
 
@@ -11,7 +13,7 @@ class FocusWeekdayAveragesCard extends StatefulWidget {
   const FocusWeekdayAveragesCard({
     super.key,
     required this.focus,
-    required this.weekStart,
+    this.weekStart = 1,
     required this.accent,
   });
 

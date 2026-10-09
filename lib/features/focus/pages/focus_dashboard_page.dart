@@ -11,6 +11,7 @@ import 'package:streak/core/extensions/inset_extensions.dart';
 import 'package:streak/core/i18n/l10n.dart';
 import 'package:streak/core/widgets/entrance.dart';
 import 'package:streak/core/widgets/stat_columns.dart';
+import 'package:streak/features/focus/data/focus_session.dart';
 import 'package:streak/features/focus/data/focus_stats.dart';
 import 'package:streak/features/focus/state/focus_actions.dart';
 import 'package:streak/features/focus/state/focus_controller.dart';
@@ -18,12 +19,14 @@ import 'package:streak/features/focus/widgets/focus_analytics_widgets.dart';
 import 'package:streak/features/focus/widgets/focus_dashboard_widgets.dart';
 import 'package:streak/features/focus/widgets/focus_history_dialog.dart';
 import 'package:streak/features/focus/widgets/focus_period_bar.dart';
+import 'package:streak/features/focus/widgets/focus_pill.dart';
 import 'package:streak/features/focus/widgets/focus_range_bars.dart';
 import 'package:streak/features/focus/widgets/focus_setup_dialog.dart';
 import 'package:streak/features/focus/widgets/focus_time_of_day_card.dart';
 import 'package:streak/features/focus/widgets/focus_weekday_averages_card.dart';
 import 'package:streak/features/habits/state/habits_controller.dart';
 import 'package:streak/features/settings/state/settings_controller.dart';
+import 'package:streak/features/settings/widgets/settings_rows.dart';
 import 'package:streak/features/statistics/widgets/stat_charts.dart';
 import 'package:streak/features/statistics/widgets/stat_kit.dart';
 
@@ -466,6 +469,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
               delay: _entrance,
               child: FocusWeekdayAveragesCard(
                 focus: focus,
+                weekStart: settings.weekStart,
                 accent: _lockInBright,
               ),
             ),
@@ -477,6 +481,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
               delay: _entrance,
               child: FocusTimeOfDayCard(
                 focus: focus,
+                weekStart: settings.weekStart,
                 accent: _lockInBright,
               ),
             ),
