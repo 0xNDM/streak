@@ -22,6 +22,7 @@ import 'package:streak/core/routing/back_handlers.dart';
 import 'package:streak/core/utils/responsive.dart';
 import 'package:streak/core/widgets/page_motion.dart';
 import 'package:streak/core/widgets/glass.dart';
+import 'package:streak/features/focus/pages/focus_dashboard_page.dart';
 import 'package:streak/features/focus/state/focus_actions.dart';
 import 'package:streak/features/focus/state/focus_controller.dart';
 import 'package:streak/features/habits/pages/day_timeline_page.dart';
@@ -48,17 +49,17 @@ class HomeShell extends StatefulWidget {
   State<HomeShell> createState() => _HomeShellState();
 }
 
-enum _Tab { today, todos, plan, stats, settings }
+enum _Tab { focus, today, todos, plan, stats, settings }
 
-final _paneTab = ValueNotifier(_Tab.today);
+final _paneTab = ValueNotifier(Platform.isWindows ? _Tab.focus : _Tab.today);
 
 final _toSettings = ValueNotifier(0);
 
 class _HomeShellState extends State<HomeShell>
     with WidgetsBindingObserver, SingleTickerProviderStateMixin {
-  _Tab _tab = _Tab.today;
+  _Tab _tab = Platform.isWindows ? _Tab.focus : _Tab.today;
 
-  final _visited = <_Tab>{_Tab.today};
+  late final _visited = <_Tab>{_tab};
 
   late final AnimationController _swap;
   final _compact = ValueNotifier(false);
@@ -190,8 +191,9 @@ class _HomeShellState extends State<HomeShell>
 
   void _back(List<_Tab> tabs, _Tab current) {
     if (BackHandlers.handle()) return;
-    if (current != _Tab.today) {
-      _select(tabs, _Tab.today);
+    final root = Platform.isWindows ? _Tab.focus : _Tab.today;
+    if (current != root) {
+      _select(tabs, root);
       return;
     }
     SystemNavigator.pop();
@@ -257,13 +259,15 @@ class _HomeShellState extends State<HomeShell>
     }
     final express = settings.isExpressStyle;
     final tabs = [
+      if (Platform.isWindows) _Tab.focus,
       _Tab.today,
       if (settings.todosEnabled) _Tab.todos,
       if (settings.planningEnabled) _Tab.plan,
       _Tab.stats,
       _Tab.settings,
     ];
-    final current = tabs.contains(_tab) ? _tab : _Tab.today;
+    final defaultTab = Platform.isWindows ? _Tab.focus : _Tab.today;
+    final current = tabs.contains(_tab) ? _tab : defaultTab;
 
     if (railed) {
       return _guard(
@@ -365,6 +369,7 @@ class _HomeShellState extends State<HomeShell>
 }
 
 Widget _pageOf(_Tab tab) => switch (tab) {
+      _Tab.focus => const FocusDashboardPage(),
       _Tab.today => const HomePage(),
       _Tab.todos => const TodosPage(),
       _Tab.plan => const DayTimelinePage(),
@@ -373,6 +378,7 @@ Widget _pageOf(_Tab tab) => switch (tab) {
     };
 
 IconData _iconOf(_Tab tab) => switch (tab) {
+      _Tab.focus => LucideIcons.timer,
       _Tab.today => LucideIcons.house,
       _Tab.todos => LucideIcons.listChecks,
       _Tab.plan => LucideIcons.calendarClock,
@@ -381,6 +387,7 @@ IconData _iconOf(_Tab tab) => switch (tab) {
     };
 
 String _labelOf(BuildContext context, _Tab tab) => switch (tab) {
+      _Tab.focus => context.l10n.focus,
       _Tab.today => context.l10n.today,
       _Tab.todos => context.l10n.todos,
       _Tab.plan => context.l10n.plan_tab,
@@ -601,7 +608,9 @@ class _DetailPlaceholder extends StatelessWidget {
             Text(title, style: titleStyle),
             const SizedBox(height: 8),
             Text(
-              context.l10n.pane_hint,
+              tab == _Tab.focus
+                  ? 'Start a focus session or configure your timer.'
+                  : context.l10n.pane_hint,
               textAlign: TextAlign.center,
               style: hintStyle,
             ),

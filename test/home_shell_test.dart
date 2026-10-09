@@ -1,8 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:streak/app/home_shell.dart';
 import 'package:streak/core/minimal/minimal_nav.dart';
+import 'package:streak/features/focus/pages/focus_dashboard_page.dart';
 import 'package:streak/features/habits/pages/home_page.dart';
 import 'package:streak/features/settings/pages/settings_page.dart';
 import 'package:streak/features/statistics/pages/statistics_page.dart';
@@ -19,6 +22,12 @@ void main() {
       testHabit(id: 'a', name: 'Read', done: lastDays(5)),
     ]);
     await pumpScreen(tester, const HomeShell());
+
+    if (Platform.isWindows) {
+      expect(find.byType(FocusDashboardPage), findsOneWidget);
+      await tester.tap(find.text('Today').first);
+      await tester.pumpAndSettle();
+    }
 
     expect(find.byType(HomePage), findsOneWidget);
     expect(find.text('Today'), findsWidgets);
@@ -88,6 +97,11 @@ void main() {
       const HomeShell(),
       settings: {'todosEnabled': true},
     );
+
+    if (Platform.isWindows) {
+      await tester.tap(find.text('Today').first);
+      await tester.pumpAndSettle();
+    }
 
     await tester.fling(find.byType(HomePage), const Offset(-300, 0), 1000);
     await tester.pumpAndSettle();

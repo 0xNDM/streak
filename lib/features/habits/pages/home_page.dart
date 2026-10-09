@@ -436,8 +436,11 @@ class _HomePageState extends State<HomePage> {
                   onTap: () => settings.setCompactCards(!settings.compactCards),
                 ),
                 const SizedBox(width: 8),
-                const FocusPill(glass: true),
-                const SizedBox(width: 8),
+                if (!Platform.isWindows ||
+                    context.select<FocusController, bool>((f) => f.isActive)) ...[
+                  const FocusPill(glass: true),
+                  const SizedBox(width: 8),
+                ],
                 if (bigText)
                   GlassIconButton(
                     icon: LucideIcons.plus,
@@ -505,7 +508,9 @@ class _HomePageState extends State<HomePage> {
                 size: 20,
               ),
             ),
-          if (!_reordering)
+          if (!_reordering &&
+              (!Platform.isWindows ||
+                  context.select<FocusController, bool>((f) => f.isActive)))
             FocusPill(compact: minimal || express),
           if (minimal && !railed && !_reordering && settings.todosEnabled)
             IconButton(

@@ -18,6 +18,7 @@ Future<void> applyFocusAction(FocusAction action) async {
   final habitId = focus.habitId;
   final session = await focus.apply(action);
   if (session == null || habitId.isEmpty) return;
+  if (focus.onRoundSaved != null) return;
 
   final habit = habits.byId(habitId);
   if (habit == null) return;
@@ -56,6 +57,7 @@ Future<void> countFocusTime(
   final habit = habits.byId(session.habitId);
   if (habit == null || !habit.isTimeAmount) return;
   if (undo && !session.counted) return;
+  if (!undo && session.counted) return;
   for (final piece in session.split()) {
     final minutes = piece.seconds / 60;
     await habits.addProgress(

@@ -85,6 +85,7 @@ class FocusController extends ChangeNotifier {
   int _accumulated = 0;
   DateTime? _since;
   Timer? _ticker;
+  Timer? _autoEnd;
   List<FocusSession>? _view;
   Map<String, int>? _perDay;
   int _revision = 0;
@@ -233,6 +234,7 @@ class FocusController extends ChangeNotifier {
 
   void pause({DateTime? at}) {
     unawaited(FocusAudio.stopAlert());
+    _autoEnd?.cancel();
     if (_since == null) return;
     _accumulated = elapsedAt(at ?? DateTime.now());
     _since = null;
@@ -266,6 +268,7 @@ class FocusController extends ChangeNotifier {
   void reset() {
     _awaiting = false;
     _switchIn = 0;
+    _autoEnd?.cancel();
     unawaited(FocusAudio.stopAlert());
     _accumulated = 0;
     _since = isRunning ? DateTime.now() : null;
@@ -280,6 +283,7 @@ class FocusController extends ChangeNotifier {
     if (!_open || isFlow) return;
     _awaiting = false;
     _switchIn = 0;
+    _autoEnd?.cancel();
     unawaited(FocusAudio.stopAlert());
     if (reachedTarget) {
       _accumulated = targetSeconds;
@@ -351,6 +355,7 @@ class FocusController extends ChangeNotifier {
     final label = _label;
     final target = _focusMinutes;
     _stopTicker();
+    _autoEnd?.cancel();
     _awaiting = false;
     _switchIn = 0;
     unawaited(FocusAudio.stopAlert());
@@ -386,6 +391,7 @@ class FocusController extends ChangeNotifier {
     );
     await _keep(session);
     notifyListeners();
+    onRoundSaved?.call(session);
     return session;
   }
 
@@ -482,6 +488,12 @@ class FocusController extends ChangeNotifier {
           _stopTicker();
           _sync();
           notifyListeners();
+          _autoEnd?.cancel();
+          _autoEnd = Timer(const Duration(seconds: 2), () async {
+            if (_open && reachedTarget) {
+              await stop(completed: true);
+            }
+          });
         }
       }
       _tick();
@@ -680,6 +692,7 @@ class FocusController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _autoEnd?.cancel();
     _stopTicker();
     super.dispose();
   }

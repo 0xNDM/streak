@@ -236,15 +236,17 @@ class _FocusPageState extends State<FocusPage> {
     final session = await focus.stop(completed: completed);
     if (!mounted) return;
 
-    final target = habitId.isEmpty ? null : habits.byId(habitId);
-    final today = AppClock.now();
-    if (target != null && target.isTimeAmount) {
-      if (session != null) await countFocusTime(habits, focus, session);
-    } else if (completed &&
-        target != null &&
-        target.kind == HabitKind.positive &&
-        !target.isCompletedOn(today)) {
-      habits.toggle(target.id, today, fromFocus: true);
+    if (focus.onRoundSaved == null) {
+      final target = habitId.isEmpty ? null : habits.byId(habitId);
+      final today = AppClock.now();
+      if (target != null && target.isTimeAmount) {
+        if (session != null) await countFocusTime(habits, focus, session);
+      } else if (completed &&
+          target != null &&
+          target.kind == HabitKind.positive &&
+          !target.isCompletedOn(today)) {
+        habits.toggle(target.id, today, fromFocus: true);
+      }
     }
     if (!mounted) return;
 
@@ -279,7 +281,15 @@ class _FocusPageState extends State<FocusPage> {
     if (!focus.isActive && !_leaving && _leadValue == 0) {
       _leaving = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) AppNavigator.pop();
+        if (mounted) {
+          final savedSeconds =
+              focus.sessions.lastOrNull?.seconds ?? leadMinutes * 60;
+          AppSnackbar.success(
+            context,
+            context.l10n.focus_saved(formatHoursShort(savedSeconds)),
+          );
+          AppNavigator.pop();
+        }
       });
     }
 
