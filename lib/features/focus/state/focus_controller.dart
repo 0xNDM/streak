@@ -734,6 +734,183 @@ class FocusController extends ChangeNotifier {
     notifyListeners();
   }
 
+  static const _dailyTargetsKey = 'focusDailyTargets';
+  static const _weeklyTargetsKey = 'focusWeeklyTargets';
+
+  int dailyTargetFor(DateTime date, int defaultMinutes) {
+    final map = LocalStore.settingMap(_dailyTargetsKey);
+    final val = map[date.dayKey];
+    if (val is int) return val;
+    if (val is num) return val.toInt();
+    return defaultMinutes;
+  }
+
+  Future<void> setDailyTarget(DateTime date, int minutes) async {
+    final map = LocalStore.settingMap(_dailyTargetsKey);
+    map[date.dayKey] = minutes;
+    await LocalStore.writeSetting(_dailyTargetsKey, map);
+    notifyListeners();
+  }
+
+  static String weekKey(DateTime date, int weekStart) {
+    final start = date.startOfWeek(weekStart);
+    return '${start.year}-W${((start.difference(DateTime(start.year, 1, 1)).inDays) / 7).ceil() + 1}_${start.dayKey}';
+  }
+
+  int weeklyTargetFor(DateTime date, int defaultHours, {int weekStart = 1}) {
+    final map = LocalStore.settingMap(_weeklyTargetsKey);
+    final key = weekKey(date, weekStart);
+    final val = map[key];
+    if (val is int) return val;
+    if (val is num) return val.toInt();
+    return defaultHours;
+  }
+
+  Future<void> setWeeklyTarget(DateTime date, int hours, {int weekStart = 1}) async {
+    final map = LocalStore.settingMap(_weeklyTargetsKey);
+    final key = weekKey(date, weekStart);
+    map[key] = hours;
+    await LocalStore.writeSetting(_weeklyTargetsKey, map);
+    notifyListeners();
+  }
+
+  DateTime? get firstSessionDate {
+    if (_sessions.isEmpty) return null;
+    DateTime? first;
+    for (final s in _sessions) {
+      final d = s.countedOn;
+      if (first == null || d.isBefore(first)) {
+        first = d;
+      }
+    }
+    return first;
+  }
+
+  int get totalActiveDaysCount {
+    if (_sessions.isEmpty) return 0;
+    final days = <String>{};
+    for (final s in _sessions) {
+      days.add(s.countedOn.dayKey);
+    }
+    return days.length;
+  }
+
+  int get totalElapsedDaysSinceStart {
+    final first = firstSessionDate;
+    if (first == null) return 0;
+    final now = AppClock.now().atMidnight;
+    final start = first.atMidnight;
+    final diff = now.difference(start).inDays + 1;
+    return diff <= 0 ? 1 : diff;
+  }
+
+  Map<int, double> get weekdayAverageSeconds {
+    final first = firstSessionDate;
+    if (first == null || _sessions.isEmpty) {
+      return {for (var i = 1; i <= 7; i++) i: 0.0};
+    }
+    final today = AppClock.now().atMidnight;
+    final start = first.atMidnight;
+
+    final weekdayOccurrences = <int, int>{for (var i = 1; i <= 7; i++) i: 0};
+    var cursor = start;
+    while (!cursor.isAfter(today)) {
+      weekdayOccurrences[cursor.weekday] = (weekdayOccurrences[cursor.weekday] ?? 0) + 1;
+      cursor = cursor.addDays(1);
+    }
+
+    final weekdayTotals = <int, int>{for (var i = 1; i <= 7; i++) i: 0};
+    for (final session in _sessions) {
+      final weekday = session.countedOn.weekday;
+      weekdayTotals[weekday] = (weekdayTotals[weekday] ?? 0) + session.seconds;
+    }
+
+    final averages = <int, double>{};
+    for (var i = 1; i <= 7; i++) {
+      final occurrences = weekdayOccurrences[i] ?? 0;
+      averages[i] = occurrences == 0 ? 0.0 : (weekdayTotals[i] ?? 0) / occurrences;
+    }
+    return averages;
+  }
+
+  Map<String, int> get monthlyTotalSeconds {
+    final totals = <String, int>{};
+    final now = AppClock.now();
+    for (var i = 5; i >= 0; i--) {
+      final dt = DateTime(now.year, now.month - i);
+      final key = '${dt.year}-${dt.month.toString().padLeft(2, '0')}';
+      totals[key] = 0;
+    }
+    for (final s in _sessions) {
+      final dt = s.countedOn;
+      final key = '${dt.year}-${dt.month.toString().padLeft(2, '0')}';
+      if (totals.containsKey(key)) {
+        totals[key] = (totals[key] ?? 0) + s.seconds;
+      }
+    }
+    return totals;
+  }
+
+  ({int morningSec, int afternoonSec, int eveningSec, int nightSec, int totalSec, String peakPeriod})
+      timeOfDayBreakdown({required bool isWeekly, required DateTime now, required int weekStart}) {
+    var morning = 0;
+    var afternoon = 0;
+    var evening = 0;
+    var night = 0;
+
+    final weekFrom = now.startOfWeek(weekStart).atMidnight;
+    final weekTo = weekFrom.addDays(7);
+    final monthStart = DateTime(now.year, now.month);
+    final monthEnd = DateTime(now.year, now.month + 1);
+
+    for (final session in _sessions) {
+      final dt = session.countedOn;
+      if (isWeekly) {
+        if (dt.isBefore(weekFrom) || !dt.isBefore(weekTo)) continue;
+      } else {
+        if (dt.isBefore(monthStart) || !dt.isBefore(monthEnd)) continue;
+      }
+
+      final hour = session.startedAt.toLocal().hour;
+      final sec = session.seconds;
+
+      if (hour >= 4 && hour < 11) {
+        morning += sec;
+      } else if (hour >= 11 && hour < 17) {
+        afternoon += sec;
+      } else if (hour >= 17 && hour < 22) {
+        evening += sec;
+      } else {
+        night += sec;
+      }
+    }
+
+    final total = morning + afternoon + evening + night;
+    var peak = 'Morning (4 AM – 11 AM)';
+    var maxSec = morning;
+    if (afternoon > maxSec) {
+      maxSec = afternoon;
+      peak = 'Afternoon (11 AM – 5 PM)';
+    }
+    if (evening > maxSec) {
+      maxSec = evening;
+      peak = 'Evening (5 PM – 10 PM)';
+    }
+    if (night > maxSec) {
+      maxSec = night;
+      peak = 'Night (10 PM – 4 AM)';
+    }
+
+    return (
+      morningSec: morning,
+      afternoonSec: afternoon,
+      eveningSec: evening,
+      nightSec: night,
+      totalSec: total,
+      peakPeriod: peak,
+    );
+  }
+
   @override
   void dispose() {
     _autoEnd?.cancel();

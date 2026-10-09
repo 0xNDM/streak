@@ -22,9 +22,9 @@ class FocusRangeBars extends StatelessWidget {
   final double height;
 
   double get _barWidth => switch (range) {
-    FocusRange.week => 14,
-    FocusRange.month => 5,
-    FocusRange.year => 11,
+    FocusRange.week => 24,
+    FocusRange.month => 26,
+    FocusRange.year => 20,
   };
 
   String _label(BuildContext context, int index) {
@@ -37,8 +37,7 @@ class FocusRangeBars extends StatelessWidget {
           context.read<SettingsController>().weekStart,
         )[index];
       case FocusRange.month:
-        final day = index + 1;
-        return day == 1 || day % 5 == 0 ? '$day' : '';
+        return 'W${index + 1}';
       case FocusRange.year:
         return index.isEven
             ? DateFormat.MMM(locale.toString()).format(stats.buckets[index])

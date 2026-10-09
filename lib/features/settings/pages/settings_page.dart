@@ -46,7 +46,10 @@ class ClassicSettingsPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(context.l10n.settings)),
-      body: ListView(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 680),
+          child: ListView(
         padding: context.pagePadding(16, 16, 16, 104),
         children: [
           Entrance(
@@ -127,6 +130,8 @@ class ClassicSettingsPage extends StatelessWidget {
           ),
         ],
       ),
+        ),
+      ),
     );
   }
 }
@@ -146,12 +151,17 @@ class _ClassicSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(title)),
-      body: ListView(
-        padding: context.pagePadding(16, 8, 16, 24),
-        children: [
-          Entrance(child: SectionLabel(label)),
-          Entrance(index: 1, child: Card(child: Column(children: children))),
-        ],
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 680),
+          child: ListView(
+            padding: context.pagePadding(16, 8, 16, 24),
+            children: [
+              Entrance(child: SectionLabel(label)),
+              Entrance(index: 1, child: Card(child: Column(children: children))),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -244,7 +254,10 @@ class _ClassicPreferencesPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(context.l10n.preferences)),
-      body: ListView(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 680),
+          child: ListView(
         padding: context.pagePadding(16, 8, 16, 24),
         children: [
           Entrance(child: SectionLabel(context.l10n.prefs_general)),
@@ -699,6 +712,8 @@ class _ClassicPreferencesPage extends StatelessWidget {
             ),
           ),
         ],
+      ),
+        ),
       ),
     );
   }

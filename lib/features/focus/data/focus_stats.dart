@@ -5,27 +5,6 @@ import 'package:streak/features/focus/data/focus_session.dart';
 
 enum FocusRange { week, month, year }
 
-class FocusMilestone {
-  const FocusMilestone({
-    required this.id,
-    required this.title,
-    required this.target,
-    required this.progress,
-    required this.unit,
-    required this.icon,
-  });
-
-  final String id;
-  final String title;
-  final int target;
-  final int progress;
-  final String unit;
-  final IconData icon;
-
-  bool get isUnlocked => progress >= target;
-  double get percentage => target == 0 ? 0.0 : (progress / target).clamp(0.0, 1.0);
-}
-
 @immutable
 class FocusStats {
   const FocusStats({
@@ -46,7 +25,6 @@ class FocusStats {
     required this.rangeCount,
     this.perLabel = const {},
     required this.productiveWindow,
-    required this.milestones,
   });
 
   final int todaySeconds;
@@ -66,7 +44,6 @@ class FocusStats {
   final Map<String, int> perLabel;
   final int rangeCount;
   final ({String title, IconData icon, int seconds, double percentage}) productiveWindow;
-  final List<FocusMilestone> milestones;
 
   double get weeklyChangePercent {
     if (previousWeekSeconds == 0) return weekSeconds > 0 ? 100.0 : 0.0;
@@ -104,9 +81,10 @@ class FocusStats {
       case FocusRange.month:
         final anchor = DateTime(today.year, today.month + offset);
         final days = DateTime(anchor.year, anchor.month + 1, 0).day;
+        final weekCount = (days / 7).ceil();
         return [
-          for (var i = 1; i <= days; i++)
-            DateTime(anchor.year, anchor.month, i),
+          for (var i = 0; i < weekCount; i++)
+            DateTime(anchor.year, anchor.month, 1 + i * 7),
         ];
       case FocusRange.year:
         final year = today.year + offset;
@@ -176,11 +154,11 @@ class FocusStats {
         monthSeconds += sec;
       }
 
-      // Time of day calculation
-      final hour = session.startedAt.hour;
-      if (hour >= 6 && hour < 12) {
+      // Time of day calculation using local time
+      final hour = session.startedAt.toLocal().hour;
+      if (hour >= 4 && hour < 11) {
         morningSec += sec;
-      } else if (hour >= 12 && hour < 17) {
+      } else if (hour >= 11 && hour < 17) {
         afternoonSec += sec;
       } else if (hour >= 17 && hour < 22) {
         eveningSec += sec;
@@ -188,9 +166,18 @@ class FocusStats {
         nightSec += sec;
       }
 
-      final index = range == FocusRange.year
-          ? (day.year == bucketYear ? day.month - 1 : -1)
-          : epoch - firstBucket;
+      final int index;
+      if (range == FocusRange.year) {
+        index = (day.year == bucketYear ? day.month - 1 : -1);
+      } else if (range == FocusRange.month) {
+        if (day.year == buckets.first.year && day.month == buckets.first.month) {
+          index = ((day.day - 1) ~/ 7).clamp(0, buckets.length - 1);
+        } else {
+          index = -1;
+        }
+      } else {
+        index = epoch - firstBucket;
+      }
       if (index >= 0 && index < buckets.length) {
         rangeCount++;
         series[index] += sec;
@@ -262,14 +249,14 @@ class FocusStats {
       );
     } else if (maxSec == morningSec) {
       productiveWindow = (
-        title: 'Morning (6 AM - 12 PM)',
+        title: 'Morning (4 AM - 11 AM)',
         icon: LucideIcons.sunrise,
         seconds: morningSec,
         percentage: totalSeconds == 0 ? 0.0 : morningSec / totalSeconds,
       );
     } else if (maxSec == afternoonSec) {
       productiveWindow = (
-        title: 'Afternoon (12 PM - 5 PM)',
+        title: 'Afternoon (11 AM - 5 PM)',
         icon: LucideIcons.sun,
         seconds: afternoonSec,
         percentage: totalSeconds == 0 ? 0.0 : afternoonSec / totalSeconds,
@@ -283,65 +270,12 @@ class FocusStats {
       );
     } else {
       productiveWindow = (
-        title: 'Night (10 PM - 6 AM)',
+        title: 'Night (10 PM - 4 AM)',
         icon: LucideIcons.moon,
         seconds: nightSec,
         percentage: totalSeconds == 0 ? 0.0 : nightSec / totalSeconds,
       );
     }
-
-    // Milestones
-    final totalHours = totalSeconds ~/ 3600;
-    final milestones = [
-      FocusMilestone(
-        id: 'first_session',
-        title: 'First Lock-In',
-        target: 1,
-        progress: scoped.length,
-        unit: 'session',
-        icon: LucideIcons.zap,
-      ),
-      FocusMilestone(
-        id: 'streak_3',
-        title: '3-Day Streak',
-        target: 3,
-        progress: longestStreak,
-        unit: 'days',
-        icon: LucideIcons.flame,
-      ),
-      FocusMilestone(
-        id: 'streak_7',
-        title: '7-Day Streak',
-        target: 7,
-        progress: longestStreak,
-        unit: 'days',
-        icon: LucideIcons.sparkles,
-      ),
-      FocusMilestone(
-        id: 'hours_10',
-        title: '10 Focused Hours',
-        target: 10,
-        progress: totalHours,
-        unit: 'hours',
-        icon: LucideIcons.clock,
-      ),
-      FocusMilestone(
-        id: 'hours_50',
-        title: '50 Focused Hours',
-        target: 50,
-        progress: totalHours,
-        unit: 'hours',
-        icon: LucideIcons.award,
-      ),
-      FocusMilestone(
-        id: 'marathon',
-        title: 'Deep Work Marathon',
-        target: 60,
-        progress: longestSession ~/ 60,
-        unit: 'min',
-        icon: LucideIcons.medal,
-      ),
-    ];
 
     return FocusStats(
       todaySeconds: todaySeconds,
@@ -361,7 +295,6 @@ class FocusStats {
       perLabel: perLabel,
       rangeCount: rangeCount,
       productiveWindow: productiveWindow,
-      milestones: milestones,
     );
   }
 }

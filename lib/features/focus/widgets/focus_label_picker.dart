@@ -100,12 +100,37 @@ class _NewLabelDialog extends StatefulWidget {
 
 class _NewLabelDialogState extends State<_NewLabelDialog> {
   final _field = TextEditingController();
+  final _hexField = TextEditingController();
   Color _color = FocusController.defaultTagColors[0];
+
+  @override
+  void initState() {
+    super.initState();
+    _hexField.text = '#${_color.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
+  }
 
   @override
   void dispose() {
     _field.dispose();
+    _hexField.dispose();
     super.dispose();
+  }
+
+  void _onHexChanged(String value) {
+    final clean = value.replaceAll('#', '').trim();
+    if (clean.length == 6) {
+      final parsed = int.tryParse('FF$clean', radix: 16);
+      if (parsed != null) {
+        setState(() => _color = Color(parsed));
+      }
+    }
+  }
+
+  void _selectColor(Color c) {
+    setState(() {
+      _color = c;
+      _hexField.text = '#${c.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
+    });
   }
 
   void _done() {
@@ -145,7 +170,7 @@ class _NewLabelDialogState extends State<_NewLabelDialog> {
             children: [
               for (final color in FocusController.defaultTagColors)
                 GestureDetector(
-                  onTap: () => setState(() => _color = color),
+                  onTap: () => _selectColor(color),
                   child: Container(
                     width: 32,
                     height: 32,
@@ -158,6 +183,35 @@ class _NewLabelDialogState extends State<_NewLabelDialog> {
                     ),
                   ),
                 ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: _color,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: context.colors.outlineVariant, width: 1.5),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: TextField(
+                  controller: _hexField,
+                  maxLength: 7,
+                  decoration: const InputDecoration(
+                    labelText: 'Hex Color',
+                    hintText: '#10B981',
+                    counterText: '',
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  ),
+                  onChanged: _onHexChanged,
+                ),
+              ),
             ],
           ),
         ],

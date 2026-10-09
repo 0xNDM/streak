@@ -21,6 +21,46 @@ class ColorPicker extends StatefulWidget {
 
 class _ColorPickerState extends State<ColorPicker> {
   late bool _custom = _isCustom(widget.selected);
+  late final TextEditingController _hexController;
+
+  @override
+  void initState() {
+    super.initState();
+    _hexController = TextEditingController(
+      text: _toHex(widget.selected),
+    );
+  }
+
+  @override
+  void didUpdateWidget(ColorPicker oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selected != widget.selected) {
+      final hex = _toHex(widget.selected);
+      if (_hexController.text.toUpperCase() != hex) {
+        _hexController.text = hex;
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _hexController.dispose();
+    super.dispose();
+  }
+
+  String _toHex(Color c) =>
+      '#${c.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
+
+  void _onHexChanged(String text) {
+    var raw = text.trim();
+    if (raw.startsWith('#')) raw = raw.substring(1);
+    if (raw.length == 6) {
+      final val = int.tryParse('FF$raw', radix: 16);
+      if (val != null) {
+        widget.onSelected(Color(val));
+      }
+    }
+  }
 
   bool _isCustom(Color color) => !AppPalette.habitColors
       .any((c) => c.toARGB32() == color.toARGB32());
@@ -38,13 +78,55 @@ class _ColorPickerState extends State<ColorPicker> {
         ),
         const SizedBox(height: 14),
         if (_custom)
-          Center(
-            child: cp.HueRingPicker(
-              pickerColor: widget.selected,
-              onColorChanged: widget.onSelected,
-              enableAlpha: false,
-              displayThumbColor: true,
-            ),
+          Column(
+            children: [
+              Center(
+                child: cp.HueRingPicker(
+                  pickerColor: widget.selected,
+                  onColorChanged: (c) {
+                    widget.onSelected(c);
+                    _hexController.text = _toHex(c);
+                  },
+                  enableAlpha: false,
+                  displayThumbColor: true,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: widget.selected,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: context.colors.outlineVariant,
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    width: 130,
+                    child: TextField(
+                      controller: _hexController,
+                      maxLength: 7,
+                      decoration: const InputDecoration(
+                        labelText: 'Hex Color',
+                        hintText: '#10B981',
+                        counterText: '',
+                        isDense: true,
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      ),
+                      onChanged: _onHexChanged,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           )
         else
           LayoutBuilder(

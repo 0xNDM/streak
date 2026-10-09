@@ -388,7 +388,7 @@ IconData _iconOf(_Tab tab) => switch (tab) {
 
 String _labelOf(BuildContext context, _Tab tab) => switch (tab) {
       _Tab.focus => context.l10n.focus,
-      _Tab.today => context.l10n.today,
+      _Tab.today => 'Habit',
       _Tab.todos => context.l10n.todos,
       _Tab.plan => context.l10n.plan_tab,
       _Tab.stats => context.l10n.stats,

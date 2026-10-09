@@ -153,7 +153,7 @@ class ExpressSettingsPage extends StatelessWidget {
       appBar: AppBar(toolbarHeight: 52),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 760),
+          constraints: const BoxConstraints(maxWidth: 680),
           child: ListView(
             padding: context.pagePadding(18, 0, 18, 128),
             children: [

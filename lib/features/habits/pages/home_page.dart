@@ -28,6 +28,7 @@ import 'package:streak/features/habits/pages/habit_details_page.dart';
 import 'package:streak/features/habits/pages/habit_form_page.dart';
 import 'package:streak/features/habits/pages/note_editor_page.dart';
 import 'package:streak/features/habits/widgets/habit_details_dialog.dart';
+import 'package:streak/features/habits/widgets/habit_form_dialog.dart';
 import 'package:streak/features/focus/widgets/focus_pill.dart';
 import 'package:streak/features/habits/state/categories_controller.dart';
 import 'package:streak/features/habits/widgets/category_editor_sheet.dart';
@@ -319,10 +320,7 @@ class _HomePageState extends State<HomePage> {
               child: ExpressFab(
                 icon: LucideIcons.plus,
                 label: context.l10n.add_habit,
-                onPressed: () => AppNavigator.push(
-                  const HabitFormPage(),
-                  fullscreenDialog: true,
-                ),
+                onPressed: _openAddHabit,
               ),
             )
           : null,
@@ -334,7 +332,7 @@ class _HomePageState extends State<HomePage> {
                 : FittedBox(
                     fit: BoxFit.scaleDown,
                     alignment: AlignmentDirectional.centerStart,
-                    child: Text(context.l10n.today),
+                    child: const Text('Habit'),
                   ),
 
         leadingWidth: minimal && !railed && !_reordering ? 64 : null,
@@ -407,13 +405,7 @@ class _HomePageState extends State<HomePage> {
                     icon: LucideIcons.plus,
                     tooltip: context.l10n.add_habit,
                     style: MorphMenuStyle.paper(context),
-                    onTap: () => AppNavigator.morph(
-                      const HabitFormPage(),
-                      from: button,
-                      icon: LucideIcons.plus,
-                      ink: context.colors.onSurface,
-                      edge: context.colors.outlineVariant,
-                    ),
+                    onTap: _openAddHabit,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -447,18 +439,12 @@ class _HomePageState extends State<HomePage> {
                   GlassIconButton(
                     icon: LucideIcons.plus,
                     tooltip: context.l10n.add_habit,
-                    onTap: () => AppNavigator.push(
-                      const HabitFormPage(),
-                      fullscreenDialog: true,
-                    ),
+                    onTap: _openAddHabit,
                   )
                 else
                   GlassPill(
                     tint: context.colors.primary,
-                    onTap: () => AppNavigator.push(
-                      const HabitFormPage(),
-                      fullscreenDialog: true,
-                    ),
+                    onTap: _openAddHabit,
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -542,10 +528,7 @@ class _HomePageState extends State<HomePage> {
                     ? const SizedBox.shrink()
                     : minimal || bigText
                     ? IconButton(
-                        onPressed: () => AppNavigator.push(
-                          const HabitFormPage(),
-                          fullscreenDialog: true,
-                        ),
+                        onPressed: _openAddHabit,
                         icon: Icon(
                           LucideIcons.circlePlus,
                           size: 26,
@@ -553,10 +536,7 @@ class _HomePageState extends State<HomePage> {
                         ),
                       )
                     : FilledButton.icon(
-                        onPressed: () => AppNavigator.push(
-                          const HabitFormPage(),
-                          fullscreenDialog: true,
-                        ),
+                        onPressed: _openAddHabit,
                         icon: const Icon(LucideIcons.plus, size: 16),
                         label: Text(
                           context.l10n.new_label,
@@ -821,6 +801,17 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
+    );
+  }
+
+  void _openAddHabit() {
+    if (Platform.isWindows) {
+      showHabitFormDialog(context);
+      return;
+    }
+    AppNavigator.push(
+      const HabitFormPage(),
+      fullscreenDialog: true,
     );
   }
 
@@ -1260,10 +1251,16 @@ class _EmptyState extends StatelessWidget {
       title: context.l10n.empty_title,
       message: context.l10n.empty_body,
       action: FilledButton.icon(
-        onPressed: () => AppNavigator.push(
-          const HabitFormPage(),
-          fullscreenDialog: true,
-        ),
+        onPressed: () {
+          if (Platform.isWindows) {
+            showHabitFormDialog(context);
+          } else {
+            AppNavigator.push(
+              const HabitFormPage(),
+              fullscreenDialog: true,
+            );
+          }
+        },
         icon: const Icon(LucideIcons.plus, size: 18),
         label: Text(context.l10n.add_habit),
         style: FilledButton.styleFrom(

@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:streak/features/habits/widgets/habit_form_dialog.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
@@ -212,10 +214,12 @@ class _HabitDetailsPageState extends State<HabitDetailsPage> {
                     ),
                     IconButton(
                       icon: const Icon(LucideIcons.pencil),
-                      onPressed: () => AppNavigator.push(
-                        HabitFormPage(habit: habit),
-                        fullscreenDialog: true,
-                      ),
+                      onPressed: () => Platform.isWindows
+                          ? showHabitFormDialog(context, habit: habit)
+                          : AppNavigator.push(
+                              HabitFormPage(habit: habit),
+                              fullscreenDialog: true,
+                            ),
                     ),
                     const SizedBox(width: 8),
                   ]
@@ -231,10 +235,12 @@ class _HabitDetailsPageState extends State<HabitDetailsPage> {
                       icon: LucideIcons.pencil,
                       size: 38,
                       tooltip: context.l10n.edit,
-                      onTap: () => AppNavigator.push(
-                        HabitFormPage(habit: habit),
-                        fullscreenDialog: true,
-                      ),
+                      onTap: () => Platform.isWindows
+                          ? showHabitFormDialog(context, habit: habit)
+                          : AppNavigator.push(
+                              HabitFormPage(habit: habit),
+                              fullscreenDialog: true,
+                            ),
                     ),
                     const SizedBox(width: 16),
                   ],

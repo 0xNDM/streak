@@ -28,7 +28,10 @@ class MinimalSettingsPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(toolbarHeight: 52),
-      body: ListView(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 680),
+          child: ListView(
         padding: context.pagePadding(22, 0, 22, 40),
         children: [
           _ProfileRow(
@@ -225,6 +228,8 @@ class _ProfileRow extends StatelessWidget {
           ),
         ),
       ],
+        ),
+      ),
     );
   }
 }

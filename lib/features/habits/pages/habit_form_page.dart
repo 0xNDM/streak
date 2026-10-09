@@ -468,7 +468,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
             ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 760),
+          constraints: const BoxConstraints(maxWidth: 680),
           child: ListView(
             controller: _scroll,
             padding: context.pagePadding(18, 8, 18, 140),
@@ -745,16 +745,21 @@ class _HabitFormPageState extends State<HabitFormPage> {
           const SizedBox(width: 8),
         ],
       ),
-      body: ListView(
-        padding: context.pagePadding(20, 0, 20, 32),
-        children: [
-          MinimalTitle(
-            title: widget.isEditing
-                ? context.l10n.edit_habit
-                : context.l10n.new_habit,
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 680),
+          child: ListView(
+            padding: context.pagePadding(20, 0, 20, 32),
+            children: [
+              MinimalTitle(
+                title: widget.isEditing
+                    ? context.l10n.edit_habit
+                    : context.l10n.new_habit,
+              ),
+              ..._minimalFields(context),
+            ],
           ),
-          ..._minimalFields(context),
-        ],
+        ),
       ),
     );
   }
@@ -1132,7 +1137,10 @@ class _HabitFormPageState extends State<HabitFormPage> {
             const SizedBox(width: 8),
           ],
         ),
-        body: ListView(
+        body: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 680),
+            child: ListView(
           padding: context.pagePadding(16, 16, 16, 16),
           children: [
             HabitPreview(
@@ -1375,6 +1383,8 @@ class _HabitFormPageState extends State<HabitFormPage> {
               ),
             const SizedBox(height: 24),
           ],
+        ),
+          ),
         ),
     );
   }

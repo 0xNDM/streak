@@ -21,11 +21,13 @@ class WeeklyFocusComparisonCard extends StatelessWidget {
     required this.stats,
     required this.targetHours,
     required this.accent,
+    this.onEditTarget,
   });
 
   final FocusStats stats;
   final int targetHours;
   final Color accent;
+  final VoidCallback? onEditTarget;
 
   @override
   Widget build(BuildContext context) {
@@ -83,6 +85,17 @@ class WeeklyFocusComparisonCard extends StatelessWidget {
                           color: context.tokens.muted,
                         ),
                       ),
+                      if (onEditTarget != null) ...[
+                        const SizedBox(width: 6),
+                        GestureDetector(
+                          onTap: onEditTarget,
+                          child: Icon(
+                            LucideIcons.pencil,
+                            size: 14,
+                            color: context.tokens.muted,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ],
@@ -620,93 +633,3 @@ class ProductiveTimeCard extends StatelessWidget {
   }
 }
 
-class FocusMilestonesSection extends StatelessWidget {
-  const FocusMilestonesSection({
-    super.key,
-    required this.milestones,
-    required this.accent,
-  });
-
-  final List<FocusMilestone> milestones;
-  final Color accent;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colors;
-
-    return StatCard(
-      title: 'Milestones & Achievements',
-      icon: LucideIcons.award,
-      color: accent,
-      child: Wrap(
-        spacing: 12,
-        runSpacing: 12,
-        children: [
-          for (final m in milestones)
-            Container(
-              width: 220,
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: m.isUnlocked
-                    ? accent.withValues(alpha: 0.08)
-                    : scheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: m.isUnlocked
-                      ? accent.withValues(alpha: 0.3)
-                      : scheme.outlineVariant.withValues(alpha: 0.2),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Icon(
-                        m.icon,
-                        size: 20,
-                        color: m.isUnlocked ? accent : context.tokens.muted,
-                      ),
-                      if (m.isUnlocked)
-                        const Icon(LucideIcons.circleCheck, size: 16, color: Colors.green)
-                      else
-                        Text(
-                          '${m.progress}/${m.target} ${m.unit}',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: context.tokens.muted,
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    m.title,
-                    style: TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w800,
-                      color: m.isUnlocked ? scheme.onSurface : context.tokens.muted,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: m.percentage,
-                      minHeight: 5,
-                      backgroundColor: scheme.surfaceContainerHighest,
-                      valueColor: AlwaysStoppedAnimation(
-                        m.isUnlocked ? Colors.green : accent,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
