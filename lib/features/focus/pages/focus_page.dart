@@ -278,7 +278,7 @@ class _FocusPageState extends State<FocusPage> {
     if (Platform.isWindows) {
       showFocusSetupDialog(context);
     } else {
-      AppNavigator.pushNamed(FocusPage.routeName);
+      AppNavigator.push(const FocusPage(), name: FocusPage.routeName);
     }
   }
 

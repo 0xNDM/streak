@@ -267,8 +267,9 @@ class FocusSessionCard extends StatelessWidget {
             ? '${minutes ~/ 60}h'
             : '${minutes ~/ 60}h ${minutes % 60}m');
 
-    final habitColor = habit?.color ?? scheme.primary;
-    final title = habit != null ? '$durationStr - ${habit.name}' : durationStr;
+    final currentHabit = habit;
+    final habitColor = currentHabit?.color ?? scheme.primary;
+    final title = currentHabit != null ? '$durationStr - ${currentHabit.name}' : durationStr;
 
     final focus = context.watch<FocusController>();
     final sessionTags = session.tags.isNotEmpty

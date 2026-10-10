@@ -19,6 +19,7 @@ import 'package:streak/features/focus/widgets/focus_dashboard_widgets.dart';
 import 'package:streak/features/focus/widgets/focus_history_dialog.dart';
 import 'package:streak/features/focus/widgets/focus_period_bar.dart';
 import 'package:streak/features/focus/widgets/focus_period_sessions_dialog.dart';
+import 'package:streak/features/focus/widgets/focus_pill.dart';
 import 'package:streak/features/focus/widgets/focus_range_bars.dart';
 import 'package:streak/features/focus/widgets/focus_setup_dialog.dart';
 import 'package:streak/features/focus/widgets/focus_time_of_day_card.dart';
