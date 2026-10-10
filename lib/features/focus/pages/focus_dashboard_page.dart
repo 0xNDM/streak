@@ -22,6 +22,7 @@ import 'package:streak/features/focus/widgets/focus_period_sessions_dialog.dart'
 import 'package:streak/features/focus/widgets/focus_pill.dart';
 import 'package:streak/features/focus/widgets/focus_range_bars.dart';
 import 'package:streak/features/focus/widgets/focus_setup_dialog.dart';
+import 'package:streak/features/focus/widgets/focus_tab_bar.dart';
 import 'package:streak/features/focus/widgets/focus_time_of_day_card.dart';
 import 'package:streak/features/focus/widgets/focus_weekday_averages_card.dart';
 import 'package:streak/features/habits/state/habits_controller.dart';
@@ -324,55 +325,60 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
       weekStart: settings.weekStart,
     );
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          context.l10n.focus,
-          style: const TextStyle(fontWeight: FontWeight.w800),
+    return FocusTabShortcuts(
+      tabCount: 2,
+      index: _currentTab,
+      onSelect: (i) => setState(() => _currentTab = i),
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            context.l10n.focus,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+          centerTitle: false,
+          actions: [
+            UnderlineTabs(
+              tabs: const ['Today', 'Analytics'],
+              index: _currentTab,
+              onChanged: (i) => setState(() => _currentTab = i),
+            ),
+            const SizedBox(width: 12),
+          ],
         ),
-        centerTitle: false,
-      ),
-      body: SafeArea(
-        top: false,
-        child: ListView(
-          padding: context.pagePadding(16, 8, 16, 96),
-          children: [
-            // 1. Header above tabs (matches see_this.png: locked-in, active days, day streak)
-            const FocusDashboardHeader(),
-            const SizedBox(height: 12),
+        body: SafeArea(
+          top: false,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 900),
+              child: ListView(
+                padding: context.pagePadding(16, 12, 16, 96),
+                children: [
+                  // 1. Lifetime metrics strip
+                  const FocusDashboardHeader(),
+                  const SizedBox(height: 12),
 
-            // 2. Tab Switcher (Today vs Analytics)
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 380),
-                child: Segmented(
-                  options: const ['Today', 'Analytics'],
-                  index: _currentTab,
-                  onChanged: (i) => setState(() => _currentTab = i),
-                ),
+                  // 2. Tab Body (Today vs Analytics)
+                  if (_currentTab == 0)
+                    _buildTodayTab(
+                      context: context,
+                      focus: focus,
+                      habits: habits,
+                      today: today,
+                      todaySeconds: todaySeconds,
+                      dailyGoalMinutes: currentDailyGoal,
+                    )
+                  else
+                    _buildAnalyticsTab(
+                      context: context,
+                      focus: focus,
+                      stats: stats,
+                      currentWeeklyHours: currentWeeklyHours,
+                      settings: settings,
+                    ),
+                ],
               ),
             ),
-            const SizedBox(height: 20),
-
-            // 3. Tab Body
-            if (_currentTab == 0)
-              _buildTodayTab(
-                context: context,
-                focus: focus,
-                habits: habits,
-                today: today,
-                todaySeconds: todaySeconds,
-                dailyGoalMinutes: currentDailyGoal,
-              )
-            else
-              _buildAnalyticsTab(
-                context: context,
-                focus: focus,
-                stats: stats,
-                currentWeeklyHours: currentWeeklyHours,
-                settings: settings,
-              ),
-          ],
+          ),
         ),
       ),
     );
@@ -386,9 +392,6 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
     required int todaySeconds,
     required int dailyGoalMinutes,
   }) {
-    final scheme = context.colors;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     final dailyGoalSec = dailyGoalMinutes * 60;
     final dailyRatio =
         dailyGoalSec > 0 ? (todaySeconds / dailyGoalSec).clamp(0.0, 1.0) : 0.0;
@@ -400,268 +403,339 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
         .toList()
       ..sort((a, b) => b.startedAt.compareTo(a.startedAt));
 
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 540),
-        child: Column(
+    final heroCard = _buildHeroCard(
+      focus: focus,
+      todaySeconds: todaySeconds,
+      dailyGoalMinutes: dailyGoalMinutes,
+      dailyRatio: dailyRatio,
+      dailyPercent: dailyPercent,
+      dailyHit: dailyHit,
+    );
+
+    final sessionsColumn = _buildSessionsColumn(
+      focus: focus,
+      habits: habits,
+      today: today,
+      todaySessions: todaySessions,
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = constraints.maxWidth >= 760;
+        return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Large Today Focus Time Headline Card
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-              decoration: BoxDecoration(
-                color: scheme.surface,
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(
-                  color: scheme.outlineVariant.withValues(alpha: 0.25),
-                ),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    "TODAY'S FOCUS TIME",
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.2,
-                      color: context.tokens.muted,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    _formatTodayTime(todaySeconds),
-                    style: TextStyle(
-                      fontSize: 48,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -1.2,
-                      color: isDark ? Colors.white : _lockInDarkGreen,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-
-                  // Proportional Start Session Button (dark green, un-stretched)
-                  SizedBox(
-                    width: 220,
-                    height: 48,
-                    child: FilledButton.icon(
-                      onPressed: () => _startFocus(context, focus),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: _lockInDarkGreen,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        elevation: 0,
-                      ),
-                      icon: Icon(
-                        focus.isActive ? LucideIcons.flame : LucideIcons.play,
-                        size: 18,
-                        color: Colors.white,
-                      ),
-                      label: Text(
-                        focus.isActive ? 'Active Session' : 'Start Session',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 15,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                  if (focus.isActive) ...[
-                    const SizedBox(height: 12),
-                    InkWell(
-                      onTap: () => openFocus(context),
-                      borderRadius: BorderRadius.circular(12),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(LucideIcons.timer,
-                                size: 14, color: _lockInBright),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Session running • Tap to view timer',
-                              style: TextStyle(
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w700,
-                                color:
-                                    isDark ? _lockInBright : _lockInDarkGreen,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Daily Goal Progress Bar Card with Option to Edit
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: scheme.surface,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: scheme.outlineVariant.withValues(alpha: 0.25),
-                ),
-              ),
-              child: Column(
+            if (wide)
+              Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          const Text(
-                            'Daily Goal',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          if (dailyHit)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 7, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: _lockInBright.withValues(alpha: 0.18),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Text(
-                                'HIT',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w900,
-                                  color: _lockInBright,
-                                ),
-                              ),
-                            ),
-                        ],
+                  Expanded(child: heroCard),
+                  const SizedBox(width: 16),
+                  Expanded(child: sessionsColumn),
+                ],
+              )
+            else ...[
+              heroCard,
+              const SizedBox(height: 16),
+              sessionsColumn,
+            ],
+            const SizedBox(height: 16),
+            WeeklyContinuousTimeline(
+              sessions: focus.sessions,
+              accent: _lockInBright,
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildHeroCard({
+    required FocusController focus,
+    required int todaySeconds,
+    required int dailyGoalMinutes,
+    required double dailyRatio,
+    required int dailyPercent,
+    required bool dailyHit,
+  }) {
+    final scheme = context.colors;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final goalLabel = dailyGoalMinutes >= 60
+        ? '${(dailyGoalMinutes / 60).toStringAsFixed(dailyGoalMinutes % 60 == 0 ? 0 : 1)}h'
+        : '${dailyGoalMinutes}m';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: scheme.outlineVariant.withValues(alpha: 0.25),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "TODAY'S FOCUS TIME",
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.2,
+                  color: context.tokens.muted,
+                ),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (dailyHit) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 7, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: _lockInBright.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      IconButton(
-                        icon: const Icon(LucideIcons.pencil, size: 14),
-                        visualDensity: VisualDensity.compact,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(
-                            minWidth: 28, minHeight: 28),
-                        color: context.tokens.muted,
-                        onPressed: () => _showEditDailyTargetDialog(
-                          context,
-                          focus,
-                          dailyGoalMinutes,
-                        ),
-                        tooltip: 'Set daily goal',
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '${formatHoursShort(todaySeconds)} / ${dailyGoalMinutes >= 60 ? '${(dailyGoalMinutes / 60).toStringAsFixed(dailyGoalMinutes % 60 == 0 ? 0 : 1)}h' : '${dailyGoalMinutes}m'}',
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      Text(
-                        '$dailyPercent%',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
+                      child: const Text(
+                        'HIT',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
                           color: _lockInBright,
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
-                    child: LinearProgressIndicator(
-                      value: dailyRatio,
-                      minHeight: 8,
-                      backgroundColor: scheme.surfaceContainerHighest,
-                      valueColor:
-                          const AlwaysStoppedAnimation<Color>(_lockInBright),
                     ),
+                    const SizedBox(width: 8),
+                  ],
+                  Text(
+                    '$dailyPercent%',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: _lockInBright,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(LucideIcons.pencil, size: 14),
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints:
+                        const BoxConstraints(minWidth: 28, minHeight: 28),
+                    color: context.tokens.muted,
+                    onPressed: () => _showEditDailyTargetDialog(
+                      context,
+                      focus,
+                      dailyGoalMinutes,
+                    ),
+                    tooltip: 'Set daily goal',
                   ),
                 ],
               ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Center(
+            child: Text(
+              _formatTodayTime(todaySeconds),
+              style: TextStyle(
+                fontSize: 48,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -1.2,
+                color: isDark ? Colors.white : _lockInDarkGreen,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
             ),
-            const SizedBox(height: 20),
-
-            // Session History for Today
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  "Today's Sessions",
+          ),
+          const SizedBox(height: 18),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '${formatHoursShort(todaySeconds)} / $goalLabel',
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              if (dailyHit)
+                Text(
+                  'Goal reached',
                   style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: context.tokens.success,
                   ),
                 ),
-                TextButton.icon(
-                  onPressed: () => showFocusHistoryDialog(context),
-                  icon: const Icon(LucideIcons.history, size: 14),
-                  label: const Text('All History',
-                      style: TextStyle(fontSize: 12)),
-                ),
-              ],
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: dailyRatio,
+              minHeight: 8,
+              backgroundColor: scheme.surfaceContainerHighest,
+              valueColor: const AlwaysStoppedAnimation<Color>(_lockInBright),
             ),
-            const SizedBox(height: 10),
-            if (todaySessions.isEmpty)
-              Container(
-                width: double.infinity,
-                padding:
-                    const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
-                decoration: BoxDecoration(
-                  color: scheme.surface.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                    color: scheme.outlineVariant.withValues(alpha: 0.2),
-                  ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 48,
+            child: FilledButton.icon(
+              onPressed: () => _startFocus(context, focus),
+              style: FilledButton.styleFrom(
+                backgroundColor: _lockInDarkGreen,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                child: Column(
+                elevation: 0,
+              ),
+              icon: Icon(
+                focus.isActive ? LucideIcons.flame : LucideIcons.play,
+                size: 18,
+                color: Colors.white,
+              ),
+              label: Text(
+                focus.isActive ? 'Active Session' : 'Start Session',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 15,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+          if (focus.isActive) ...[
+            const SizedBox(height: 12),
+            InkWell(
+              onTap: () => openFocus(context),
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(LucideIcons.clock,
-                        size: 28, color: context.tokens.muted),
-                    const SizedBox(height: 10),
+                    const Icon(LucideIcons.timer,
+                        size: 14, color: _lockInBright),
+                    const SizedBox(width: 6),
                     Text(
-                      'No focus sessions recorded today yet',
+                      'Session running · ${formatDuration(focus.displaySeconds)} • Tap to view',
                       style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: context.tokens.muted,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? _lockInBright : _lockInDarkGreen,
                       ),
                     ),
                   ],
                 ),
-              )
-            else
-              for (final session in todaySessions) ...[
-                FocusSessionCard(
-                  session: session,
-                  habit: session.habitId.isEmpty
-                      ? null
-                      : habits.byId(session.habitId),
-                  onDelete: () => _deleteSession(context, focus, session),
-                ),
-                const SizedBox(height: 8),
-              ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSessionsColumn({
+    required FocusController focus,
+    required HabitsController habits,
+    required DateTime today,
+    required List<FocusSession> todaySessions,
+  }) {
+    final scheme = context.colors;
+    final visible = todaySessions.take(4).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              "Today's Sessions",
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            TextButton.icon(
+              onPressed: () => showFocusHistoryDialog(context),
+              icon: const Icon(LucideIcons.history, size: 14),
+              label: const Text('All History',
+                  style: TextStyle(fontSize: 12)),
+            ),
           ],
         ),
-      ),
+        const SizedBox(height: 10),
+        if (todaySessions.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
+            decoration: BoxDecoration(
+              color: scheme.surface.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: scheme.outlineVariant.withValues(alpha: 0.2),
+              ),
+            ),
+            child: Column(
+              children: [
+                Icon(LucideIcons.clock, size: 28, color: context.tokens.muted),
+                const SizedBox(height: 10),
+                Text(
+                  'No focus sessions recorded today yet',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: context.tokens.muted,
+                  ),
+                ),
+              ],
+            ),
+          )
+        else ...[
+          for (final session in visible) ...[
+            FocusSessionCard(
+              session: session,
+              habit: session.habitId.isEmpty
+                  ? null
+                  : habits.byId(session.habitId),
+              onDelete: () => _deleteSession(context, focus, session),
+            ),
+            const SizedBox(height: 8),
+          ],
+          if (todaySessions.length > visible.length) ...[
+            const SizedBox(height: 4),
+            OutlinedButton.icon(
+              onPressed: () => _openTodaySessionsDialog(focus, today),
+              icon: const Icon(LucideIcons.chevronDown, size: 16),
+              label: Text('Show all ${todaySessions.length} sessions'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ],
+    );
+  }
+
+  void _openTodaySessionsDialog(FocusController focus, DateTime today) {
+    showPeriodSessionsDialog(
+      context: context,
+      title: DateFormat('EEE, MMM d').format(today),
+      start: today,
+      end: today.add(const Duration(days: 1)),
+      filter: (session) => session.startedAt.isSameDay(today),
+      onDelete: (session) => _deleteSession(context, focus, session),
     );
   }
 
@@ -683,10 +757,22 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
         final isWide = constraints.maxWidth >= 760;
 
         // Row 1: Weekly Target card & Executive KPIs
+        final weekAnchor =
+            AppClock.now().startOfWeek(settings.weekStart).atMidnight;
+        final weekEpoch = weekAnchor.epochDay;
+        final weekDailySeconds = List<int>.filled(7, 0);
+        for (final session in focus.sessions) {
+          final index = session.countedOn.atMidnight.epochDay - weekEpoch;
+          if (index >= 0 && index < 7) {
+            weekDailySeconds[index] += session.seconds;
+          }
+        }
         final weeklyTargetCard = WeeklyFocusComparisonCard(
           stats: stats,
           targetHours: currentWeeklyHours,
           accent: _lockInBright,
+          weekDailySeconds: weekDailySeconds,
+          weekStartDay: weekAnchor,
           onEditTarget: () => _showEditWeeklyTargetDialog(
             context,
             focus,
@@ -769,12 +855,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
           ],
         );
 
-        // Row 4: Weekly Timeline & Focused on (by label)
-        final timelineCard = WeeklyContinuousTimeline(
-          sessions: focus.sessions,
-          accent: _lockInBright,
-        );
-
+        // Row 4: Focused on (by label)
         final scheme = context.colors;
         final focusedOnCard = Container(
           padding: const EdgeInsets.all(20),
@@ -785,81 +866,86 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
               color: scheme.outlineVariant.withValues(alpha: 0.3),
             ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              LayoutBuilder(
-                builder: (ctx, c) {
-                  final isCompact = c.maxWidth < 340;
-                  if (isCompact) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Focused on',
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 700),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  LayoutBuilder(
+                    builder: (ctx, c) {
+                      final isCompact = c.maxWidth < 340;
+                      if (isCompact) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Focused on',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Segmented(
+                              options: const ['Week', 'Month', 'All Time'],
+                              index: _labelPeriodIndex,
+                              onChanged: (idx) =>
+                                  setState(() => _labelPeriodIndex = idx),
+                            ),
+                          ],
+                        );
+                      }
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Focused on',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          Segmented(
+                            options: const ['Week', 'Month', 'All Time'],
+                            index: _labelPeriodIndex,
+                            onChanged: (idx) =>
+                                setState(() => _labelPeriodIndex = idx),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  if (labelEntries.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: Center(
+                        child: Text(
+                          'No tag data for this period',
                           style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
+                            fontSize: 13,
+                            color: context.tokens.muted,
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        Segmented(
-                          options: const ['Week', 'Month', 'All Time'],
-                          index: _labelPeriodIndex,
-                          onChanged: (idx) =>
-                              setState(() => _labelPeriodIndex = idx),
-                        ),
+                      ),
+                    )
+                  else
+                    HabitRanking(
+                      entries: [
+                        for (final entry in labelEntries.take(8))
+                          (
+                            name: entry.key,
+                            color: focus.colorForLabel(entry.key),
+                            count: entry.value,
+                          ),
                       ],
-                    );
-                  }
-                  return Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Focused on',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      Segmented(
-                        options: const ['Week', 'Month', 'All Time'],
-                        index: _labelPeriodIndex,
-                        onChanged: (idx) =>
-                            setState(() => _labelPeriodIndex = idx),
-                      ),
-                    ],
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
-              if (labelEntries.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24),
-                  child: Center(
-                    child: Text(
-                      'No tag data for this period',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: context.tokens.muted,
-                      ),
+                      labelWidth: 140,
+                      format: formatHoursShort,
                     ),
-                  ),
-                )
-              else
-                HabitRanking(
-                  entries: [
-                    for (final entry in labelEntries.take(8))
-                      (
-                        name: entry.key,
-                        color: focus.colorForLabel(entry.key),
-                        count: entry.value,
-                      ),
-                  ],
-                  labelWidth: 140,
-                  format: formatHoursShort,
-                ),
-            ],
+                ],
+              ),
+            ),
           ),
         );
 
@@ -868,9 +954,14 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
           title: 'Activity Map',
           icon: LucideIcons.layoutGrid,
           color: _lockInBright,
-          child: FocusActivityMap(
-            sessions: focus.sessions,
-            color: _lockInBright,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 760),
+              child: FocusActivityMap(
+                sessions: focus.sessions,
+                color: _lockInBright,
+              ),
+            ),
           ),
         );
 
@@ -879,7 +970,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
             // Row 1: Weekly Target + KPIs
             if (isWide)
               Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Expanded(child: weeklyTargetCard),
                   const SizedBox(width: 16),
@@ -900,7 +991,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
             // Row 3: Day of week and Time of day side by side
             if (isWide)
               Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Expanded(child: weekdayCard),
                   const SizedBox(width: 16),
@@ -914,21 +1005,8 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
             ],
             const SizedBox(height: 16),
 
-            // Row 4: Weekly Timeline and Focused on side by side
-            if (isWide)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: timelineCard),
-                  const SizedBox(width: 16),
-                  Expanded(child: focusedOnCard),
-                ],
-              )
-            else ...[
-              timelineCard,
-              const SizedBox(height: 16),
-              focusedOnCard,
-            ],
+            // Row 4: Focused on (by label), full width
+            focusedOnCard,
             const SizedBox(height: 16),
 
             // Row 5: Activity heatmap full row

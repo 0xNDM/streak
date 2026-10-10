@@ -11,15 +11,20 @@ import 'package:streak/features/habits/state/habits_controller.dart';
 Future<void> showPeriodSessionsDialog({
   required BuildContext context,
   required String title,
-  required DateTime start,
-  required DateTime end,
+  DateTime? start,
+  DateTime? end,
+  bool Function(FocusSession session)? filter,
+  void Function(FocusSession session)? onDelete,
 }) {
+  assert(start != null || filter != null);
   return showDialog<void>(
     context: context,
     builder: (dialogCtx) => _PeriodSessionsDialog(
       title: title,
       start: start,
       end: end,
+      filter: filter,
+      onDelete: onDelete,
     ),
   );
 }
@@ -27,13 +32,17 @@ Future<void> showPeriodSessionsDialog({
 class _PeriodSessionsDialog extends StatelessWidget {
   const _PeriodSessionsDialog({
     required this.title,
-    required this.start,
-    required this.end,
+    this.start,
+    this.end,
+    this.filter,
+    this.onDelete,
   });
 
   final String title;
-  final DateTime start;
-  final DateTime end;
+  final DateTime? start;
+  final DateTime? end;
+  final bool Function(FocusSession session)? filter;
+  final void Function(FocusSession session)? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -42,8 +51,10 @@ class _PeriodSessionsDialog extends StatelessWidget {
     final habits = context.watch<HabitsController>();
 
     final periodSessions = focus.sessions.where((s) {
+      final predicate = filter;
+      if (predicate != null) return predicate(s);
       final date = s.countedOn;
-      return !date.isBefore(start) && !date.isAfter(end);
+      return !date.isBefore(start!) && !date.isAfter(end!);
     }).toList()
       ..sort((a, b) => b.startedAt.compareTo(a.startedAt));
 
@@ -129,6 +140,9 @@ class _PeriodSessionsDialog extends StatelessWidget {
                       habit: session.habitId.isEmpty
                           ? null
                           : habits.byId(session.habitId),
+                      onDelete: onDelete == null
+                          ? null
+                          : () => onDelete!(session),
                     );
                   },
                 ),

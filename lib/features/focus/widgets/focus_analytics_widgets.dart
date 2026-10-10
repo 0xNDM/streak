@@ -4,16 +4,12 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:streak/app/theme/app_tokens.dart';
 import 'package:streak/core/extensions/date_extensions.dart';
-import 'package:streak/core/i18n/date_labels.dart';
 import 'package:streak/core/i18n/l10n.dart';
-import 'package:streak/core/icons/habit_glyph.dart';
 import 'package:streak/features/focus/data/focus_session.dart';
 import 'package:streak/features/focus/data/focus_stats.dart';
 import 'package:streak/features/focus/state/focus_controller.dart';
 import 'package:streak/features/focus/widgets/focus_dashboard_widgets.dart';
 import 'package:streak/features/habits/state/habits_controller.dart';
-import 'package:streak/features/settings/widgets/settings_rows.dart';
-import 'package:streak/features/statistics/widgets/stat_kit.dart';
 
 class WeeklyFocusComparisonCard extends StatelessWidget {
   const WeeklyFocusComparisonCard({
@@ -22,12 +18,16 @@ class WeeklyFocusComparisonCard extends StatelessWidget {
     required this.targetHours,
     required this.accent,
     this.onEditTarget,
+    this.weekDailySeconds = const [],
+    this.weekStartDay,
   });
 
   final FocusStats stats;
   final int targetHours;
   final Color accent;
   final VoidCallback? onEditTarget;
+  final List<int> weekDailySeconds;
+  final DateTime? weekStartDay;
 
   @override
   Widget build(BuildContext context) {
@@ -163,8 +163,98 @@ class WeeklyFocusComparisonCard extends StatelessWidget {
               ),
             ],
           ),
+          if (weekDailySeconds.length == 7 && weekStartDay != null) ...[
+            const SizedBox(height: 14),
+            _WeekMiniBars(
+              dailySeconds: weekDailySeconds,
+              weekStartDay: weekStartDay!,
+              accent: accent,
+            ),
+          ],
         ],
       ),
+    );
+  }
+}
+
+class _WeekMiniBars extends StatelessWidget {
+  const _WeekMiniBars({
+    required this.dailySeconds,
+    required this.weekStartDay,
+    required this.accent,
+  });
+
+  final List<int> dailySeconds;
+  final DateTime weekStartDay;
+  final Color accent;
+
+  bool isTodayOf(int index) =>
+      weekStartDay.addDays(index).atMidnight.dayKey ==
+      AppClock.now().atMidnight.dayKey;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colors;
+    final maxSeconds = dailySeconds.fold(0, (a, b) => a > b ? a : b);
+    final nowKey = AppClock.now().atMidnight.dayKey;
+    const barMaxHeight = 44.0;
+    const barMinHeight = 4.0;
+
+    Widget bar(int index) {
+      final seconds = dailySeconds[index];
+      final isToday = weekStartDay.addDays(index).atMidnight.dayKey == nowKey;
+      final ratio = maxSeconds == 0 ? 0.0 : seconds / maxSeconds;
+      final height =
+          seconds <= 0 ? barMinHeight : barMinHeight + (barMaxHeight - barMinHeight) * ratio;
+      return Container(
+        height: height,
+        decoration: BoxDecoration(
+          color: seconds <= 0
+              ? scheme.surfaceContainerHighest
+              : isToday
+                  ? accent
+                  : accent.withValues(alpha: 0.45),
+          borderRadius: BorderRadius.circular(4),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          height: barMaxHeight,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              for (var i = 0; i < dailySeconds.length; i++) ...[
+                if (i > 0) const SizedBox(width: 6),
+                Expanded(child: bar(i)),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            for (var i = 0; i < dailySeconds.length; i++) ...[
+              if (i > 0) const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  DateFormat('EEEEE').format(weekStartDay.addDays(i)),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight:
+                        isTodayOf(i) ? FontWeight.w800 : FontWeight.w600,
+                    color: isTodayOf(i) ? accent : context.tokens.muted,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ],
     );
   }
 }
@@ -236,9 +326,9 @@ class FocusKpiGrid extends StatelessWidget {
           children: [
             Expanded(
               child: FocusMetricCard(
-                title: 'Current Streak',
-                value: '${stats.currentStreak} ${context.l10n.days}',
-                icon: LucideIcons.flame,
+                title: 'This Month',
+                value: formatHoursShort(stats.monthSeconds),
+                icon: LucideIcons.calendarRange,
                 accent: const Color(0xFFF97316),
               ),
             ),

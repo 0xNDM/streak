@@ -25,6 +25,7 @@ import 'package:streak/core/widgets/glass.dart';
 import 'package:streak/features/focus/pages/focus_dashboard_page.dart';
 import 'package:streak/features/focus/state/focus_actions.dart';
 import 'package:streak/features/focus/state/focus_controller.dart';
+import 'package:streak/features/focus/widgets/mini_timer_chip.dart';
 import 'package:streak/features/habits/pages/day_timeline_page.dart';
 import 'package:streak/features/habits/pages/home_page.dart';
 import 'package:streak/features/habits/state/habits_controller.dart';
@@ -660,6 +661,7 @@ class _NavRail extends StatelessWidget {
                     onTap: () => onSelect(tab),
                   ),
                 ),
+              MiniTimerChip(compact: compact),
             ],
           ),
         ),

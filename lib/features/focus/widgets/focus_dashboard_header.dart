@@ -45,11 +45,7 @@ class FocusDashboardHeader extends StatelessWidget {
               label: 'locked-in',
             ),
           ),
-          Container(
-            height: 38,
-            width: 1,
-            color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.08),
-          ),
+          const SizedBox(width: 32),
           // 2. Active Days (xx/xx)
           Expanded(
             child: _StatItem(
@@ -57,11 +53,7 @@ class FocusDashboardHeader extends StatelessWidget {
               label: 'active days',
             ),
           ),
-          Container(
-            height: 38,
-            width: 1,
-            color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.08),
-          ),
+          const SizedBox(width: 32),
           // 3. Day Streak (xx 🔥)
           Expanded(
             child: _StatItem(
@@ -97,25 +89,26 @@ class _StatItem extends StatelessWidget {
 
     return Column(
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text(
               value,
               style: TextStyle(
-                fontSize: 26,
+                fontSize: 30,
                 fontWeight: FontWeight.w800,
-                letterSpacing: -0.6,
+                letterSpacing: -0.8,
                 color: numberColor,
               ),
             ),
             if (icon != null) ...[
-              const SizedBox(width: 5),
+              const SizedBox(width: 6),
               Icon(
                 icon,
-                size: 20,
+                size: 22,
                 color: iconColor,
               ),
             ],
