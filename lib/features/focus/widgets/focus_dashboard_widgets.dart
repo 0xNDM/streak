@@ -217,43 +217,55 @@ class FocusActivityMap extends StatelessWidget {
       (max, val) => val > max ? val : max,
     );
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        YearHeatmap(
-          year: AppClock.today().year,
-          color: color,
-          dailyCounts: dailyMinutes,
-          maxCount: maxMinutes,
-        ),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
+    return LayoutBuilder(
+      builder: (context, box) {
+        // Compute a cell size that fills the available width exactly so the
+        // heatmap never needs a horizontal scrollbar.
+        const cols = 53;
+        const gap = 3.0; // matches _gap in year_heatmap.dart
+        final cell =
+            ((box.maxWidth - (cols - 1) * gap) / cols).clamp(8.0, 14.0);
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Less',
-              style: TextStyle(fontSize: 11, color: context.tokens.muted),
+            YearHeatmap(
+              year: AppClock.today().year,
+              color: color,
+              dailyCounts: dailyMinutes,
+              maxCount: maxMinutes,
+              cellSize: cell,
             ),
-            const SizedBox(width: 4),
-            for (final opacity in [0.2, 0.4, 0.7, 1.0]) ...[
-              Container(
-                width: 10,
-                height: 10,
-                margin: const EdgeInsets.symmetric(horizontal: 1.5),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: opacity),
-                  borderRadius: BorderRadius.circular(2),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text(
+                  'Less',
+                  style: TextStyle(fontSize: 11, color: context.tokens.muted),
                 ),
-              ),
-            ],
-            const SizedBox(width: 4),
-            Text(
-              'More',
-              style: TextStyle(fontSize: 11, color: context.tokens.muted),
+                const SizedBox(width: 4),
+                for (final opacity in [0.2, 0.4, 0.7, 1.0]) ...[
+                  Container(
+                    width: 10,
+                    height: 10,
+                    margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: opacity),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ],
+                const SizedBox(width: 4),
+                Text(
+                  'More',
+                  style: TextStyle(fontSize: 11, color: context.tokens.muted),
+                ),
+              ],
             ),
           ],
-        ),
-      ],
+        );
+      },
     );
   }
 }
@@ -281,11 +293,8 @@ class FocusMetricCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: scheme.outlineVariant.withValues(alpha: 0.2),
-        ),
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

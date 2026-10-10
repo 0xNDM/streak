@@ -29,7 +29,6 @@ import 'package:streak/features/habits/state/habits_controller.dart';
 import 'package:streak/features/settings/state/settings_controller.dart';
 import 'package:streak/features/settings/widgets/settings_rows.dart';
 import 'package:streak/features/statistics/widgets/stat_charts.dart';
-import 'package:streak/features/statistics/widgets/stat_kit.dart';
 
 const _lockInDarkGreen = Color(0xFF065F46);
 const _lockInBright = Color(0xFF10B981);
@@ -339,7 +338,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
                 style: const TextStyle(fontWeight: FontWeight.w800),
               ),
               const SizedBox(width: 24),
-              UnderlineTabs(
+              PillTabs(
                 tabs: const ['Today', 'Analytics'],
                 index: _currentTab,
                 onChanged: (i) => setState(() => _currentTab = i),
@@ -435,8 +434,8 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(flex: 5, child: heroCard),
-                  const SizedBox(width: 24),
-                  Expanded(flex: 6, child: sessionsColumn),
+                  const SizedBox(width: 28),
+                  Expanded(flex: 7, child: sessionsColumn),
                 ],
               )
             else ...[
@@ -444,7 +443,12 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
               const SizedBox(height: 20),
               sessionsColumn,
             ],
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
+            Divider(
+              height: 1,
+              color: context.colors.outlineVariant.withValues(alpha: 0.15),
+            ),
+            const SizedBox(height: 20),
             WeeklyContinuousTimeline(
               sessions: focus.sessions,
               accent: _lockInBright,
@@ -470,8 +474,12 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
         ? '${(dailyGoalMinutes / 60).toStringAsFixed(dailyGoalMinutes % 60 == 0 ? 0 : 1)}h'
         : '${dailyGoalMinutes}m';
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 18),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -535,12 +543,12 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 14),
           Center(
             child: Text(
               _formatTodayTime(todaySeconds),
               style: TextStyle(
-                fontSize: 48,
+                fontSize: 56,
                 fontWeight: FontWeight.w900,
                 letterSpacing: -1.2,
                 color: isDark ? Colors.white : _lockInDarkGreen,
@@ -548,7 +556,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
               ),
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -580,7 +588,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
               valueColor: const AlwaysStoppedAnimation<Color>(_lockInBright),
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 20),
           SizedBox(
             height: 48,
             child: FilledButton.icon(
@@ -799,24 +807,13 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWide = constraints.maxWidth >= 760;
+        final scheme = context.colors;
 
-        // Row 1: Weekly Target card & Executive KPIs
-        final weekAnchor =
-            AppClock.now().startOfWeek(settings.weekStart).atMidnight;
-        final weekEpoch = weekAnchor.epochDay;
-        final weekDailySeconds = List<int>.filled(7, 0);
-        for (final session in focus.sessions) {
-          final index = session.countedOn.atMidnight.epochDay - weekEpoch;
-          if (index >= 0 && index < 7) {
-            weekDailySeconds[index] += session.seconds;
-          }
-        }
+        // Row 1: Weekly Target card & 2×2 KPI grid
         final weeklyTargetCard = WeeklyFocusComparisonCard(
           stats: stats,
           targetHours: currentWeeklyHours,
           accent: _lockInBright,
-          weekDailySeconds: weekDailySeconds,
-          weekStartDay: weekAnchor,
           onEditTarget: () => _showEditWeeklyTargetDialog(
             context,
             focus,
@@ -830,30 +827,38 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
           accent: _lockInBright,
         );
 
-        // Row 2: Focus Time Range Chart
-        final focusChartCard = StatCard(
-          title: context.l10n.focus_total,
-          icon: LucideIcons.chartColumn,
-          color: _lockInBright,
+        // Row 2: Focus Time Range Chart — flat container (no StatCard wrapper)
+        final focusChartCard = Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: scheme.surfaceContainerHighest.withValues(alpha: 0.45),
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Segmented(
-                  options: [
-                    context.l10n.week,
-                    context.l10n.month,
-                    context.l10n.year,
-                  ],
-                  index: FocusRange.values.indexOf(_range),
-                  onChanged: (index) => setState(() {
-                    _range = FocusRange.values[index];
-                    _offset = 0;
-                  }),
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Focus Time',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                  ),
+                  Segmented(
+                    options: [
+                      context.l10n.week,
+                      context.l10n.month,
+                      context.l10n.year,
+                    ],
+                    index: FocusRange.values.indexOf(_range),
+                    onChanged: (index) => setState(() {
+                      _range = FocusRange.values[index];
+                      _offset = 0;
+                    }),
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
               FocusPeriodBar(
                 range: _range,
                 offset: _offset,
@@ -871,45 +876,34 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
                   title: title,
                   start: start,
                   end: end,
-                  onDelete: (session) => _deleteSession(context, focus, session),
+                  onDelete: (session) =>
+                      _deleteSession(context, focus, session),
                 ),
               ),
             ],
           ),
         );
 
-        // Row 3: Day of week and Time of day side by side
+        // Row 3: Day of week and Time of day — equal height via IntrinsicHeight
         final weekdayCard = FocusWeekdayAveragesCard(
           focus: focus,
           weekStart: settings.weekStart,
           accent: _lockInBright,
         );
 
-        final timeOfDayCard = Column(
-          children: [
-            FocusTimeOfDayCard(
-              focus: focus,
-              weekStart: settings.weekStart,
-              accent: _lockInBright,
-            ),
-            const SizedBox(height: 16),
-            ProductiveTimeCard(
-              stats: stats,
-              accent: _lockInBright,
-            ),
-          ],
+        // ProductiveTimeCard removed — Time of Day breakdown is sufficient
+        final timeOfDayCard = FocusTimeOfDayCard(
+          focus: focus,
+          weekStart: settings.weekStart,
+          accent: _lockInBright,
         );
 
         // Row 4: Focused on (by label)
-        final scheme = context.colors;
         final focusedOnCard = Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: scheme.surface,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: scheme.outlineVariant.withValues(alpha: 0.3),
-            ),
+            color: scheme.surfaceContainerHighest.withValues(alpha: 0.45),
+            borderRadius: BorderRadius.circular(16),
           ),
           child: Center(
             child: ConstrainedBox(
@@ -936,7 +930,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
                               options: const ['Week', 'Month', 'All Time'],
                               index: _labelPeriodIndex,
                               onChanged: (idx) =>
-                                   setState(() => _labelPeriodIndex = idx),
+                                  setState(() => _labelPeriodIndex = idx),
                             ),
                           ],
                         );
@@ -994,25 +988,32 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
           ),
         );
 
-        // Row 5: Activity heatmap full row
-        final heatmapCard = StatCard(
-          title: 'Activity Map',
-          icon: LucideIcons.layoutGrid,
-          color: _lockInBright,
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 760),
-              child: FocusActivityMap(
+        // Row 5: Activity heatmap — flat container, FocusActivityMap fills width
+        final heatmapCard = Container(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+          decoration: BoxDecoration(
+            color: scheme.surfaceContainerHighest.withValues(alpha: 0.45),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Activity Map',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 16),
+              FocusActivityMap(
                 sessions: focus.sessions,
                 color: _lockInBright,
               ),
-            ),
+            ],
           ),
         );
 
         return Column(
           children: [
-            // Row 1: Weekly Target + KPIs
+            // Row 1: Weekly Target + KPIs (IntrinsicHeight so both match)
             if (isWide)
               IntrinsicHeight(
                 child: Row(
@@ -1031,19 +1032,21 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
             ],
             const SizedBox(height: 16),
 
-            // Row 2: Focus time charts
+            // Row 2: Focus time chart (flat, no Card/scrollbar artifact)
             focusChartCard,
             const SizedBox(height: 16),
 
-            // Row 3: Day of week and Time of day side by side
+            // Row 3: Day of week and Time of day (IntrinsicHeight for equal height)
             if (isWide)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: weekdayCard),
-                  const SizedBox(width: 16),
-                  Expanded(child: timeOfDayCard),
-                ],
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(child: weekdayCard),
+                    const SizedBox(width: 16),
+                    Expanded(child: timeOfDayCard),
+                  ],
+                ),
               )
             else ...[
               weekdayCard,
@@ -1056,7 +1059,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
             focusedOnCard,
             const SizedBox(height: 16),
 
-            // Row 5: Activity heatmap full row
+            // Row 5: Activity heatmap (fills full card width, no horizontal scroll)
             heatmapCard,
           ],
         );

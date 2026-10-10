@@ -214,3 +214,73 @@ class _TabButton extends StatelessWidget {
     );
   }
 }
+
+/// Segmented pill-track tab switcher. A frosted track with an animated
+/// white pill that highlights the active tab. Best for 2–4 exclusive views.
+class PillTabs extends StatelessWidget {
+  const PillTabs({
+    super.key,
+    required this.tabs,
+    required this.index,
+    required this.onChanged,
+  });
+
+  final List<String> tabs;
+  final int index;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colors;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: isDark ? 0.6 : 0.55),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var i = 0; i < tabs.length; i++)
+            Semantics(
+              button: true,
+              selected: i == index,
+              label: tabs[i],
+              excludeSemantics: true,
+              child: GestureDetector(
+                onTap: () => onChanged(i),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOutCubic,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: i == index ? scheme.surface : Colors.transparent,
+                    borderRadius: BorderRadius.circular(9),
+                    boxShadow: i == index
+                        ? [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Text(
+                    tabs[i],
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: i == index ? FontWeight.w700 : FontWeight.w500,
+                      color: i == index ? scheme.onSurface : context.tokens.muted,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}

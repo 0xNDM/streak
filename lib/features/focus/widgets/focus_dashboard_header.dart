@@ -25,15 +25,8 @@ class FocusDashboardHeader extends StatelessWidget {
       margin: margin ?? const EdgeInsets.symmetric(vertical: 8),
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
       decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF131316)
-            : scheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.08)
-              : scheme.outlineVariant.withValues(alpha: 0.3),
-        ),
+        color: scheme.surfaceContainerHighest.withValues(alpha: isDark ? 0.6 : 0.45),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [

@@ -18,6 +18,7 @@ class YearHeatmap extends StatefulWidget {
     this.maxCount = 1,
     this.habit,
     this.express = false,
+    this.cellSize,
   });
 
   final int year;
@@ -26,6 +27,7 @@ class YearHeatmap extends StatefulWidget {
   final Color color;
   final Habit? habit;
   final bool express;
+  final double? cellSize;
 
   @override
   State<YearHeatmap> createState() => _YearHeatmapState();
@@ -34,7 +36,7 @@ class YearHeatmap extends StatefulWidget {
 class _YearHeatmapState extends State<YearHeatmap> {
   final _scroll = ScrollController();
 
-  double get _cell => widget.express ? 15 : 12;
+  double get _cell => widget.cellSize ?? (widget.express ? 15 : 12);
 
   double get _step => _cell + _gap;
 

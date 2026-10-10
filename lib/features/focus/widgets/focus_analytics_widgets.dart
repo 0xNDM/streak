@@ -21,16 +21,12 @@ class WeeklyFocusComparisonCard extends StatelessWidget {
     required this.targetHours,
     required this.accent,
     this.onEditTarget,
-    this.weekDailySeconds = const [],
-    this.weekStartDay,
   });
 
   final FocusStats stats;
   final int targetHours;
   final Color accent;
   final VoidCallback? onEditTarget;
-  final List<int> weekDailySeconds;
-  final DateTime? weekStartDay;
 
   @override
   Widget build(BuildContext context) {
@@ -46,11 +42,8 @@ class WeeklyFocusComparisonCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: scheme.outlineVariant.withValues(alpha: 0.3),
-        ),
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -104,7 +97,8 @@ class WeeklyFocusComparisonCard extends StatelessWidget {
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: (isUp ? context.tokens.success : context.tokens.warning)
                       .withValues(alpha: 0.12),
@@ -116,7 +110,8 @@ class WeeklyFocusComparisonCard extends StatelessWidget {
                     Icon(
                       isUp ? LucideIcons.trendingUp : LucideIcons.trendingDown,
                       size: 15,
-                      color: isUp ? context.tokens.success : context.tokens.warning,
+                      color:
+                          isUp ? context.tokens.success : context.tokens.warning,
                     ),
                     const SizedBox(width: 5),
                     Text(
@@ -124,7 +119,9 @@ class WeeklyFocusComparisonCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w700,
-                        color: isUp ? context.tokens.success : context.tokens.warning,
+                        color: isUp
+                            ? context.tokens.success
+                            : context.tokens.warning,
                       ),
                     ),
                   ],
@@ -161,107 +158,22 @@ class WeeklyFocusComparisonCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  color: isReached ? context.tokens.success : context.tokens.muted,
+                  color: isReached
+                      ? context.tokens.success
+                      : context.tokens.muted,
                 ),
               ),
             ],
           ),
-          if (weekDailySeconds.length == 7 && weekStartDay != null) ...[
-            const SizedBox(height: 14),
-            _WeekMiniBars(
-              dailySeconds: weekDailySeconds,
-              weekStartDay: weekStartDay!,
-              accent: accent,
-            ),
-          ],
         ],
       ),
     );
   }
 }
 
-class _WeekMiniBars extends StatelessWidget {
-  const _WeekMiniBars({
-    required this.dailySeconds,
-    required this.weekStartDay,
-    required this.accent,
-  });
-
-  final List<int> dailySeconds;
-  final DateTime weekStartDay;
-  final Color accent;
-
-  bool isTodayOf(int index) =>
-      weekStartDay.addDays(index).atMidnight.dayKey ==
-      AppClock.now().atMidnight.dayKey;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colors;
-    final maxSeconds = dailySeconds.fold(0, (a, b) => a > b ? a : b);
-    final nowKey = AppClock.now().atMidnight.dayKey;
-    const barMaxHeight = 44.0;
-    const barMinHeight = 4.0;
-
-    Widget bar(int index) {
-      final seconds = dailySeconds[index];
-      final isToday = weekStartDay.addDays(index).atMidnight.dayKey == nowKey;
-      final ratio = maxSeconds == 0 ? 0.0 : seconds / maxSeconds;
-      final height =
-          seconds <= 0 ? barMinHeight : barMinHeight + (barMaxHeight - barMinHeight) * ratio;
-      return Container(
-        height: height,
-        decoration: BoxDecoration(
-          color: seconds <= 0
-              ? scheme.surfaceContainerHighest
-              : isToday
-                  ? accent
-                  : accent.withValues(alpha: 0.45),
-          borderRadius: BorderRadius.circular(4),
-        ),
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SizedBox(
-          height: barMaxHeight,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              for (var i = 0; i < dailySeconds.length; i++) ...[
-                if (i > 0) const SizedBox(width: 6),
-                Expanded(child: bar(i)),
-              ],
-            ],
-          ),
-        ),
-        const SizedBox(height: 6),
-        Row(
-          children: [
-            for (var i = 0; i < dailySeconds.length; i++) ...[
-              if (i > 0) const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  DateFormat('EEEEE').format(weekStartDay.addDays(i)),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight:
-                        isTodayOf(i) ? FontWeight.w800 : FontWeight.w600,
-                    color: isTodayOf(i) ? accent : context.tokens.muted,
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ],
-    );
-  }
-}
-
+/// 2×2 KPI grid: Longest Session, Best Focus Day, This Month, Longest Streak.
+/// Today and Week tiles removed — they are already visible in the header strip
+/// and the Weekly Target card respectively.
 class FocusKpiGrid extends StatelessWidget {
   const FocusKpiGrid({
     super.key,
@@ -285,28 +197,6 @@ class FocusKpiGrid extends StatelessWidget {
           children: [
             Expanded(
               child: FocusMetricCard(
-                title: context.l10n.today,
-                value: formatHoursShort(stats.todaySeconds),
-                icon: LucideIcons.sun,
-                accent: accent,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: FocusMetricCard(
-                title: context.l10n.week,
-                value: formatHoursShort(stats.weekSeconds),
-                icon: LucideIcons.calendarDays,
-                accent: context.tokens.info,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: FocusMetricCard(
                 title: 'Longest Session',
                 value: formatHoursShort(stats.longestSessionSeconds),
                 icon: LucideIcons.timer,
@@ -317,7 +207,8 @@ class FocusKpiGrid extends StatelessWidget {
             Expanded(
               child: FocusMetricCard(
                 title: 'Best Focus Day',
-                value: '${formatHoursShort(stats.longestDaySeconds)}$bestDayLabel',
+                value:
+                    '${formatHoursShort(stats.longestDaySeconds)}$bestDayLabel',
                 icon: LucideIcons.trophy,
                 accent: context.tokens.success,
               ),
@@ -364,7 +255,8 @@ class WeeklyContinuousTimeline extends StatefulWidget {
   final int weekStart;
 
   @override
-  State<WeeklyContinuousTimeline> createState() => _WeeklyContinuousTimelineState();
+  State<WeeklyContinuousTimeline> createState() =>
+      _WeeklyContinuousTimelineState();
 }
 
 class _WeeklyContinuousTimelineState extends State<WeeklyContinuousTimeline> {
@@ -373,7 +265,8 @@ class _WeeklyContinuousTimelineState extends State<WeeklyContinuousTimeline> {
   DateTime get _now => AppClock.now();
 
   DateTime _computeWeekStart(int weekStart) {
-    final today = _now.subtract(Duration(hours: AppClock.cutoffHour)).atMidnight;
+    final today =
+        _now.subtract(Duration(hours: AppClock.cutoffHour)).atMidnight;
     final anchor = today.startOfWeek(weekStart);
     return anchor.add(Duration(days: _weekOffset * 7));
   }
@@ -389,7 +282,8 @@ class _WeeklyContinuousTimelineState extends State<WeeklyContinuousTimeline> {
     final start = _computeWeekStart(activeWeekStart);
     final end = start.add(const Duration(days: 6));
     final formatRange = DateFormat('MMM d');
-    final rangeText = '${formatRange.format(start)} – ${formatRange.format(end)}, ${start.year}';
+    final rangeText =
+        '${formatRange.format(start)} – ${formatRange.format(end)}, ${start.year}';
 
     // Group sessions by day of week
     final days = List.generate(7, (i) => start.add(Duration(days: i)));
@@ -411,11 +305,8 @@ class _WeeklyContinuousTimelineState extends State<WeeklyContinuousTimeline> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: scheme.outlineVariant.withValues(alpha: 0.3),
-        ),
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -444,7 +335,8 @@ class _WeeklyContinuousTimelineState extends State<WeeklyContinuousTimeline> {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: widget.accent.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(10),
@@ -466,35 +358,46 @@ class _WeeklyContinuousTimelineState extends State<WeeklyContinuousTimeline> {
                   ),
                   if (_weekOffset != 0)
                     TextButton(
-                      style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+                      style: TextButton.styleFrom(
+                          visualDensity: VisualDensity.compact),
                       onPressed: () => setState(() => _weekOffset = 0),
-                      child: const Text('Today', style: TextStyle(fontSize: 12)),
+                      child: const Text('Today',
+                          style: TextStyle(fontSize: 12)),
                     ),
                   IconButton(
                     icon: const Icon(LucideIcons.chevronRight, size: 18),
                     visualDensity: VisualDensity.compact,
-                    onPressed: _weekOffset >= 0 ? null : () => setState(() => _weekOffset++),
+                    onPressed: _weekOffset >= 0
+                        ? null
+                        : () => setState(() => _weekOffset++),
                   ),
                 ],
               ),
             ],
           ),
           const SizedBox(height: 18),
-          // Time ruler: extends cleanly across the full track without right side spacer
+          // Time ruler
           Row(
             children: [
-              const SizedBox(width: 58), // Width of day label
+              const SizedBox(width: 58),
               Expanded(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: const [
-                    Text('00:00', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                    Text('04:00', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                    Text('08:00', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                    Text('12:00', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                    Text('16:00', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                    Text('20:00', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                    Text('24:00', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                    Text('00:00',
+                        style: TextStyle(fontSize: 10, color: Colors.grey)),
+                    Text('04:00',
+                        style: TextStyle(fontSize: 10, color: Colors.grey)),
+                    Text('08:00',
+                        style: TextStyle(fontSize: 10, color: Colors.grey)),
+                    Text('12:00',
+                        style: TextStyle(fontSize: 10, color: Colors.grey)),
+                    Text('16:00',
+                        style: TextStyle(fontSize: 10, color: Colors.grey)),
+                    Text('20:00',
+                        style: TextStyle(fontSize: 10, color: Colors.grey)),
+                    Text('24:00',
+                        style: TextStyle(fontSize: 10, color: Colors.grey)),
                   ],
                 ),
               ),
@@ -560,7 +463,8 @@ class _DailyTrackRow extends StatelessWidget {
               return Container(
                 height: 24,
                 decoration: BoxDecoration(
-                  color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
+                  color:
+                      scheme.surfaceContainerHighest.withValues(alpha: 0.35),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Stack(
@@ -663,11 +567,8 @@ class ProductiveTimeCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: scheme.outlineVariant.withValues(alpha: 0.3),
-        ),
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [
@@ -706,7 +607,8 @@ class ProductiveTimeCard extends StatelessWidget {
           ),
           if (window.percentage > 0)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
                 color: scheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(10),
@@ -724,4 +626,3 @@ class ProductiveTimeCard extends StatelessWidget {
     );
   }
 }
-
