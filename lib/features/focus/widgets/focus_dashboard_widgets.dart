@@ -50,12 +50,6 @@ class FocusSessionCard extends StatelessWidget {
 
     final currentHabit = habit;
     final habitColor = currentHabit?.color ?? scheme.primary;
-    final title = currentHabit != null
-        ? currentHabit.name
-        : (sessionTags.isNotEmpty ? sessionTags.first : context.l10n.focus);
-    final displayTags = currentHabit != null
-        ? sessionTags
-        : (sessionTags.length > 1 ? sessionTags.sublist(1) : const <String>[]);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
@@ -89,52 +83,25 @@ class FocusSessionCard extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Flexible(
-                      child: Text(
-                        '$durationStr  \u2022  $title',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w700,
-                          color: scheme.onSurface,
-                        ),
+                    Text(
+                      durationStr,
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w700,
+                        color: scheme.onSurface,
                       ),
                     ),
-                    if (displayTags.isNotEmpty) ...[
+                    if (sessionTags.isNotEmpty || currentHabit != null) ...[
                       const SizedBox(width: 8),
                       Expanded(
                         child: Wrap(
                           spacing: 4,
                           runSpacing: 4,
                           children: [
-                            for (final tag in displayTags)
-                              Builder(
-                                builder: (context) {
-                                  final tagColor = focus.colorForLabel(tag);
-                                  return Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 6,
-                                      vertical: 1.5,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: tagColor.withValues(alpha: 0.12),
-                                      borderRadius: BorderRadius.circular(6),
-                                      border: Border.all(
-                                        color: tagColor.withValues(alpha: 0.3),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      tag,
-                                      style: TextStyle(
-                                        fontSize: 10.5,
-                                        fontWeight: FontWeight.w700,
-                                        color: tagColor,
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
+                            if (currentHabit != null)
+                              _buildPill(currentHabit.name, habitColor),
+                            for (final tag in sessionTags)
+                              _buildPill(tag, focus.colorForLabel(tag)),
                           ],
                         ),
                       ),
@@ -180,6 +147,27 @@ class FocusSessionCard extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildPill(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: color.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 10.5,
+          fontWeight: FontWeight.w700,
+          color: color,
+        ),
       ),
     );
   }

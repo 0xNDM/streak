@@ -435,7 +435,8 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
                 children: [
                   Expanded(flex: 5, child: heroCard),
                   const SizedBox(width: 48),
-                  Expanded(flex: 6, child: sessionsColumn),
+                  Expanded(flex: 4, child: sessionsColumn),
+                  Expanded(flex: 2, child: const SizedBox()),
                 ],
               )
             else ...[

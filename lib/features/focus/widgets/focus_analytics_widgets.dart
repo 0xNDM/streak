@@ -628,7 +628,7 @@ class ProductiveTimeCard extends StatelessWidget {
 }
 
 
-/// Renders a proportional tag cloud for focus labels based on their total duration.
+/// Renders a proportional bubble cloud for focus labels based on their total duration.
 class FocusTagCloud extends StatelessWidget {
   const FocusTagCloud({
     super.key,
@@ -659,11 +659,11 @@ class FocusTagCloud extends StatelessWidget {
     final maxCount = entries.fold<int>(0, (max, e) => e.value > max ? e.value : max);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 24),
       child: Center(
         child: Wrap(
-          spacing: 12,
-          runSpacing: 12,
+          spacing: 16,
+          runSpacing: 16,
           alignment: WrapAlignment.center,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
@@ -671,33 +671,41 @@ class FocusTagCloud extends StatelessWidget {
               Builder(
                 builder: (context) {
                   final share = maxCount == 0 ? 0.0 : (entry.value / maxCount).clamp(0.0, 1.0);
-                  // Scale from 1.0 (min) to 1.8 (max)
-                  final scale = 1.0 + (share * 0.8);
+                  // Scale from 1.0 (min) to 2.0 (max)
+                  final scale = 1.0 + (share * 1.0);
                   
                   final tagColor = focus.colorForLabel(entry.key);
                   final durationStr = formatHoursShort(entry.value);
+                  
+                  final bubbleSize = 50.0 * scale;
 
                   return Tooltip(
-                    message: durationStr,
+                    message: '$durationStr • ${entry.key}',
                     waitDuration: const Duration(milliseconds: 300),
                     child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 10 * scale,
-                        vertical: 4 * scale,
-                      ),
+                      width: bubbleSize,
+                      height: bubbleSize,
                       decoration: BoxDecoration(
                         color: tagColor.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(16 * scale),
+                        shape: BoxShape.circle,
                         border: Border.all(
                           color: tagColor.withValues(alpha: 0.3),
                         ),
                       ),
-                      child: Text(
-                        entry.key,
-                        style: TextStyle(
-                          fontSize: 12 * scale,
-                          fontWeight: FontWeight.w800,
-                          color: tagColor,
+                      alignment: Alignment.center,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Text(
+                          entry.key,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 11 * scale,
+                            fontWeight: FontWeight.w800,
+                            color: tagColor,
+                            height: 1.1,
+                          ),
                         ),
                       ),
                     ),
