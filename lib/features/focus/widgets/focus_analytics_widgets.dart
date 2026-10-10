@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -10,6 +12,7 @@ import 'package:streak/features/focus/data/focus_stats.dart';
 import 'package:streak/features/focus/state/focus_controller.dart';
 import 'package:streak/features/focus/widgets/focus_dashboard_widgets.dart';
 import 'package:streak/features/habits/state/habits_controller.dart';
+import 'package:streak/features/settings/state/settings_controller.dart';
 
 class WeeklyFocusComparisonCard extends StatelessWidget {
   const WeeklyFocusComparisonCard({
@@ -353,10 +356,12 @@ class WeeklyContinuousTimeline extends StatefulWidget {
     super.key,
     required this.sessions,
     required this.accent,
+    this.weekStart = 1,
   });
 
   final List<FocusSession> sessions;
   final Color accent;
+  final int weekStart;
 
   @override
   State<WeeklyContinuousTimeline> createState() => _WeeklyContinuousTimelineState();
@@ -367,10 +372,10 @@ class _WeeklyContinuousTimelineState extends State<WeeklyContinuousTimeline> {
 
   DateTime get _now => AppClock.now();
 
-  DateTime get _weekStart {
+  DateTime _computeWeekStart(int weekStart) {
     final today = _now.subtract(Duration(hours: AppClock.cutoffHour)).atMidnight;
-    final monday = today.subtract(Duration(days: (today.weekday - 1) % 7));
-    return monday.add(Duration(days: _weekOffset * 7));
+    final anchor = today.startOfWeek(weekStart);
+    return anchor.add(Duration(days: _weekOffset * 7));
   }
 
   @override
@@ -378,7 +383,10 @@ class _WeeklyContinuousTimelineState extends State<WeeklyContinuousTimeline> {
     final scheme = context.colors;
     final focus = context.watch<FocusController>();
     final habits = context.watch<HabitsController>();
-    final start = _weekStart;
+    final settings = context.watch<SettingsController>();
+    final activeWeekStart =
+        widget.weekStart == 1 ? settings.weekStart : widget.weekStart;
+    final start = _computeWeekStart(activeWeekStart);
     final end = start.add(const Duration(days: 6));
     final formatRange = DateFormat('MMM d');
     final rangeText = '${formatRange.format(start)} – ${formatRange.format(end)}, ${start.year}';
@@ -472,7 +480,7 @@ class _WeeklyContinuousTimelineState extends State<WeeklyContinuousTimeline> {
             ],
           ),
           const SizedBox(height: 18),
-          // Time ruler
+          // Time ruler: extends cleanly across the full track without right side spacer
           Row(
             children: [
               const SizedBox(width: 58), // Width of day label
@@ -490,7 +498,6 @@ class _WeeklyContinuousTimelineState extends State<WeeklyContinuousTimeline> {
                   ],
                 ),
               ),
-              const SizedBox(width: 52), // Width of right badge
             ],
           ),
           const SizedBox(height: 8),
@@ -532,7 +539,6 @@ class _DailyTrackRow extends StatelessWidget {
     final dayLabelFormat = DateFormat('E d');
     final label = dayLabelFormat.format(date);
     final isToday = date.dayKey == AppClock.now().dayKey;
-    final daySeconds = sessions.fold<int>(0, (sum, s) => sum + s.seconds);
 
     return Row(
       children: [
@@ -567,19 +573,6 @@ class _DailyTrackRow extends StatelessWidget {
             },
           ),
         ),
-        const SizedBox(width: 10),
-        SizedBox(
-          width: 48,
-          child: Text(
-            daySeconds > 0 ? formatHoursShort(daySeconds) : '—',
-            textAlign: TextAlign.end,
-            style: TextStyle(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w600,
-              color: daySeconds > 0 ? scheme.onSurface : context.tokens.muted,
-            ),
-          ),
-        ),
       ],
     );
   }
@@ -589,27 +582,36 @@ class _DailyTrackRow extends StatelessWidget {
     FocusSession session,
     double totalWidth,
   ) {
+    if (totalWidth <= 4.0) return const SizedBox.shrink();
     final start = session.startedAt;
     final startMinutes = start.hour * 60 + start.minute;
     final durationMinutes = (session.seconds / 60).clamp(1.0, 1440.0);
 
     final leftPos = (startMinutes / 1440.0) * totalWidth;
-    final pillWidth = ((durationMinutes / 1440.0) * totalWidth).clamp(4.0, totalWidth);
+    final maxPillWidth = math.max(4.0, totalWidth);
+    final pillWidth =
+        ((durationMinutes / 1440.0) * totalWidth).clamp(4.0, maxPillWidth);
+    final maxLeft = math.max(0.0, totalWidth - pillWidth);
+    final safeLeft = leftPos.clamp(0.0, maxLeft);
 
     final habit = habits.byId(session.habitId);
-    final firstTag = session.tags.isNotEmpty ? session.tags.first : session.label;
+    final firstTag =
+        session.tags.isNotEmpty ? session.tags.first : session.label;
     final tagColor = firstTag.isNotEmpty ? focus.colorForLabel(firstTag) : null;
     final color = tagColor ?? habit?.color ?? defaultAccent;
 
     final timeFormat = DateFormat('HH:mm');
     final endTime = start.add(Duration(seconds: session.seconds));
-    final timeStr = '${timeFormat.format(start)} – ${timeFormat.format(endTime)}';
+    final timeStr =
+        '${timeFormat.format(start)} – ${timeFormat.format(endTime)}';
     final habitTitle = habit?.name ?? 'Focus Session';
-    final tagsStr = session.tags.isNotEmpty ? ' [${session.tags.join(', ')}]' : '';
-    final tooltipText = '$habitTitle$tagsStr\n$timeStr (${formatHoursShort(session.seconds)})';
+    final tagsStr =
+        session.tags.isNotEmpty ? ' [${session.tags.join(', ')}]' : '';
+    final tooltipText =
+        '$habitTitle$tagsStr\n$timeStr (${formatHoursShort(session.seconds)})';
 
     return Positioned(
-      left: leftPos.clamp(0.0, totalWidth - pillWidth),
+      left: safeLeft,
       width: pillWidth,
       top: 2,
       bottom: 2,

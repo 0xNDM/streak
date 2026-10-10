@@ -192,7 +192,7 @@ class _HomeShellState extends State<HomeShell>
 
   void _back(List<_Tab> tabs, _Tab current) {
     if (BackHandlers.handle()) return;
-    final root = Platform.isWindows ? _Tab.focus : _Tab.today;
+    final root = tabs.contains(_Tab.focus) ? _Tab.focus : _Tab.today;
     if (current != root) {
       _select(tabs, root);
       return;
@@ -260,14 +260,15 @@ class _HomeShellState extends State<HomeShell>
     }
     final express = settings.isExpressStyle;
     final tabs = [
-      if (Platform.isWindows) _Tab.focus,
+      if (Platform.isWindows && settings.focusEnabled) _Tab.focus,
       _Tab.today,
       if (settings.todosEnabled) _Tab.todos,
       if (settings.planningEnabled) _Tab.plan,
       _Tab.stats,
       _Tab.settings,
     ];
-    final defaultTab = Platform.isWindows ? _Tab.focus : _Tab.today;
+    final defaultTab =
+        (Platform.isWindows && settings.focusEnabled) ? _Tab.focus : _Tab.today;
     final current = tabs.contains(_tab) ? _tab : defaultTab;
 
     if (railed) {

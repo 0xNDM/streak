@@ -43,21 +43,26 @@ class FocusSessionCard extends StatelessWidget {
             ? '${minutes ~/ 60}h'
             : '${minutes ~/ 60}h ${minutes % 60}m');
 
-    final currentHabit = habit;
-    final habitColor = currentHabit?.color ?? scheme.primary;
-    final title = currentHabit != null ? '$durationStr - ${currentHabit.name}' : durationStr;
-
     final focus = context.watch<FocusController>();
     final sessionTags = session.tags.isNotEmpty
         ? session.tags
         : (session.label.isNotEmpty ? [session.label] : const <String>[]);
 
+    final currentHabit = habit;
+    final habitColor = currentHabit?.color ?? scheme.primary;
+    final title = currentHabit != null
+        ? currentHabit.name
+        : (sessionTags.isNotEmpty ? sessionTags.first : context.l10n.focus);
+    final displayTags = currentHabit != null
+        ? sessionTags
+        : (sessionTags.length > 1 ? sessionTags.sublist(1) : const <String>[]);
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: scheme.outlineVariant.withValues(alpha: 0.2),
         ),
@@ -96,13 +101,13 @@ class FocusSessionCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                if (sessionTags.isNotEmpty) ...[
+                if (displayTags.isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Wrap(
                     spacing: 4,
                     runSpacing: 4,
                     children: [
-                      for (final tag in sessionTags)
+                      for (final tag in displayTags)
                         Builder(
                           builder: (context) {
                             final tagColor = focus.colorForLabel(tag);

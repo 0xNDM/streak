@@ -331,27 +331,30 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
       onSelect: (i) => setState(() => _currentTab = i),
       child: Scaffold(
         appBar: AppBar(
-          title: Text(
-            context.l10n.focus,
-            style: const TextStyle(fontWeight: FontWeight.w800),
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                context.l10n.focus,
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(width: 24),
+              UnderlineTabs(
+                tabs: const ['Today', 'Analytics'],
+                index: _currentTab,
+                onChanged: (i) => setState(() => _currentTab = i),
+              ),
+            ],
           ),
           centerTitle: false,
-          actions: [
-            UnderlineTabs(
-              tabs: const ['Today', 'Analytics'],
-              index: _currentTab,
-              onChanged: (i) => setState(() => _currentTab = i),
-            ),
-            const SizedBox(width: 12),
-          ],
         ),
         body: SafeArea(
           top: false,
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 900),
+              constraints: const BoxConstraints(maxWidth: 1300),
               child: ListView(
-                padding: context.pagePadding(16, 12, 16, 96),
+                padding: context.pagePadding(20, 12, 20, 96),
                 children: [
                   // 1. Lifetime metrics strip
                   const FocusDashboardHeader(),
@@ -366,6 +369,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
                       today: today,
                       todaySeconds: todaySeconds,
                       dailyGoalMinutes: currentDailyGoal,
+                      settings: settings,
                     )
                   else
                     _buildAnalyticsTab(
@@ -391,6 +395,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
     required DateTime today,
     required int todaySeconds,
     required int dailyGoalMinutes,
+    required SettingsController settings,
   }) {
     final dailyGoalSec = dailyGoalMinutes * 60;
     final dailyRatio =
@@ -399,7 +404,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
     final dailyHit = dailyGoalSec > 0 && todaySeconds >= dailyGoalSec;
 
     final todaySessions = focus.sessions
-        .where((s) => s.startedAt.isSameDay(today))
+        .where((s) => s.countedOn.dayKey == today.dayKey)
         .toList()
       ..sort((a, b) => b.startedAt.compareTo(a.startedAt));
 
@@ -421,7 +426,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final wide = constraints.maxWidth >= 760;
+        final wide = constraints.maxWidth >= 780;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -429,20 +434,21 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(child: heroCard),
-                  const SizedBox(width: 16),
-                  Expanded(child: sessionsColumn),
+                  Expanded(flex: 5, child: heroCard),
+                  const SizedBox(width: 24),
+                  Expanded(flex: 6, child: sessionsColumn),
                 ],
               )
             else ...[
               heroCard,
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               sessionsColumn,
             ],
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             WeeklyContinuousTimeline(
               sessions: focus.sessions,
               accent: _lockInBright,
+              weekStart: settings.weekStart,
             ),
           ],
         );
@@ -464,15 +470,8 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
         ? '${(dailyGoalMinutes / 60).toStringAsFixed(dailyGoalMinutes % 60 == 0 ? 0 : 1)}h'
         : '${dailyGoalMinutes}m';
 
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: scheme.outlineVariant.withValues(alpha: 0.25),
-        ),
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -581,7 +580,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
               valueColor: const AlwaysStoppedAnimation<Color>(_lockInBright),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
           SizedBox(
             height: 48,
             child: FilledButton.icon(
@@ -595,12 +594,16 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
                 elevation: 0,
               ),
               icon: Icon(
-                focus.isActive ? LucideIcons.flame : LucideIcons.play,
+                focus.isCompleted
+                    ? LucideIcons.check
+                    : (focus.isActive ? LucideIcons.flame : LucideIcons.play),
                 size: 18,
                 color: Colors.white,
               ),
               label: Text(
-                focus.isActive ? 'Active Session' : 'Start Session',
+                focus.isCompleted
+                    ? 'Session Complete'
+                    : (focus.isActive ? 'Active Session' : 'Start Session'),
                 style: const TextStyle(
                   fontWeight: FontWeight.w800,
                   fontSize: 15,
@@ -620,15 +623,34 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(LucideIcons.timer,
-                        size: 14, color: _lockInBright),
+                    Icon(
+                      focus.isCompleted
+                          ? LucideIcons.circleCheck
+                          : (focus.isRunning
+                              ? LucideIcons.timer
+                              : LucideIcons.pause),
+                      size: 14,
+                      color: focus.isCompleted
+                          ? context.tokens.success
+                          : (focus.isRunning
+                              ? _lockInBright
+                              : context.tokens.warning),
+                    ),
                     const SizedBox(width: 6),
                     Text(
-                      'Session running · ${formatDuration(focus.displaySeconds)} • Tap to view',
+                      focus.isCompleted
+                          ? 'Session complete! 🎉 · Tap to review'
+                          : (focus.isRunning
+                              ? 'Session running · ${formatDuration(focus.displaySeconds)} • Tap to view'
+                              : 'Session paused · ${formatDuration(focus.displaySeconds)} • Tap to resume'),
                       style: TextStyle(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w700,
-                        color: isDark ? _lockInBright : _lockInDarkGreen,
+                        color: focus.isCompleted
+                            ? context.tokens.success
+                            : (focus.isRunning
+                                ? (isDark ? _lockInBright : _lockInDarkGreen)
+                                : context.tokens.warning),
                       ),
                     ),
                   ],
@@ -648,7 +670,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
     required List<FocusSession> todaySessions,
   }) {
     final scheme = context.colors;
-    final visible = todaySessions.take(4).toList();
+    final visible = todaySessions.take(3).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -656,12 +678,35 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              "Today's Sessions",
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-              ),
+            Row(
+              children: [
+                const Text(
+                  "Today's Sessions",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                if (todaySessions.isNotEmpty) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: scheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '${todaySessions.length}',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        color: context.tokens.muted,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
             TextButton.icon(
               onPressed: () => showFocusHistoryDialog(context),
@@ -699,7 +744,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
             ),
           )
         else ...[
-          for (final session in visible) ...[
+          for (final session in visible)
             FocusSessionCard(
               session: session,
               habit: session.habitId.isEmpty
@@ -707,22 +752,21 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
                   : habits.byId(session.habitId),
               onDelete: () => _deleteSession(context, focus, session),
             ),
-            const SizedBox(height: 8),
-          ],
-          if (todaySessions.length > visible.length) ...[
-            const SizedBox(height: 4),
-            OutlinedButton.icon(
-              onPressed: () => _openTodaySessionsDialog(focus, today),
-              icon: const Icon(LucideIcons.chevronDown, size: 16),
-              label: Text('Show all ${todaySessions.length} sessions'),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 13),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+          if (todaySessions.length > visible.length)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: OutlinedButton.icon(
+                onPressed: () => _openTodaySessionsDialog(focus, today),
+                icon: const Icon(LucideIcons.listCollapse, size: 15),
+                label: Text('See all ${todaySessions.length} sessions'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ),
-          ],
         ],
       ],
     );
@@ -734,7 +778,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
       title: DateFormat('EEE, MMM d').format(today),
       start: today,
       end: today.add(const Duration(days: 1)),
-      filter: (session) => session.startedAt.isSameDay(today),
+      filter: (session) => session.countedOn.dayKey == today.dayKey,
       onDelete: (session) => _deleteSession(context, focus, session),
     );
   }
@@ -827,6 +871,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
                   title: title,
                   start: start,
                   end: end,
+                  onDelete: (session) => _deleteSession(context, focus, session),
                 ),
               ),
             ],
@@ -891,7 +936,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
                               options: const ['Week', 'Month', 'All Time'],
                               index: _labelPeriodIndex,
                               onChanged: (idx) =>
-                                  setState(() => _labelPeriodIndex = idx),
+                                   setState(() => _labelPeriodIndex = idx),
                             ),
                           ],
                         );
@@ -969,13 +1014,15 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
           children: [
             // Row 1: Weekly Target + KPIs
             if (isWide)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(child: weeklyTargetCard),
-                  const SizedBox(width: 16),
-                  Expanded(child: kpiGrid),
-                ],
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(child: weeklyTargetCard),
+                    const SizedBox(width: 16),
+                    Expanded(child: kpiGrid),
+                  ],
+                ),
               )
             else ...[
               weeklyTargetCard,
@@ -991,7 +1038,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
             // Row 3: Day of week and Time of day side by side
             if (isWide)
               Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(child: weekdayCard),
                   const SizedBox(width: 16),

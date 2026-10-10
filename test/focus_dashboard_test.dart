@@ -201,11 +201,12 @@ void main() {
     await pumpScreen(tester, const FocusDashboardPage());
     await tester.pumpAndSettle();
 
-    expect(find.byType(FocusSessionCard), findsNWidgets(4));
-    expect(find.text('Show all 5 sessions'), findsOneWidget);
+    expect(find.byType(FocusSessionCard), findsNWidgets(3));
+    expect(find.text('See all 5 sessions'), findsOneWidget);
+    expect(find.text('Session 3'), findsNothing);
     expect(find.text('Session 4'), findsNothing);
 
-    await tester.tap(find.text('Show all 5 sessions'));
+    await tester.tap(find.text('See all 5 sessions'));
     await tester.pumpAndSettle();
 
     expect(find.text(DateFormat('EEE, MMM d').format(now)), findsOneWidget);

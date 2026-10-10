@@ -18,6 +18,7 @@ class FocusDashboardHeader extends StatelessWidget {
     final totalHours = focus.totalSeconds ~/ 3600;
     final activeDays = focus.totalActiveDaysCount;
     final elapsedDays = focus.totalElapsedDaysSinceStart;
+    final activeDaysLabel = elapsedDays <= 0 ? '$activeDays' : '$activeDays/$elapsedDays';
     final streak = focus.currentStreak;
 
     return Container(
@@ -45,15 +46,15 @@ class FocusDashboardHeader extends StatelessWidget {
               label: 'locked-in',
             ),
           ),
-          const SizedBox(width: 32),
+          const SizedBox(width: 20),
           // 2. Active Days (xx/xx)
           Expanded(
             child: _StatItem(
-              value: '$activeDays/$elapsedDays',
+              value: activeDaysLabel,
               label: 'active days',
             ),
           ),
-          const SizedBox(width: 32),
+          const SizedBox(width: 20),
           // 3. Day Streak (xx 🔥)
           Expanded(
             child: _StatItem(
@@ -91,28 +92,33 @@ class _StatItem extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 30,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.8,
-                color: numberColor,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.8,
+                  color: numberColor,
+                ),
               ),
-            ),
-            if (icon != null) ...[
-              const SizedBox(width: 6),
-              Icon(
-                icon,
-                size: 22,
-                color: iconColor,
-              ),
+              if (icon != null) ...[
+                const SizedBox(width: 6),
+                Icon(
+                  icon,
+                  size: 22,
+                  color: iconColor,
+                ),
+              ],
             ],
-          ],
+          ),
         ),
         const SizedBox(height: 4),
         Text(
