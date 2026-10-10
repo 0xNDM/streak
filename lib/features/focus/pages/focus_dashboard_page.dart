@@ -807,8 +807,10 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
     final labelPeriod = _labelPeriodIndex == 0
         ? 'week'
         : (_labelPeriodIndex == 1 ? 'month' : 'all');
-    final labelEntries =
-        focus.labelRankingForPeriod(labelPeriod, settings.weekStart);
+    final labelEntries = focus
+        .labelRankingForPeriod(labelPeriod, settings.weekStart)
+        .take(10)
+        .toList();
 
     return LayoutBuilder(
       builder: (context, constraints) {

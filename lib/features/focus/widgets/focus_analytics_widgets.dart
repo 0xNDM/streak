@@ -671,13 +671,22 @@ class FocusTagCloud extends StatelessWidget {
               Builder(
                 builder: (context) {
                   final share = maxCount == 0 ? 0.0 : (entry.value / maxCount).clamp(0.0, 1.0);
-                  // Scale from 1.0 (min) to 2.0 (max)
-                  final scale = 1.0 + (share * 1.0);
+                  // Map area linearly -> scale radius by square root
+                  final scale = math.sqrt(share);
+                  // Min bubble size 54, let it grow up to ~190px (no strict small max)
+                  final bubbleSize = 54.0 + (136.0 * scale);
                   
                   final tagColor = focus.colorForLabel(entry.key);
                   final durationStr = formatHoursShort(entry.value);
+                  final innerSize = bubbleSize * 0.75;
                   
-                  final bubbleSize = 50.0 * scale;
+                  // If exactly 2 words, explicitly put them on 2 lines so they fit nicely.
+                  // Otherwise, let it be 1 line. We do NOT constrain the width of the Text,
+                  // so a single word is never cut/broken. The FittedBox handles scaling it down.
+                  final words = entry.key.trim().split(RegExp(r'\s+'));
+                  final formattedText = words.length == 2
+                      ? '${words[0]}\n${words[1]}'
+                      : entry.key;
 
                   return Tooltip(
                     message: '$durationStr • ${entry.key}',
@@ -693,18 +702,22 @@ class FocusTagCloud extends StatelessWidget {
                         ),
                       ),
                       alignment: Alignment.center,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: Text(
-                          entry.key,
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 11 * scale,
-                            fontWeight: FontWeight.w800,
-                            color: tagColor,
-                            height: 1.1,
+                      child: SizedBox(
+                        width: innerSize,
+                        height: innerSize,
+                        child: Center(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              formattedText,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 16 + (14 * scale),
+                                fontWeight: FontWeight.w800,
+                                color: tagColor,
+                                height: 1.15,
+                              ),
+                            ),
                           ),
                         ),
                       ),
