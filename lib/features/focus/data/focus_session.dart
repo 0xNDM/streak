@@ -82,6 +82,29 @@ class FocusSession {
         tags: tags,
       );
 
+  FocusSession copyWith({
+    String? id,
+    String? habitId,
+    int? targetMinutes,
+    int? seconds,
+    bool? completed,
+    DateTime? startedAt,
+    bool? counted,
+    String? label,
+    List<String>? tags,
+  }) =>
+      FocusSession(
+        id: id ?? this.id,
+        habitId: habitId ?? this.habitId,
+        targetMinutes: targetMinutes ?? this.targetMinutes,
+        seconds: seconds ?? this.seconds,
+        completed: completed ?? this.completed,
+        startedAt: startedAt ?? this.startedAt,
+        counted: counted ?? this.counted,
+        label: label ?? _label,
+        tags: tags ?? this.tags,
+      );
+
   Map<String, dynamic> toMap() => {
         'id': id,
         'habitId': habitId,

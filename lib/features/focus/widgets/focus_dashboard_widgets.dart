@@ -263,10 +263,12 @@ class FocusSessionCard extends StatelessWidget {
     final minutes = (session.seconds / 60).round();
     final durationStr = minutes < 60
         ? '${minutes}m'
-        : '${minutes ~/ 60}h ${minutes % 60}m';
+        : (minutes % 60 == 0
+            ? '${minutes ~/ 60}h'
+            : '${minutes ~/ 60}h ${minutes % 60}m');
 
     final habitColor = habit?.color ?? scheme.primary;
-    final habitName = habit?.name ?? context.l10n.focus_free_session;
+    final title = habit != null ? '$durationStr - ${habit.name}' : durationStr;
 
     final focus = context.watch<FocusController>();
     final sessionTags = session.tags.isNotEmpty
@@ -306,7 +308,7 @@ class FocusSessionCard extends StatelessWidget {
                   children: [
                     Flexible(
                       child: Text(
-                        habitName,
+                        title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -340,7 +342,7 @@ class FocusSessionCard extends StatelessWidget {
                                 ),
                               ),
                               child: Text(
-                                '#$tag',
+                                tag,
                                 style: TextStyle(
                                   fontSize: 10.5,
                                   fontWeight: FontWeight.w700,

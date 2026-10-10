@@ -12,7 +12,7 @@ import 'package:streak/core/minimal/minimal_kit.dart';
 import 'package:streak/core/widgets/number_keypad_dialog.dart';
 import 'package:streak/features/settings/state/settings_controller.dart';
 
-const focusPresets = [25, 45];
+const focusPresets = [30, 60, 120];
 const focusBreakPresets = [5, 15];
 const focusLongBreakPresets = [15, 30];
 
@@ -32,13 +32,22 @@ class FocusDurationChips extends StatelessWidget {
     final value = await showNumberKeypadDialog(
       context,
       title: context.l10n.focus_duration,
-      value: minutes < 1 ? 25 : minutes.toDouble(),
+      value: 0,
       unit: context.l10n.unit_min_short,
       min: allowFlow ? 0 : 1,
     );
     if (value == null) return;
     final picked = value.round();
     onChanged(allowFlow && picked <= 0 ? 0 : picked.clamp(1, 600));
+  }
+
+  String _formatPreset(int m) {
+    if (m >= 60) {
+      final h = m ~/ 60;
+      final rem = m % 60;
+      return rem == 0 ? '${h}h' : '${h}h ${rem}m';
+    }
+    return '${m}m';
   }
 
   @override
@@ -50,13 +59,13 @@ class FocusDurationChips extends StatelessWidget {
       children: [
         for (final preset in focusPresets)
           FocusChip(
-            label: context.l10n.minutes_short('$preset'),
+            label: _formatPreset(preset),
             selected: minutes == preset,
             onTap: () => onChanged(preset),
           ),
         if (!flow && !focusPresets.contains(minutes))
           FocusChip(
-            label: context.l10n.minutes_short('$minutes'),
+            label: _formatPreset(minutes),
             selected: true,
             onTap: () => _pickCustom(context),
           ),

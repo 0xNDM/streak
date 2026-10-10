@@ -27,6 +27,7 @@ import 'package:streak/features/focus/state/focus_controller.dart';
 import 'package:streak/core/widgets/celebration_overlay.dart';
 import 'package:streak/features/focus/widgets/focus_backgrounds.dart';
 import 'package:streak/features/focus/widgets/focus_end_dialog.dart';
+import 'package:streak/features/focus/widgets/focus_setup_dialog.dart';
 import 'package:streak/features/focus/widgets/focus_task_lists.dart';
 import 'package:streak/features/focus/widgets/focus_video_scene.dart';
 import 'package:streak/features/focus/widgets/music_sheet.dart';
@@ -163,7 +164,7 @@ class _FocusPageState extends State<FocusPage> {
   }
 
   void _toggleRunning() {
-    if (!_focus.isActive || _leadValue > 0) return;
+    if (!_focus.isActive || _leadValue > 0 || _focus.isCompleted) return;
     if (_focus.isAwaiting || _focus.switchIn > 0) {
       _focus.continueNow();
       return;
@@ -260,6 +261,25 @@ class _FocusPageState extends State<FocusPage> {
       );
     }
     AppNavigator.pop();
+  }
+
+  Future<void> _doneCompleted() async {
+    setState(() => _leaving = true);
+    await _focus.stop(completed: true);
+    if (!mounted) return;
+    AppNavigator.pop();
+  }
+
+  Future<void> _startNewCompleted() async {
+    setState(() => _leaving = true);
+    await _focus.stop(completed: true);
+    if (!mounted) return;
+    AppNavigator.pop();
+    if (Platform.isWindows) {
+      showFocusSetupDialog(context);
+    } else {
+      AppNavigator.pushNamed(FocusPage.routeName);
+    }
   }
 
   @override
@@ -375,12 +395,16 @@ class _FocusPageState extends State<FocusPage> {
                           row: landscape,
                           seconds: leading
                               ? (leadMinutes <= 0 ? 0 : leadMinutes * 60)
-                              : focus.displaySeconds,
-                          progress: leading ? 0 : focus.progress,
+                              : (focus.isCompleted ? 0 : focus.displaySeconds),
+                          progress: leading
+                              ? 0
+                              : (focus.isCompleted ? 1.0 : focus.progress),
                           color: color ?? accent,
-                          label: paused ? context.l10n.focus_paused : label,
+                          label: focus.isCompleted
+                              ? 'Completed'
+                              : (paused ? context.l10n.focus_paused : label),
                           size: _clockSize(constraints, landscape),
-                          paused: paused,
+                          paused: paused || focus.isCompleted,
                         ),
                       ),
                     );
@@ -407,7 +431,7 @@ class _FocusPageState extends State<FocusPage> {
                   ),
                 );
 
-                if (_big) {
+                if (_big && !focus.isCompleted) {
                   final face = Column(
                     children: [
                       _ZenLabel(
@@ -475,7 +499,13 @@ class _FocusPageState extends State<FocusPage> {
                                     ),
                                     if (!typing) ...[
                                       const SizedBox(height: 24),
-                                      controls,
+                                      if (focus.isCompleted)
+                                        _CompletedBanner(
+                                          onDone: _doneCompleted,
+                                          onStartNew: _startNewCompleted,
+                                        )
+                                      else
+                                        controls,
                                     ],
                                   ],
                                 ),
@@ -512,10 +542,19 @@ class _FocusPageState extends State<FocusPage> {
                       ),
                     ),
                     if (!typing) ...[
-                      KeyedSubtree(
-                        key: const ValueKey('focus-controls'),
-                        child: controls,
-                      ),
+                      if (focus.isCompleted)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: _CompletedBanner(
+                            onDone: _doneCompleted,
+                            onStartNew: _startNewCompleted,
+                          ),
+                        )
+                      else
+                        KeyedSubtree(
+                          key: const ValueKey('focus-controls'),
+                          child: controls,
+                        ),
                       const SizedBox(height: 22),
                     ],
                     Padding(
@@ -1245,6 +1284,122 @@ class _LeadIn extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _CompletedBanner extends StatelessWidget {
+  const _CompletedBanner({
+    required this.onDone,
+    required this.onStartNew,
+  });
+
+  final VoidCallback onDone;
+  final VoidCallback onStartNew;
+
+  @override
+  Widget build(BuildContext context) {
+    final focus = context.watch<FocusController>();
+    final habits = context.watch<HabitsController>();
+    final habit = focus.habitId.isEmpty ? null : habits.byId(focus.habitId);
+    final minutes = focus.targetMinutes;
+    final durationStr = minutes < 60
+        ? '${minutes}m'
+        : (minutes % 60 == 0 ? '${minutes ~/ 60}h' : '${minutes ~/ 60}h ${minutes % 60}m');
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF18181B).withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: const Color(0xFF10B981).withValues(alpha: 0.35),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.5),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('🎉', style: TextStyle(fontSize: 22)),
+              SizedBox(width: 8),
+              Text(
+                'Session Complete!',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.3,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            habit != null
+                ? 'Completed $durationStr on ${habit.name}'
+                : 'Completed $durationStr focused session',
+            style: const TextStyle(
+              color: Color(0xFFA1A1AA),
+              fontSize: 13.5,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: onDone,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF065F46),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  icon: const Icon(LucideIcons.check, size: 16),
+                  label: const Text(
+                    'Done',
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onStartNew,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.2),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  icon: const Icon(LucideIcons.play, size: 15),
+                  label: const Text(
+                    'Start New',
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

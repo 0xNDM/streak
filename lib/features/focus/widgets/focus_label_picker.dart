@@ -34,18 +34,87 @@ class FocusLabelPicker extends StatelessWidget {
     onChanged(updated);
   }
 
-  Future<void> _forget(BuildContext context, String label) async {
-    final confirmed = await showAppConfirmDialog(
-      context,
-      title: context.l10n.focus_label_remove,
-      message: context.l10n.focus_label_remove_body(label),
-      confirmLabel: context.l10n.focus_label_remove_confirm,
+  Future<void> _manageLabel(BuildContext context, String label) async {
+    final focus = context.read<FocusController>();
+    final currentColor = focus.colorForLabel(label);
+
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheet) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+              child: Row(
+                children: [
+                  Container(
+                    width: 14,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: currentColor,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ListTile(
+              leading: const Icon(LucideIcons.pencil),
+              title: const Text('Edit Label'),
+              onTap: () => Navigator.of(sheet).pop('edit'),
+            ),
+            ListTile(
+              leading: Icon(LucideIcons.trash2, color: context.tokens.danger),
+              title: Text('Delete Label', style: TextStyle(color: context.tokens.danger)),
+              onTap: () => Navigator.of(sheet).pop('delete'),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
     );
-    if (confirmed != true || !context.mounted) return;
-    await context.read<FocusController>().forgetLabel(habitId, label);
-    if (selected.contains(label)) {
-      final updated = Set<String>.from(selected)..remove(label);
-      onChanged(updated);
+
+    if (!context.mounted || action == null) return;
+
+    if (action == 'edit') {
+      final picked = await showDialog<({String name, Color color})>(
+        context: context,
+        builder: (_) => _NewLabelDialog(
+          title: 'Edit Label',
+          initialName: label,
+          initialColor: currentColor,
+        ),
+      );
+      if (picked == null || !context.mounted) return;
+      final newName = picked.name.trim();
+      if (newName.isEmpty) return;
+      await context.read<FocusController>().renameLabel(label, newName, color: picked.color);
+      if (selected.contains(label)) {
+        final updated = Set<String>.from(selected)..remove(label)..add(newName);
+        onChanged(updated);
+      }
+    } else if (action == 'delete') {
+      final confirmed = await showAppConfirmDialog(
+        context,
+        title: 'Delete Label',
+        message: 'Remove "$label" from presets? Past focus sessions with this label will keep it.',
+        confirmLabel: context.l10n.delete,
+      );
+      if (confirmed != true || !context.mounted) return;
+      await context.read<FocusController>().deleteLabel(habitId, label);
+      if (selected.contains(label)) {
+        final updated = Set<String>.from(selected)..remove(label);
+        onChanged(updated);
+      }
     }
   }
 
@@ -78,7 +147,7 @@ class FocusLabelPicker extends StatelessWidget {
             selected: selected.contains(label),
             color: focus.colorForLabel(label),
             onTap: () => _toggle(label),
-            onLongPress: () => _forget(context, label),
+            onLongPress: () => _manageLabel(context, label),
           ),
         FocusChip(
           label: context.l10n.focus_label_new,
@@ -92,21 +161,33 @@ class FocusLabelPicker extends StatelessWidget {
 }
 
 class _NewLabelDialog extends StatefulWidget {
-  const _NewLabelDialog();
+  const _NewLabelDialog({
+    this.title,
+    this.initialName,
+    this.initialColor,
+  });
+
+  final String? title;
+  final String? initialName;
+  final Color? initialColor;
 
   @override
   State<_NewLabelDialog> createState() => _NewLabelDialogState();
 }
 
 class _NewLabelDialogState extends State<_NewLabelDialog> {
-  final _field = TextEditingController();
-  final _hexField = TextEditingController();
-  Color _color = FocusController.defaultTagColors[0];
+  late final TextEditingController _field;
+  late final TextEditingController _hexField;
+  late Color _color;
 
   @override
   void initState() {
     super.initState();
-    _hexField.text = '#${_color.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
+    _field = TextEditingController(text: widget.initialName ?? '');
+    _color = widget.initialColor ?? FocusController.defaultTagColors[0];
+    _hexField = TextEditingController(
+      text: '#${_color.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}',
+    );
   }
 
   @override
@@ -142,7 +223,7 @@ class _NewLabelDialogState extends State<_NewLabelDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(context.l10n.focus_label_new),
+      title: Text(widget.title ?? context.l10n.focus_label_new),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,

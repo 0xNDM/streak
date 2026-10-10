@@ -400,25 +400,34 @@ class _SessionTile extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        session.label.isEmpty
-                            ? (habit?.name ?? context.l10n.focus_free_session)
-                            : habit == null
-                            ? session.label
-                            : '${habit.name} · ${session.label}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: express
-                            ? ExpressType.headline.at(
-                                15.5,
-                                weight: 800,
-                                color: scheme.onSurface,
-                              )
-                            : TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                color: scheme.onSurface,
-                              ),
+                      Builder(
+                        builder: (context) {
+                          final minutes = (session.seconds / 60).round();
+                          final durationStr = minutes < 60
+                              ? '${minutes}m'
+                              : (minutes % 60 == 0
+                                  ? '${minutes ~/ 60}h'
+                                  : '${minutes ~/ 60}h ${minutes % 60}m');
+                          final title = habit != null
+                              ? '$durationStr - ${habit.name}'
+                              : durationStr;
+                          return Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: express
+                                ? ExpressType.headline.at(
+                                    15.5,
+                                    weight: 800,
+                                    color: scheme.onSurface,
+                                  )
+                                : TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                    color: scheme.onSurface,
+                                  ),
+                          );
+                        },
                       ),
                       const SizedBox(height: 2),
                       Text(

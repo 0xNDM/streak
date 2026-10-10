@@ -87,6 +87,8 @@ class FocusController extends ChangeNotifier {
   void Function(FocusSession session)? onRoundSaved;
   int _round = 1;
   bool _open = false;
+  bool _isCompleted = false;
+  FocusSession? _savedCompletedSession;
   bool _awaiting = false;
   int _switchIn = 0;
   int _accumulated = 0;
@@ -96,6 +98,9 @@ class FocusController extends ChangeNotifier {
   List<FocusSession>? _view;
   Map<String, int>? _perDay;
   int _revision = 0;
+
+  bool get isCompleted => _isCompleted;
+  FocusSession? get savedCompletedSession => _savedCompletedSession;
 
   int get revision => _revision;
 
@@ -236,6 +241,8 @@ class FocusController extends ChangeNotifier {
     _isBreak = false;
     _round = 1;
     _open = true;
+    _isCompleted = false;
+    _savedCompletedSession = null;
     _accumulated = 0;
     _tasks.clear();
     _since = DateTime.now();
@@ -282,6 +289,8 @@ class FocusController extends ChangeNotifier {
   void reset() {
     _awaiting = false;
     _switchIn = 0;
+    _isCompleted = false;
+    _savedCompletedSession = null;
     _autoEnd?.cancel();
     unawaited(FocusAudio.stopAlert());
     _accumulated = 0;
@@ -390,6 +399,15 @@ class FocusController extends ChangeNotifier {
     _open = false;
     _persist();
     _sync();
+
+    if (_savedCompletedSession != null) {
+      final session = _savedCompletedSession;
+      _savedCompletedSession = null;
+      _isCompleted = false;
+      notifyListeners();
+      return session;
+    }
+    _isCompleted = false;
 
     if (seconds < 30) {
       notifyListeners();
@@ -504,14 +522,25 @@ class FocusController extends ChangeNotifier {
           _sync();
         } else {
           _stopTicker();
+          _isCompleted = true;
+          final endedAt = DateTime.now();
+          final seconds = elapsedAt(endedAt);
+          if (seconds >= 30) {
+            final session = FocusSession(
+              id: const Uuid().v4(),
+              habitId: _habitId,
+              targetMinutes: _focusMinutes,
+              seconds: seconds,
+              completed: true,
+              startedAt: endedAt.subtract(Duration(seconds: seconds)),
+              label: _label,
+              tags: [..._tags],
+            );
+            unawaited(_saveRound(session));
+            _savedCompletedSession = session;
+          }
           _sync();
           notifyListeners();
-          _autoEnd?.cancel();
-          _autoEnd = Timer(const Duration(seconds: 2), () async {
-            if (_open && reachedTarget) {
-              await stop(completed: true);
-            }
-          });
         }
       }
       _tick();
@@ -684,12 +713,88 @@ class FocusController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> forgetLabel(String habitId, String label) async {
+  Future<void> renameLabel(String oldName, String newName, {Color? color}) async {
+    final cleanOld = oldName.trim();
+    final cleanNew = newName.trim();
+    if (cleanOld.isEmpty || cleanNew.isEmpty || cleanOld == cleanNew) return;
+
+    // 1. Update presets in focusLabels across all habits
     final all = LocalStore.settingMap(_labelsKey);
-    all[habitId] = labelsFor(habitId).where((l) => l != label).toList();
-    await LocalStore.writeSetting(_labelsKey, all);
+    var changedLabels = false;
+    for (final entry in all.entries) {
+      if (entry.value is List) {
+        final list = List<String>.from(entry.value as List);
+        if (list.contains(cleanOld)) {
+          final idx = list.indexOf(cleanOld);
+          list[idx] = cleanNew;
+          all[entry.key] = list;
+          changedLabels = true;
+        }
+      }
+    }
+    if (changedLabels) {
+      await LocalStore.writeSetting(_labelsKey, all);
+    }
+
+    // 2. Update color in focusLabelColors
+    final allColors = LocalStore.settingMap(_labelColorsKey);
+    final prevColor = allColors[cleanOld];
+    allColors.remove(cleanOld);
+    if (color != null) {
+      allColors[cleanNew] = color.toARGB32();
+    } else if (prevColor != null) {
+      allColors[cleanNew] = prevColor;
+    }
+    await LocalStore.writeSetting(_labelColorsKey, allColors);
+
+    // 3. Update existing historical sessions in database & memory
+    for (var i = 0; i < _sessions.length; i++) {
+      final s = _sessions[i];
+      final hasTag = s.tags.contains(cleanOld);
+      final hasLabel = s.label == cleanOld;
+      if (hasTag || hasLabel) {
+        final updatedTags = s.tags.map((t) => t == cleanOld ? cleanNew : t).toList();
+        final updatedLabel = hasLabel ? cleanNew : s.label;
+        final updatedSession = s.copyWith(tags: updatedTags, label: updatedLabel);
+        _sessions[i] = updatedSession;
+        await LocalStore.writeFocusSession(updatedSession);
+      }
+    }
+    _view = null;
+    _perDay = null;
+
+    // 4. Update active timer if running
+    if (_tags.contains(cleanOld)) {
+      _tags = _tags.map((t) => t == cleanOld ? cleanNew : t).toList();
+    }
+    if (_label == cleanOld) {
+      _label = cleanNew;
+    }
+    _persist();
     notifyListeners();
   }
+
+  Future<void> deleteLabel(String habitId, String label) async {
+    final clean = label.trim();
+    final all = LocalStore.settingMap(_labelsKey);
+    var changed = false;
+    for (final entry in all.entries) {
+      if (entry.value is List) {
+        final list = List<String>.from(entry.value as List);
+        if (list.contains(clean)) {
+          list.remove(clean);
+          all[entry.key] = list;
+          changed = true;
+        }
+      }
+    }
+    if (changed) {
+      await LocalStore.writeSetting(_labelsKey, all);
+    }
+    notifyListeners();
+  }
+
+  Future<void> forgetLabel(String habitId, String label) => deleteLabel(habitId, label);
 
   int get totalSeconds =>
       _sessions.fold(0, (sum, session) => sum + session.seconds);
@@ -831,6 +936,83 @@ class FocusController extends ChangeNotifier {
       averages[i] = occurrences == 0 ? 0.0 : (weekdayTotals[i] ?? 0) / occurrences;
     }
     return averages;
+  }
+
+  Map<int, double> get currentMonthWeekdayAverageSeconds {
+    final now = AppClock.now();
+    final startOfMonth = DateTime(now.year, now.month, 1).atMidnight;
+    final today = now.atMidnight;
+
+    final weekdayOccurrences = <int, int>{for (var i = 1; i <= 7; i++) i: 0};
+    var cursor = startOfMonth;
+    while (!cursor.isAfter(today)) {
+      weekdayOccurrences[cursor.weekday] = (weekdayOccurrences[cursor.weekday] ?? 0) + 1;
+      cursor = cursor.addDays(1);
+    }
+
+    final weekdayTotals = <int, int>{for (var i = 1; i <= 7; i++) i: 0};
+    for (final session in _sessions) {
+      final d = session.countedOn;
+      if (d.year == now.year && d.month == now.month) {
+        weekdayTotals[d.weekday] = (weekdayTotals[d.weekday] ?? 0) + session.seconds;
+      }
+    }
+
+    final averages = <int, double>{};
+    for (var i = 1; i <= 7; i++) {
+      final occurrences = weekdayOccurrences[i] ?? 0;
+      averages[i] = occurrences == 0 ? 0.0 : (weekdayTotals[i] ?? 0) / occurrences;
+    }
+    return averages;
+  }
+
+  int get currentStreak {
+    if (_sessions.isEmpty) return 0;
+    final todayIndex = AppClock.now().epochDay;
+    final activeDays = <int>{};
+    for (final s in _sessions) {
+      if (s.seconds >= 30) {
+        activeDays.add(s.countedOn.epochDay);
+      }
+    }
+    if (activeDays.isEmpty) return 0;
+    final lastDay = (activeDays.toList()..sort()).last;
+    if (lastDay < todayIndex - 1) return 0;
+    var streak = 0;
+    var check = lastDay;
+    while (activeDays.contains(check)) {
+      streak++;
+      check--;
+    }
+    return streak;
+  }
+
+  List<MapEntry<String, int>> labelRankingForPeriod(String period, int weekStart) {
+    final now = AppClock.now();
+    DateTime from;
+    if (period == 'week') {
+      from = now.startOfWeek(weekStart).atMidnight;
+    } else if (period == 'month') {
+      from = DateTime(now.year, now.month, 1).atMidnight;
+    } else {
+      from = DateTime(1970);
+    }
+
+    final map = <String, int>{};
+    for (final session in _sessions) {
+      if (!session.countedOn.atMidnight.isBefore(from)) {
+        final tags = session.tags.isNotEmpty
+            ? session.tags
+            : (session.label.isNotEmpty ? [session.label] : const <String>[]);
+        for (final tag in tags) {
+          final clean = tag.trim();
+          if (clean.isNotEmpty) {
+            map[clean] = (map[clean] ?? 0) + session.seconds;
+          }
+        }
+      }
+    }
+    return (map.entries.toList()..sort((a, b) => b.value.compareTo(a.value)));
   }
 
   Map<String, int> get monthlyTotalSeconds {

@@ -329,7 +329,7 @@ class _WeeklyContinuousTimelineState extends State<WeeklyContinuousTimeline> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Weekly Focus Timeline',
+                    'Weekly Timeline',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
                   ),
                   const SizedBox(height: 2),

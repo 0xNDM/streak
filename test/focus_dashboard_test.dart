@@ -9,6 +9,7 @@ import 'package:streak/core/database/local_store.dart';
 import 'package:streak/features/focus/data/focus_session.dart';
 import 'package:streak/features/focus/pages/focus_dashboard_page.dart';
 import 'package:streak/features/focus/pages/focus_setup_page.dart';
+import 'package:streak/features/focus/widgets/focus_dashboard_header.dart';
 import 'package:streak/features/focus/widgets/focus_dashboard_widgets.dart';
 
 import 'support/app_harness.dart';
@@ -32,7 +33,7 @@ void main() {
 
     await pumpScreen(tester, const HomeShell());
     expect(find.byType(FocusDashboardPage), findsOneWidget);
-    expect(find.byType(FocusTodayHero), findsOneWidget);
+    expect(find.byType(FocusDashboardHeader), findsOneWidget);
     expect(find.text("Today's Sessions"), findsOneWidget);
   });
 
@@ -56,13 +57,13 @@ void main() {
     await pumpScreen(tester, const FocusDashboardPage());
     await tester.pumpAndSettle();
 
-    expect(find.byType(FocusTodayHero), findsOneWidget);
+    expect(find.byType(FocusDashboardHeader), findsOneWidget);
     expect(find.text('25m'), findsWidgets);
     expect(find.text('Deep Work'), findsOneWidget);
     expect(find.byType(FocusSessionCard), findsOneWidget);
   });
 
-  testWidgets('Details sub-tab shows charts, metric cards, and activity map',
+  testWidgets('Analytics sub-tab shows charts, metric cards, and activity map',
       (tester) async {
     final now = DateTime.now();
     final session = FocusSession(
@@ -81,8 +82,8 @@ void main() {
     await pumpScreen(tester, const FocusDashboardPage());
     await tester.pumpAndSettle();
 
-    // Switch to Details sub-tab
-    await tester.tap(find.text('Details'));
+    // Switch to Analytics sub-tab
+    await tester.tap(find.text('Analytics'));
     await tester.pumpAndSettle();
 
     expect(find.text('Activity Map'), findsOneWidget);
@@ -94,7 +95,7 @@ void main() {
     await pumpScreen(tester, const FocusDashboardPage());
     await tester.pumpAndSettle();
 
-    final startButton = find.text('Start session');
+    final startButton = find.text('Start Session');
     expect(startButton, findsOneWidget);
 
     await tester.tap(startButton);

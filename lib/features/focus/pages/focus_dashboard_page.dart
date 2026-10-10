@@ -8,17 +8,17 @@ import 'package:streak/app/theme/app_tokens.dart';
 import 'package:streak/core/extensions/date_extensions.dart';
 import 'package:streak/core/extensions/inset_extensions.dart';
 import 'package:streak/core/i18n/l10n.dart';
-import 'package:streak/core/widgets/entrance.dart';
-import 'package:streak/core/widgets/stat_columns.dart';
+import 'package:streak/core/widgets/app_confirm_dialog.dart';
 import 'package:streak/features/focus/data/focus_session.dart';
 import 'package:streak/features/focus/data/focus_stats.dart';
 import 'package:streak/features/focus/state/focus_actions.dart';
 import 'package:streak/features/focus/state/focus_controller.dart';
 import 'package:streak/features/focus/widgets/focus_analytics_widgets.dart';
+import 'package:streak/features/focus/widgets/focus_dashboard_header.dart';
 import 'package:streak/features/focus/widgets/focus_dashboard_widgets.dart';
 import 'package:streak/features/focus/widgets/focus_history_dialog.dart';
 import 'package:streak/features/focus/widgets/focus_period_bar.dart';
-import 'package:streak/features/focus/widgets/focus_pill.dart';
+import 'package:streak/features/focus/widgets/focus_period_sessions_dialog.dart';
 import 'package:streak/features/focus/widgets/focus_range_bars.dart';
 import 'package:streak/features/focus/widgets/focus_setup_dialog.dart';
 import 'package:streak/features/focus/widgets/focus_time_of_day_card.dart';
@@ -29,8 +29,6 @@ import 'package:streak/features/settings/widgets/settings_rows.dart';
 import 'package:streak/features/statistics/widgets/stat_charts.dart';
 import 'package:streak/features/statistics/widgets/stat_kit.dart';
 
-const _entrance = Duration(milliseconds: 320);
-const _lockInGreen = Color(0xFF047857);
 const _lockInDarkGreen = Color(0xFF065F46);
 const _lockInBright = Color(0xFF10B981);
 
@@ -42,8 +40,10 @@ class FocusDashboardPage extends StatefulWidget {
 }
 
 class _FocusDashboardPageState extends State<FocusDashboardPage> {
+  int _currentTab = 0; // 0 = Today, 1 = Analytics
   FocusRange _range = FocusRange.week;
   int _offset = 0;
+  int _labelPeriodIndex = 0; // 0 = Week, 1 = Month, 2 = All time
 
   void _startFocus(BuildContext context, FocusController focus) {
     if (focus.isActive) {
@@ -55,6 +55,15 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
         openFocus(context);
       }
     }
+  }
+
+  String _formatTodayTime(int seconds) {
+    if (seconds <= 0) return '0m';
+    final h = seconds ~/ 3600;
+    final m = (seconds % 3600) ~/ 60;
+    if (h > 0 && m > 0) return '${h}h ${m}m';
+    if (h > 0) return '${h}h';
+    return '${m}m';
   }
 
   Future<void> _showEditDailyTargetDialog(
@@ -266,27 +275,27 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
     );
   }
 
-  List<({String name, Color color, int count})> _ranking(
-    FocusStats stats,
-    HabitsController habits,
-    Color accent,
-  ) {
-    final entries = [
-      for (final entry in stats.perHabit.entries)
-        (
-          name: habits.byId(entry.key)?.name ?? context.l10n.focus_free_session,
-          color: habits.byId(entry.key)?.color ?? accent,
-          count: entry.value,
-        ),
-    ]..sort((a, b) => b.count.compareTo(a.count));
-    return entries.take(8).toList();
+  Future<void> _deleteSession(
+    BuildContext context,
+    FocusController focus,
+    FocusSession session,
+  ) async {
+    final confirmed = await showAppConfirmDialog(
+      context,
+      title: context.l10n.focus_delete_sessions,
+      message: context.l10n.focus_delete_sessions_body(1),
+      confirmLabel: context.l10n.delete,
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    final habits = context.read<HabitsController>();
+    await countFocusTime(habits, focus, session, undo: true);
+    await focus.removeSessions({session.id});
   }
 
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsController>();
-    final scheme = context.colors;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     context.select<FocusController, int>((f) => f.revision);
     final focus = context.watch<FocusController>();
@@ -303,7 +312,8 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
       weekStart: settings.weekStart,
     );
 
-    final defaultDailyGoal = settings.focusDailyGoal > 0 ? settings.focusDailyGoal : 60;
+    final defaultDailyGoal =
+        settings.focusDailyGoal > 0 ? settings.focusDailyGoal : 60;
     final currentDailyGoal = focus.dailyTargetFor(today, defaultDailyGoal);
 
     final defaultWeeklyHours = (defaultDailyGoal * 7) ~/ 60;
@@ -320,628 +330,611 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
           style: const TextStyle(fontWeight: FontWeight.w800),
         ),
         centerTitle: false,
-        actions: [
-          // Start Session Button (dark green lock-in styling)
-          FilledButton.icon(
-            onPressed: () => _startFocus(context, focus),
-            style: FilledButton.styleFrom(
-              backgroundColor: _lockInDarkGreen,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-              elevation: 0,
-            ),
-            icon: Icon(
-              focus.isActive ? LucideIcons.flame : LucideIcons.play,
-              size: 15,
-              color: Colors.white,
-            ),
-            label: Text(
-              focus.isActive ? 'Active Session' : 'Start Session',
-              style: const TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 13,
-                color: Colors.white,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          // White History Icon (standalone button, no text, opens popup dialog)
-          Tooltip(
-            message: 'Focus History',
-            child: InkWell(
-              onTap: () => showFocusHistoryDialog(context),
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.1)
-                      : Colors.black.withValues(alpha: 0.75),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.12),
-                  ),
-                ),
-                child: const Icon(
-                  LucideIcons.history,
-                  size: 18,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 14),
-        ],
       ),
       body: SafeArea(
         top: false,
         child: ListView(
           padding: context.pagePadding(16, 8, 16, 96),
-          children: spanned(context, [
-            // 1. Hero KPI Banner & Independent Targets
-            Entrance(
-              index: 0,
-              delay: _entrance,
-              child: _buildHeroSection(
+          children: [
+            // 1. Header above tabs (matches see_this.png: locked-in, active days, day streak)
+            const FocusDashboardHeader(),
+            const SizedBox(height: 12),
+
+            // 2. Tab Switcher (Today vs Analytics)
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 380),
+                child: Segmented(
+                  options: const ['Today', 'Analytics'],
+                  index: _currentTab,
+                  onChanged: (i) => setState(() => _currentTab = i),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // 3. Tab Body
+            if (_currentTab == 0)
+              _buildTodayTab(
+                context: context,
+                focus: focus,
+                habits: habits,
+                today: today,
+                todaySeconds: todaySeconds,
+                dailyGoalMinutes: currentDailyGoal,
+              )
+            else
+              _buildAnalyticsTab(
                 context: context,
                 focus: focus,
                 stats: stats,
-                todaySeconds: todaySeconds,
-                dailyGoalMinutes: currentDailyGoal,
-                weeklyGoalHours: currentWeeklyHours,
-                weekStart: settings.weekStart,
-                isDark: isDark,
+                currentWeeklyHours: currentWeeklyHours,
+                settings: settings,
               ),
-            ),
-            const SizedBox(height: 16),
-
-            // 2. Focus Time Range Chart (Before Continuous Timeline)
-            Entrance(
-              index: 1,
-              delay: _entrance,
-              child: StatCard(
-                title: context.l10n.focus_total,
-                icon: LucideIcons.chartColumn,
-                color: _lockInBright,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Segmented(
-                        options: [
-                          context.l10n.week,
-                          context.l10n.month,
-                          context.l10n.year,
-                        ],
-                        index: FocusRange.values.indexOf(_range),
-                        onChanged: (index) => setState(() {
-                          _range = FocusRange.values[index];
-                          _offset = 0;
-                        }),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    FocusPeriodBar(
-                      range: _range,
-                      offset: _offset,
-                      stats: stats,
-                      accent: _lockInBright,
-                      onOffset: (value) => setState(() => _offset = value),
-                    ),
-                    const SizedBox(height: 14),
-                    FocusRangeBars(
-                      stats: stats,
-                      range: _range,
-                      color: _lockInBright,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // SpanEnd: below this, cards adapt into 2 balanced columns when maximized on desktop
-            const SpanEnd(),
-            const SizedBox(height: 16),
-
-            // 3. Weekly Continuous Timeline
-            Entrance(
-              index: 2,
-              delay: _entrance,
-              child: WeeklyContinuousTimeline(
-                sessions: focus.sessions,
-                accent: _lockInBright,
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // 4. Day of Week Averages & Monthly Breakdown
-            Entrance(
-              index: 3,
-              delay: _entrance,
-              child: FocusWeekdayAveragesCard(
-                focus: focus,
-                weekStart: settings.weekStart,
-                accent: _lockInBright,
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // 5. Time of Day Breakdown
-            Entrance(
-              index: 4,
-              delay: _entrance,
-              child: FocusTimeOfDayCard(
-                focus: focus,
-                weekStart: settings.weekStart,
-                accent: _lockInBright,
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // 6. Most Productive Window
-            Entrance(
-              index: 5,
-              delay: _entrance,
-              child: ProductiveTimeCard(
-                stats: stats,
-                accent: _lockInBright,
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // 7. Executive KPI Grid
-            Entrance(
-              index: 6,
-              delay: _entrance,
-              child: FocusKpiGrid(
-                stats: stats,
-                accent: _lockInBright,
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // 8. Weekly Comparison Card
-            Entrance(
-              index: 7,
-              delay: _entrance,
-              child: WeeklyFocusComparisonCard(
-                stats: stats,
-                targetHours: currentWeeklyHours,
-                accent: _lockInBright,
-                onEditTarget: () => _showEditWeeklyTargetDialog(
-                  context,
-                  focus,
-                  currentWeeklyHours,
-                  settings.weekStart,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // 9. Habit & Label Rankings
-            if (stats.perHabit.length > 1) ...[
-              Entrance(
-                index: 8,
-                delay: _entrance,
-                child: StatCard(
-                  title: context.l10n.by_habit,
-                  icon: LucideIcons.listOrdered,
-                  color: _lockInBright,
-                  child: HabitRanking(
-                    entries: _ranking(stats, habits, _lockInBright),
-                    format: formatHoursShort,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-            if (stats.perLabel.isNotEmpty) ...[
-              Entrance(
-                index: 9,
-                delay: _entrance,
-                child: StatCard(
-                  title: context.l10n.by_label,
-                  icon: LucideIcons.tag,
-                  color: _lockInBright,
-                  child: HabitRanking(
-                    entries: [
-                      for (final entry in stats.labelRanking)
-                        (
-                          name: '#${entry.key}',
-                          color: focus.colorForLabel(entry.key),
-                          count: entry.value,
-                        ),
-                    ],
-                    format: formatHoursShort,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-
-            // 10. Activity Map
-            Entrance(
-              index: 10,
-              delay: _entrance,
-              child: StatCard(
-                title: 'Activity Map',
-                icon: LucideIcons.layoutGrid,
-                color: _lockInBright,
-                child: FocusActivityMap(
-                  sessions: focus.sessions,
-                  color: _lockInBright,
-                ),
-              ),
-            ),
-          ]),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildHeroSection({
+  Widget _buildTodayTab({
     required BuildContext context,
     required FocusController focus,
-    required FocusStats stats,
+    required HabitsController habits,
+    required DateTime today,
     required int todaySeconds,
     required int dailyGoalMinutes,
-    required int weeklyGoalHours,
-    required int weekStart,
-    required bool isDark,
   }) {
     final scheme = context.colors;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final totalSec = focus.totalSeconds;
-    final totalHours = totalSec / 3600;
-    final totalHoursStr = totalHours >= 100
-        ? '${totalHours.toStringAsFixed(0)}h'
-        : totalHours >= 10
-            ? '${totalHours.toStringAsFixed(1)}h'
-            : formatHoursShort(totalSec);
-
-    final activeDays = focus.totalActiveDaysCount;
-    final elapsedDays = focus.totalElapsedDaysSinceStart;
-    final consistency = elapsedDays > 0 ? ((activeDays / elapsedDays) * 100).round() : 0;
-    final firstDate = focus.firstSessionDate;
-
-    // Today progress
     final dailyGoalSec = dailyGoalMinutes * 60;
-    final dailyRatio = dailyGoalSec > 0 ? (todaySeconds / dailyGoalSec).clamp(0.0, 1.0) : 0.0;
+    final dailyRatio =
+        dailyGoalSec > 0 ? (todaySeconds / dailyGoalSec).clamp(0.0, 1.0) : 0.0;
     final dailyPercent = (dailyRatio * 100).round();
     final dailyHit = dailyGoalSec > 0 && todaySeconds >= dailyGoalSec;
 
-    // Weekly progress
-    final weeklyGoalSec = weeklyGoalHours * 3600;
-    final weeklySec = stats.weekSeconds;
-    final weeklyRatio = weeklyGoalSec > 0 ? (weeklySec / weeklyGoalSec).clamp(0.0, 1.0) : 0.0;
-    final weeklyPercent = (weeklyRatio * 100).round();
-    final weeklyHit = weeklyGoalSec > 0 && weeklySec >= weeklyGoalSec;
+    final todaySessions = focus.sessions
+        .where((s) => s.startedAt.isSameDay(today))
+        .toList()
+      ..sort((a, b) => b.startedAt.compareTo(a.startedAt));
 
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isDark
-              ? [
-                  _lockInDarkGreen.withValues(alpha: 0.35),
-                  scheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                ]
-              : [
-                  _lockInGreen.withValues(alpha: 0.10),
-                  _lockInBright.withValues(alpha: 0.04),
-                ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: _lockInBright.withValues(alpha: 0.25),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Total Hours Focused Headline
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: _lockInBright.withValues(alpha: 0.16),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            LucideIcons.flame,
-                            size: 15,
-                            color: _lockInBright,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'TOTAL FOCUS TIME',
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 1.1,
-                            color: context.tokens.muted,
-                          ),
-                        ),
-                      ],
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 540),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Large Today Focus Time Headline Card
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+              decoration: BoxDecoration(
+                color: scheme.surface,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(
+                  color: scheme.outlineVariant.withValues(alpha: 0.25),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    "TODAY'S FOCUS TIME",
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.2,
+                      color: context.tokens.muted,
                     ),
-                    const SizedBox(height: 8),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Text(
-                          totalHoursStr,
-                          style: statNumber(
-                            context,
-                            40,
-                            color: isDark ? Colors.white : _lockInDarkGreen,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Focused',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                            color: context.tokens.muted,
-                          ),
-                        ),
-                      ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    _formatTodayTime(todaySeconds),
+                    style: TextStyle(
+                      fontSize: 48,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -1.2,
+                      color: isDark ? Colors.white : _lockInDarkGreen,
+                      fontFeatures: const [FontFeature.tabularFigures()],
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      elapsedDays > 0
-                          ? '$activeDays days active of $elapsedDays days • $consistency% consistency'
-                          : '0 days active • Ready to begin',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: scheme.onSurface.withValues(alpha: 0.85),
+                  ),
+                  const SizedBox(height: 18),
+
+                  // Proportional Start Session Button (dark green, un-stretched)
+                  SizedBox(
+                    width: 220,
+                    height: 48,
+                    child: FilledButton.icon(
+                      onPressed: () => _startFocus(context, focus),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: _lockInDarkGreen,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: 0,
+                      ),
+                      icon: Icon(
+                        focus.isActive ? LucideIcons.flame : LucideIcons.play,
+                        size: 18,
+                        color: Colors.white,
+                      ),
+                      label: Text(
+                        focus.isActive ? 'Active Session' : 'Start Session',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
-                    if (firstDate != null) ...[
-                      const SizedBox(height: 2),
+                  ),
+                  if (focus.isActive) ...[
+                    const SizedBox(height: 12),
+                    InkWell(
+                      onTap: () => openFocus(context),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(LucideIcons.timer,
+                                size: 14, color: _lockInBright),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Session running • Tap to view timer',
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w700,
+                                color:
+                                    isDark ? _lockInBright : _lockInDarkGreen,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Daily Goal Progress Bar Card with Option to Edit
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: scheme.surface,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: scheme.outlineVariant.withValues(alpha: 0.25),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          const Text(
+                            'Daily Goal',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          if (dailyHit)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: _lockInBright.withValues(alpha: 0.18),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Text(
+                                'HIT',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w900,
+                                  color: _lockInBright,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      IconButton(
+                        icon: const Icon(LucideIcons.pencil, size: 14),
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                            minWidth: 28, minHeight: 28),
+                        color: context.tokens.muted,
+                        onPressed: () => _showEditDailyTargetDialog(
+                          context,
+                          focus,
+                          dailyGoalMinutes,
+                        ),
+                        tooltip: 'Set daily goal',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
                       Text(
-                        'Tracking since ${DateFormat('MMM d, yyyy').format(firstDate)}',
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          color: context.tokens.muted,
+                        '${formatHoursShort(todaySeconds)} / ${dailyGoalMinutes >= 60 ? '${(dailyGoalMinutes / 60).toStringAsFixed(dailyGoalMinutes % 60 == 0 ? 0 : 1)}h' : '${dailyGoalMinutes}m'}',
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      Text(
+                        '$dailyPercent%',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: _lockInBright,
                         ),
                       ),
                     ],
-                  ],
-                ),
-              ),
-            ],
-          ),
-
-          // Active session strip
-          if (focus.isActive) ...[
-            const SizedBox(height: 18),
-            InkWell(
-              onTap: () => openFocus(context),
-              borderRadius: BorderRadius.circular(16),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-                decoration: BoxDecoration(
-                  color: _lockInDarkGreen.withValues(alpha: 0.22),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: _lockInBright.withValues(alpha: 0.4),
                   ),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(LucideIcons.timer, size: 18, color: _lockInBright),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'Focus session in progress • Tap to open timer',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: isDark ? Colors.white : _lockInDarkGreen,
-                        ),
-                      ),
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: LinearProgressIndicator(
+                      value: dailyRatio,
+                      minHeight: 8,
+                      backgroundColor: scheme.surfaceContainerHighest,
+                      valueColor:
+                          const AlwaysStoppedAnimation<Color>(_lockInBright),
                     ),
-                    const Icon(LucideIcons.chevronRight, size: 16, color: _lockInBright),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-          ],
+            const SizedBox(height: 20),
 
-          const SizedBox(height: 20),
-
-          // Independent Daily & Weekly Targets
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final isNarrow = constraints.maxWidth < 520;
-              final todayCard = _buildTargetCard(
-                context: context,
-                title: "Today's Target",
-                subtitle: DateFormat('EEE, MMM d').format(AppClock.now()),
-                progressRatio: dailyRatio,
-                percent: dailyPercent,
-                isHit: dailyHit,
-                valueText: '${formatHoursShort(todaySeconds)} / ${dailyGoalMinutes >= 60 ? '${(dailyGoalMinutes / 60).toStringAsFixed(dailyGoalMinutes % 60 == 0 ? 0 : 1)}h' : '${dailyGoalMinutes}m'}',
-                onEdit: () => _showEditDailyTargetDialog(
-                  context,
-                  focus,
-                  dailyGoalMinutes,
+            // Session History for Today
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  "Today's Sessions",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-              );
-
-              final weekCard = _buildTargetCard(
-                context: context,
-                title: 'Weekly Target',
-                subtitle: 'Week ${FocusController.weekKey(AppClock.now(), weekStart).split('_').first}',
-                progressRatio: weeklyRatio,
-                percent: weeklyPercent,
-                isHit: weeklyHit,
-                valueText: '${formatHoursShort(weeklySec)} / ${weeklyGoalHours}h',
-                onEdit: () => _showEditWeeklyTargetDialog(
-                  context,
-                  focus,
-                  weeklyGoalHours,
-                  weekStart,
+                TextButton.icon(
+                  onPressed: () => showFocusHistoryDialog(context),
+                  icon: const Icon(LucideIcons.history, size: 14),
+                  label: const Text('All History',
+                      style: TextStyle(fontSize: 12)),
                 ),
-              );
-
-              if (isNarrow) {
-                return Column(
-                  children: [
-                    todayCard,
-                    const SizedBox(height: 10),
-                    weekCard,
-                  ],
-                );
-              }
-
-              return Row(
-                children: [
-                  Expanded(child: todayCard),
-                  const SizedBox(width: 12),
-                  Expanded(child: weekCard),
-                ],
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTargetCard({
-    required BuildContext context,
-    required String title,
-    required String subtitle,
-    required double progressRatio,
-    required int percent,
-    required bool isHit,
-    required String valueText,
-    required VoidCallback onEdit,
-  }) {
-    final scheme = context.colors;
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: scheme.surface.withValues(alpha: 0.65),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: scheme.outlineVariant.withValues(alpha: 0.25),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
+              ],
+            ),
+            const SizedBox(height: 10),
+            if (todaySessions.isEmpty)
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: scheme.surface.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: scheme.outlineVariant.withValues(alpha: 0.2),
+                  ),
+                ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Icon(LucideIcons.clock,
+                        size: 28, color: context.tokens.muted),
+                    const SizedBox(height: 10),
                     Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    Text(
-                      subtitle,
+                      'No focus sessions recorded today yet',
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
                         color: context.tokens.muted,
                       ),
                     ),
                   ],
                 ),
-              ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (isHit)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                      margin: const EdgeInsets.only(right: 6),
-                      decoration: BoxDecoration(
-                        color: _lockInBright.withValues(alpha: 0.18),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Text(
-                        'HIT',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                          color: _lockInBright,
-                        ),
-                      ),
-                    ),
-                  IconButton(
-                    icon: const Icon(LucideIcons.pencil, size: 14),
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                    color: context.tokens.muted,
-                    onPressed: onEdit,
-                    tooltip: 'Edit target',
-                  ),
-                ],
-              ),
-            ],
+              )
+            else
+              for (final session in todaySessions) ...[
+                FocusSessionCard(
+                  session: session,
+                  habit: session.habitId.isEmpty
+                      ? null
+                      : habits.byId(session.habitId),
+                  onDelete: () => _deleteSession(context, focus, session),
+                ),
+                const SizedBox(height: 8),
+              ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAnalyticsTab({
+    required BuildContext context,
+    required FocusController focus,
+    required FocusStats stats,
+    required int currentWeeklyHours,
+    required SettingsController settings,
+  }) {
+    final labelPeriod = _labelPeriodIndex == 0
+        ? 'week'
+        : (_labelPeriodIndex == 1 ? 'month' : 'all');
+    final labelEntries =
+        focus.labelRankingForPeriod(labelPeriod, settings.weekStart);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 760;
+
+        // Row 1: Weekly Target card & Executive KPIs
+        final weeklyTargetCard = WeeklyFocusComparisonCard(
+          stats: stats,
+          targetHours: currentWeeklyHours,
+          accent: _lockInBright,
+          onEditTarget: () => _showEditWeeklyTargetDialog(
+            context,
+            focus,
+            currentWeeklyHours,
+            settings.weekStart,
           ),
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        );
+
+        final kpiGrid = FocusKpiGrid(
+          stats: stats,
+          accent: _lockInBright,
+        );
+
+        // Row 2: Focus Time Range Chart
+        final focusChartCard = StatCard(
+          title: context.l10n.focus_total,
+          icon: LucideIcons.chartColumn,
+          color: _lockInBright,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                valueText,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Segmented(
+                  options: [
+                    context.l10n.week,
+                    context.l10n.month,
+                    context.l10n.year,
+                  ],
+                  index: FocusRange.values.indexOf(_range),
+                  onChanged: (index) => setState(() {
+                    _range = FocusRange.values[index];
+                    _offset = 0;
+                  }),
                 ),
               ),
-              Text(
-                '$percent%',
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: _lockInBright,
+              const SizedBox(height: 12),
+              FocusPeriodBar(
+                range: _range,
+                offset: _offset,
+                stats: stats,
+                accent: _lockInBright,
+                onOffset: (value) => setState(() => _offset = value),
+              ),
+              const SizedBox(height: 14),
+              FocusRangeBars(
+                stats: stats,
+                range: _range,
+                color: _lockInBright,
+                onBarTap: (start, end, title) => showPeriodSessionsDialog(
+                  context: context,
+                  title: title,
+                  start: start,
+                  end: end,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
-              value: progressRatio,
-              minHeight: 6,
-              backgroundColor: scheme.surfaceContainerHighest,
-              valueColor: const AlwaysStoppedAnimation<Color>(_lockInBright),
+        );
+
+        // Row 3: Day of week and Time of day side by side
+        final weekdayCard = FocusWeekdayAveragesCard(
+          focus: focus,
+          weekStart: settings.weekStart,
+          accent: _lockInBright,
+        );
+
+        final timeOfDayCard = Column(
+          children: [
+            FocusTimeOfDayCard(
+              focus: focus,
+              weekStart: settings.weekStart,
+              accent: _lockInBright,
+            ),
+            const SizedBox(height: 16),
+            ProductiveTimeCard(
+              stats: stats,
+              accent: _lockInBright,
+            ),
+          ],
+        );
+
+        // Row 4: Weekly Timeline & Focused on (by label)
+        final timelineCard = WeeklyContinuousTimeline(
+          sessions: focus.sessions,
+          accent: _lockInBright,
+        );
+
+        final scheme = context.colors;
+        final focusedOnCard = Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: scheme.surface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: scheme.outlineVariant.withValues(alpha: 0.3),
             ),
           ),
-        ],
-      ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              LayoutBuilder(
+                builder: (ctx, c) {
+                  final isCompact = c.maxWidth < 340;
+                  if (isCompact) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Focused on',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Segmented(
+                          options: const ['Week', 'Month', 'All Time'],
+                          index: _labelPeriodIndex,
+                          onChanged: (idx) =>
+                              setState(() => _labelPeriodIndex = idx),
+                        ),
+                      ],
+                    );
+                  }
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Focused on',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      Segmented(
+                        options: const ['Week', 'Month', 'All Time'],
+                        index: _labelPeriodIndex,
+                        onChanged: (idx) =>
+                            setState(() => _labelPeriodIndex = idx),
+                      ),
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+              if (labelEntries.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: Text(
+                      'No tag data for this period',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: context.tokens.muted,
+                      ),
+                    ),
+                  ),
+                )
+              else
+                HabitRanking(
+                  entries: [
+                    for (final entry in labelEntries.take(8))
+                      (
+                        name: entry.key,
+                        color: focus.colorForLabel(entry.key),
+                        count: entry.value,
+                      ),
+                  ],
+                  labelWidth: 140,
+                  format: formatHoursShort,
+                ),
+            ],
+          ),
+        );
+
+        // Row 5: Activity heatmap full row
+        final heatmapCard = StatCard(
+          title: 'Activity Map',
+          icon: LucideIcons.layoutGrid,
+          color: _lockInBright,
+          child: FocusActivityMap(
+            sessions: focus.sessions,
+            color: _lockInBright,
+          ),
+        );
+
+        return Column(
+          children: [
+            // Row 1: Weekly Target + KPIs
+            if (isWide)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: weeklyTargetCard),
+                  const SizedBox(width: 16),
+                  Expanded(child: kpiGrid),
+                ],
+              )
+            else ...[
+              weeklyTargetCard,
+              const SizedBox(height: 16),
+              kpiGrid,
+            ],
+            const SizedBox(height: 16),
+
+            // Row 2: Focus time charts
+            focusChartCard,
+            const SizedBox(height: 16),
+
+            // Row 3: Day of week and Time of day side by side
+            if (isWide)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: weekdayCard),
+                  const SizedBox(width: 16),
+                  Expanded(child: timeOfDayCard),
+                ],
+              )
+            else ...[
+              weekdayCard,
+              const SizedBox(height: 16),
+              timeOfDayCard,
+            ],
+            const SizedBox(height: 16),
+
+            // Row 4: Weekly Timeline and Focused on side by side
+            if (isWide)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: timelineCard),
+                  const SizedBox(width: 16),
+                  Expanded(child: focusedOnCard),
+                ],
+              )
+            else ...[
+              timelineCard,
+              const SizedBox(height: 16),
+              focusedOnCard,
+            ],
+            const SizedBox(height: 16),
+
+            // Row 5: Activity heatmap full row
+            heatmapCard,
+          ],
+        );
+      },
     );
   }
 }

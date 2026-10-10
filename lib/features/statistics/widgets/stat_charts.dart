@@ -43,6 +43,7 @@ class ValueBars extends StatelessWidget {
     this.height = 150,
     this.barWidth = 12,
     this.goal,
+    this.onBarTap,
   });
 
   final List<double> values;
@@ -53,6 +54,7 @@ class ValueBars extends StatelessWidget {
   final double height;
   final double barWidth;
   final double? goal;
+  final void Function(int index)? onBarTap;
 
   @override
   Widget build(BuildContext context) {
@@ -89,6 +91,13 @@ class ValueBars extends StatelessWidget {
             ],
           ),
           barTouchData: BarTouchData(
+            touchCallback: (event, response) {
+              if (onBarTap != null &&
+                  event is FlTapUpEvent &&
+                  response?.spot != null) {
+                onBarTap!(response!.spot!.touchedBarGroupIndex);
+              }
+            },
             touchTooltipData: BarTouchTooltipData(
               getTooltipColor: (_) => context.colors.surfaceContainerHighest,
               getTooltipItem: (group, _, rod, __) => BarTooltipItem(
@@ -158,10 +167,16 @@ class ValueBars extends StatelessWidget {
 }
 
 class HabitRanking extends StatefulWidget {
-  const HabitRanking({super.key, required this.entries, this.format});
+  const HabitRanking({
+    super.key,
+    required this.entries,
+    this.format,
+    this.labelWidth = 130,
+  });
 
   final List<({String name, Color color, int count})> entries;
   final String Function(int value)? format;
+  final double labelWidth;
 
   @override
   State<HabitRanking> createState() => _HabitRankingState();
@@ -202,7 +217,7 @@ class _HabitRankingState extends State<HabitRanking>
             child: Row(
               children: [
                 SizedBox(
-                  width: 92,
+                  width: widget.labelWidth,
                   child: Text(
                     entries[i].name,
                     maxLines: 1,
