@@ -87,89 +87,82 @@ class FocusSessionCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Flexible(
                       child: Text(
-                        title,
+                        '$durationStr  \u2022  $title',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14.5,
                           fontWeight: FontWeight.w700,
+                          color: scheme.onSurface,
                         ),
+                      ),
+                    ),
+                    if (displayTags.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Wrap(
+                          spacing: 4,
+                          runSpacing: 4,
+                          children: [
+                            for (final tag in displayTags)
+                              Builder(
+                                builder: (context) {
+                                  final tagColor = focus.colorForLabel(tag);
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 1.5,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: tagColor.withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(
+                                        color: tagColor.withValues(alpha: 0.3),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      tag,
+                                      style: TextStyle(
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: tagColor,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 3),
+                Row(
+                  children: [
+                    Icon(
+                      session.completed ? LucideIcons.circleCheck : LucideIcons.flag,
+                      size: 13,
+                      color: session.completed ? context.tokens.success : context.tokens.muted,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      timeRange,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w500,
+                        color: context.tokens.muted,
+                        fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
                   ],
                 ),
-                if (displayTags.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Wrap(
-                    spacing: 4,
-                    runSpacing: 4,
-                    children: [
-                      for (final tag in displayTags)
-                        Builder(
-                          builder: (context) {
-                            final tagColor = focus.colorForLabel(tag);
-                            return Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 1.5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: tagColor.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(
-                                  color: tagColor.withValues(alpha: 0.3),
-                                ),
-                              ),
-                              child: Text(
-                                tag,
-                                style: TextStyle(
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: tagColor,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                    ],
-                  ),
-                ],
-                const SizedBox(height: 3),
-                Text(
-                  timeRange,
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w500,
-                    color: context.tokens.muted,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
-                ),
               ],
             ),
-          ),
-          const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                durationStr,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                  color: habitColor,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
-              ),
-              const SizedBox(height: 2),
-              Icon(
-                session.completed ? LucideIcons.circleCheck : LucideIcons.flag,
-                size: 14,
-                color: session.completed ? context.tokens.success : context.tokens.muted,
-              ),
-            ],
           ),
           if (onDelete != null) ...[
             const SizedBox(width: 6),

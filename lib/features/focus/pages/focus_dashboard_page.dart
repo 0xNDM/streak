@@ -434,8 +434,8 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(flex: 5, child: heroCard),
-                  const SizedBox(width: 28),
-                  Expanded(flex: 7, child: sessionsColumn),
+                  const SizedBox(width: 48),
+                  Expanded(flex: 6, child: sessionsColumn),
                 ],
               )
             else ...[
@@ -449,10 +449,15 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
               color: context.colors.outlineVariant.withValues(alpha: 0.15),
             ),
             const SizedBox(height: 20),
-            WeeklyContinuousTimeline(
-              sessions: focus.sessions,
-              accent: _lockInBright,
-              weekStart: settings.weekStart,
+            Center(
+              child: FractionallySizedBox(
+                widthFactor: 0.6,
+                child: WeeklyContinuousTimeline(
+                  sessions: focus.sessions,
+                  accent: _lockInBright,
+                  weekStart: settings.weekStart,
+                ),
+              ),
             ),
           ],
         );
@@ -901,6 +906,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
         // Row 4: Focused on (by label)
         final focusedOnCard = Container(
           padding: const EdgeInsets.all(20),
+          clipBehavior: Clip.hardEdge,
           decoration: BoxDecoration(
             color: scheme.surfaceContainerHighest.withValues(alpha: 0.45),
             borderRadius: BorderRadius.circular(16),
@@ -956,41 +962,20 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  if (labelEntries.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 24),
-                      child: Center(
-                        child: Text(
-                          'No tag data for this period',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: context.tokens.muted,
-                          ),
-                        ),
-                      ),
-                    )
-                  else
-                    HabitRanking(
-                      entries: [
-                        for (final entry in labelEntries.take(8))
-                          (
-                            name: entry.key,
-                            color: focus.colorForLabel(entry.key),
-                            count: entry.value,
-                          ),
-                      ],
-                      labelWidth: 140,
-                      format: formatHoursShort,
-                    ),
+                  FocusTagCloud(
+                    entries: labelEntries,
+                    focus: focus,
+                  ),
                 ],
               ),
             ),
           ),
         );
 
-        // Row 5: Activity heatmap — flat container, FocusActivityMap fills width
+        // Row 5: Activity heatmap - flat container, FocusActivityMap fills width
         final heatmapCard = Container(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+          clipBehavior: Clip.hardEdge,
           decoration: BoxDecoration(
             color: scheme.surfaceContainerHighest.withValues(alpha: 0.45),
             borderRadius: BorderRadius.circular(16),
@@ -1011,6 +996,8 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
           ),
         );
 
+        // Add clipBehavior to Row 1 and 2 cards to prevent overflow
+        
         return Column(
           children: [
             // Row 1: Weekly Target + KPIs (IntrinsicHeight so both match)
@@ -1019,9 +1006,21 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Expanded(child: weeklyTargetCard),
+                    Expanded(
+                      child: Container(
+                        clipBehavior: Clip.hardEdge,
+                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
+                        child: weeklyTargetCard,
+                      ),
+                    ),
                     const SizedBox(width: 16),
-                    Expanded(child: kpiGrid),
+                    Expanded(
+                      child: Container(
+                        clipBehavior: Clip.hardEdge,
+                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
+                        child: kpiGrid,
+                      ),
+                    ),
                   ],
                 ),
               )
@@ -1033,7 +1032,11 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
             const SizedBox(height: 16),
 
             // Row 2: Focus time chart (flat, no Card/scrollbar artifact)
-            focusChartCard,
+            Container(
+              clipBehavior: Clip.hardEdge,
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
+              child: focusChartCard,
+            ),
             const SizedBox(height: 16),
 
             // Row 3: Day of week and Time of day (IntrinsicHeight for equal height)
@@ -1042,9 +1045,21 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Expanded(child: weekdayCard),
+                    Expanded(
+                      child: Container(
+                        clipBehavior: Clip.hardEdge,
+                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
+                        child: weekdayCard,
+                      ),
+                    ),
                     const SizedBox(width: 16),
-                    Expanded(child: timeOfDayCard),
+                    Expanded(
+                      child: Container(
+                        clipBehavior: Clip.hardEdge,
+                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
+                        child: timeOfDayCard,
+                      ),
+                    ),
                   ],
                 ),
               )
@@ -1055,12 +1070,12 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
             ],
             const SizedBox(height: 16),
 
-            // Row 4: Focused on (by label), full width
-            focusedOnCard,
+            // Row 4: Activity heatmap (now above focused on)
+            heatmapCard,
             const SizedBox(height: 16),
 
-            // Row 5: Activity heatmap (fills full card width, no horizontal scroll)
-            heatmapCard,
+            // Row 5: Focused on (by label), full width
+            focusedOnCard,
           ],
         );
       },

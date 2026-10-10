@@ -626,3 +626,87 @@ class ProductiveTimeCard extends StatelessWidget {
     );
   }
 }
+
+
+/// Renders a proportional tag cloud for focus labels based on their total duration.
+class FocusTagCloud extends StatelessWidget {
+  const FocusTagCloud({
+    super.key,
+    required this.entries,
+    required this.focus,
+  });
+
+  final List<MapEntry<String, int>> entries;
+  final FocusController focus;
+
+  @override
+  Widget build(BuildContext context) {
+    if (entries.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        child: Center(
+          child: Text(
+            'No tag data for this period',
+            style: TextStyle(
+              fontSize: 13,
+              color: context.tokens.muted,
+            ),
+          ),
+        ),
+      );
+    }
+
+    final maxCount = entries.fold<int>(0, (max, e) => e.value > max ? e.value : max);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Center(
+        child: Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          alignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            for (final entry in entries)
+              Builder(
+                builder: (context) {
+                  final share = maxCount == 0 ? 0.0 : (entry.value / maxCount).clamp(0.0, 1.0);
+                  // Scale from 1.0 (min) to 1.8 (max)
+                  final scale = 1.0 + (share * 0.8);
+                  
+                  final tagColor = focus.colorForLabel(entry.key);
+                  final durationStr = formatHoursShort(entry.value);
+
+                  return Tooltip(
+                    message: durationStr,
+                    waitDuration: const Duration(milliseconds: 300),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 10 * scale,
+                        vertical: 4 * scale,
+                      ),
+                      decoration: BoxDecoration(
+                        color: tagColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(16 * scale),
+                        border: Border.all(
+                          color: tagColor.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Text(
+                        entry.key,
+                        style: TextStyle(
+                          fontSize: 12 * scale,
+                          fontWeight: FontWeight.w800,
+                          color: tagColor,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
