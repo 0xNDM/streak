@@ -12,47 +12,47 @@
 
 <div align="center">
 
-### Streak
+### Streak: Focus Desktop Edition
 
 <img src="assets/icon.svg" width="72" alt="Streak logo" />
 
-### A minimal, private, ad-free habit tracker
+### An executive, private habit tracker & focus workspace
 
-Log a habit in a single tap, keep your momentum, and watch your streaks grow.
+Log habits with one tap, track deep work sessions, and master your daily focus momentum.
 
 <br/>
 
 <p>
   <img alt="Flutter" src="https://img.shields.io/badge/Flutter-02569B?style=flat&logo=flutter&logoColor=white" />
   <img alt="Dart" src="https://img.shields.io/badge/Dart-0175C2?style=flat&logo=dart&logoColor=white" />
-  <img alt="Android" src="https://img.shields.io/badge/Android-3DDC84?style=flat&logo=android&logoColor=white" />
+  <img alt="Windows Desktop" src="https://img.shields.io/badge/Windows-0078D6?style=flat&logo=windows&logoColor=white" />
   <img alt="License GPLv3" src="https://img.shields.io/badge/License-GPLv3-7C3AED?style=flat&logo=gnu&logoColor=white" />
-  <img alt="No ads, no tracking" src="https://img.shields.io/badge/No%20ads%20%C2%B7%20No%20tracking-22C55E?style=flat&logo=shield&logoColor=white" />
-  <img alt="Downloads" src="https://img.shields.io/github/downloads/InlitX/streak/total?style=flat&logo=github&logoColor=white&label=Downloads&color=7C3AED" />
+  <img alt="100% Offline & Private" src="https://img.shields.io/badge/100%25%20Offline%20%C2%B7%20No%20tracking-22C55E?style=flat&logo=shield&logoColor=white" />
 </p>
-<a href="https://trendshift.io/repositories/79460?utm_source=repository-badge&amp;utm_medium=badge&amp;utm_campaign=badge-repository-79460" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/repositories/79460" alt="InlitX%2Fstreak | Trendshift" width="250" height="55"/></a>
 
 <br/>
 
-<a href="https://f-droid.org/packages/com.streak.app/"><img alt="Get it on F-Droid" src="assets/badges/get-it-on-fdroid.png" height="60" /></a>
+<a href="https://github.com/0xNDM/streak/releases"><img alt="Download Windows Installer" src="https://img.shields.io/badge/Download-Windows%20x64%20Installer-0078D6?style=for-the-badge&logo=windows&logoColor=white" height="38" /></a>
 &nbsp;
-<a href="https://apt.izzysoft.de/fdroid/index/apk/com.streak.app?repo=main"><img alt="Get it on IzzyOnDroid" src="assets/badges/get-it-on-izzyondroid.png" height="60" /></a>
-&nbsp;
-<a href="https://www.openapk.net/streak/com.streak.app/"><img alt="Get it on OpenAPK" src="assets/badges/get-it-on-openapk.png" height="60" /></a>
-&nbsp;
-<a href="https://github.com/InlitX/streak/releases"><img alt="Get it on GitHub" src="assets/badges/get-it-on-github.png" height="60" /></a>
-&nbsp;
-<a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.streak.app%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2FInlitX%2Fstreak%22%2C%22author%22%3A%22InlitX%22%2C%22name%22%3A%22Streak%22%2C%22preferredApkIndex%22%3A0%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Afalse%2C%5C%22fallbackToOlderReleases%5C%22%3Atrue%2C%5C%22filterReleaseTitlesByRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22filterReleaseNotesByRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22verifyLatestTag%5C%22%3Afalse%2C%5C%22dontSortReleasesList%5C%22%3Afalse%2C%5C%22useLatestAssetDateAsReleaseDate%5C%22%3Afalse%2C%5C%22trackOnly%5C%22%3Afalse%2C%5C%22versionExtractionRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22matchGroupToUse%5C%22%3A%5C%22%5C%22%2C%5C%22versionDetection%5C%22%3Atrue%2C%5C%22releaseDateAsVersion%5C%22%3Afalse%2C%5C%22useVersionCodeAsOSVersion%5C%22%3Afalse%2C%5C%22apkFilterRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22invertAPKFilter%5C%22%3Afalse%2C%5C%22autoApkFilterByArch%5C%22%3Atrue%2C%5C%22appName%5C%22%3A%5C%22%5C%22%2C%5C%22shizukuPretendToBeGooglePlay%5C%22%3Afalse%2C%5C%22allowInsecure%5C%22%3Afalse%2C%5C%22exemptFromBackgroundUpdates%5C%22%3Afalse%2C%5C%22skipUpdateNotifications%5C%22%3Afalse%2C%5C%22about%5C%22%3A%5C%22Streak%20is%20an%20open%20source%20habit%20tracker%20for%20Android.%20Build%20habits%20with%20one%20tap%2C%20watch%20your%20progress%20grow%2C%20and%20keep%20everything%20on%20your%20device.%20No%20accounts%2C%20no%20ads%2C%20no%20tracking.%5C%22%7D%22%2C%22overrideSource%22%3Anull%7D"><img alt="Get it on Obtainium" src="assets/badges/get-it-on-obtainium.png" height="60" /></a>
+<a href="fork.md"><img alt="Fork Documentation" src="https://img.shields.io/badge/Documentation-Fork%20Divergence%20(fork.md)-7C3AED?style=for-the-badge&logo=markdown&logoColor=white" height="38" /></a>
+
+<br/>
+<br/>
+
+> [!IMPORTANT]
+> **Streak: Focus Desktop Edition** is a specialized fork of [InlitX/streak](https://github.com/InlitX/streak) maintained by [0xNDM](https://github.com/0xNDM/streak).
+> It transforms Streak into an **executive, focus-first desktop productivity suite on Windows**—featuring an executive Focus Dashboard, interactive timelines, Last.fm-style bubble cloud analytics, multi-tag tracking, independent daily/weekly targets, and desktop modal ergonomics—while preserving 100% of upstream's habit tracking capabilities and database compatibility.
+>
+> 📖 **Read the full architectural divergence doc:** [fork.md](fork.md)
 
 <br/>
 
 <sub>
+  <a href="#-focus-desktop-edition-whats-new">What's New</a> ·
   <a href="#features">Features</a> ·
-  <a href="#coming-from-another-app">Import</a> ·
   <a href="#download">Download</a> ·
   <a href="#privacy">Privacy</a> ·
-  <a href="#translations">Translations</a> ·
-  <a href="#support">Support</a>
+  <a href="fork.md">Fork Docs</a>
 </sub>
 
 </div>
@@ -84,6 +84,44 @@ many habits as you want, log them with one tap, and watch the grid, the streak
 counters and the statistics fill up.
 
 Everything stays on your device. No account, no ads, nothing to sync.
+
+---
+
+## ✨ Focus Desktop Edition: What's New
+
+This fork reimagines the desktop experience on Windows with a modern, focus-first productivity suite:
+
+- 🎯 **Executive Focus Command Center**: Windows launches directly into the Focus dashboard, featuring a lifetime metrics header strip (*Locked In* total hours, active days count, day streak) and frosted pill tabs (`Today` & `Analytics`).
+- ⏱️ **Redesigned Today Dashboard**:
+  - **Bold Hero Card**: Large 56px timer typography, daily goal progress bar, goal "HIT" badge, and real-time active session banner.
+  - **Curated Session History**: Displays your 3 latest sessions with localized start-end times, custom color-coded tag pills, and instant rollback deletion.
+  - **24-Hour Continuous Timeline**: Compact, centered weekly timeline across 7 daily tracks with interactive hover tooltips and week-by-week navigation.
+- 📊 **Executive Analytics Suite**:
+  - **Weekly Target Comparison**: Progress bar against weekly target, remaining hours, and week-over-week performance delta (`+X% vs last week`).
+  - **Compact 2x2 KPI Grid**: Longest session, Best focus day (with date), This Month total hours, and Longest Streak.
+  - **Interactive Range Chart**: Tap any bar in Week, Month, or Year views to inspect all sessions in a dedicated modal.
+  - **Day-of-Week & Time-of-Day Breakdowns**: Side-by-side equal-height analysis comparing All-Time vs. This-Month weekday averages, plus Morning/Afternoon/Evening/Night distribution.
+  - **Auto-Fitting Annual Heatmap**: GitHub-style full-year activity heatmap with dynamic responsive cell sizing (no horizontal scrollbars).
+- 🫧 **Interactive Proportional Bubble Cloud**:
+  - Last.fm-style bubble chart showcasing your **Top 10 focus labels**.
+  - Bubble radius scales proportionally with the square root of time spent ($\sqrt{\text{share}}$, true area scaling).
+  - Responsive bubbles scale from 54px up to ~190px.
+  - Smart text containment: never cuts single words across lines, scales down smoothly, and stacks two-word labels into two lines.
+  - Interactive hover tooltips reveal exact duration and label name.
+- 🏷️ **Multi-Tag Sessions & Label Management**:
+  - Tag sessions with multiple labels (`tags`), backwards compatible with legacy single labels.
+  - Rename labels retroactively across your entire historical database in Hive.
+  - Hex code color picker for custom palette selection.
+- 🎯 **Independent Daily & Weekly Targets**:
+  - Set a custom daily target for today without modifying past or future days.
+  - Adjust weekly targets independently per week.
+- ⚡ **Auto-Complete & Desktop Dialog Ergonomics**:
+  - Countdown timers automatically save, celebrate, and dismiss at 00:00 without manual stop prompts.
+  - Guarded against double-crediting habit time across auto-completes and manual stops.
+  - Replaced full-page mobile pushes with centered, keyboard-friendly desktop modal dialogs (`FocusSetupDialog`, `HabitFormDialog`, `HabitDetailsDialog`, etc.).
+- 🔒 **100% Private, Offline & Upstream Compatible**:
+  - Zero network requests, zero telemetry, zero accounts.
+  - Fully compatible with upstream Streak backup archives (`.zip`) and mobile database schemas.
 
 ---
 
@@ -208,15 +246,28 @@ it installs Streak and keeps it updated for you. It's also on
 [**IzzyOnDroid**](https://apt.izzysoft.de/fdroid/index/apk/com.streak.app?repo=main)
 and [**OpenAPK**](https://www.openapk.net/streak/com.streak.app/).
 
-Streak runs on Android, Windows and Linux:
+Streak runs on Windows, Android and Linux:
 
-| Platform | Status |
-|----------|--------|
-| Android | ✅ Supported |
-| Windows | ✅ Supported |
-| Linux | ✅ Supported |
-| iOS | 🚧 In progress |
-| macOS | 📅 Planned |
+| Platform | Edition / Status | Download |
+|----------|------------------|----------|
+| **Windows** | 🚀 **Focus Desktop Edition** | [**Windows x64 Installer**](https://github.com/0xNDM/streak/releases) |
+| Android | ✅ Supported | [F-Droid](https://f-droid.org/packages/com.streak.app/) · [GitHub](https://github.com/InlitX/streak/releases) |
+| Linux | ✅ Supported | [Releases](https://github.com/InlitX/streak/releases) |
+| iOS | 🚧 In progress | — |
+| macOS | 📅 Planned | — |
+
+<details open>
+<summary><b>Windows (Focus Desktop Edition)</b></summary>
+
+Download the standalone installer directly from the [**0xNDM/streak Releases**](https://github.com/0xNDM/streak/releases) page:
+
+| File | For |
+|------|-----|
+| `Streak-windows-x64-setup.exe` | Windows 10/11 64-bit installer with desktop shortcuts and auto-updates |
+
+For detailed technical notes on all differences between this fork and upstream, see [**fork.md**](fork.md).
+
+</details>
 
 <details>
 <summary><b>Linux</b></summary>

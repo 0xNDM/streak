@@ -2,142 +2,177 @@
 
 > **Upstream Repository**: [InlitX/streak](https://github.com/InlitX/streak)  
 > **Fork Repository**: [0xNDM/streak](https://github.com/0xNDM/streak)  
-> **Target Focus**: Windows Desktop Productivity & Focus Management  
+> **Target Focus**: Windows Desktop Productivity & Focus Management (Focus Desktop Edition)  
 
 ---
 
 ## 1. Overview & Motivation
 
-Streak is originally an offline-first, private habit tracker built with Flutter for Android, iOS, Linux, and Windows. In upstream Streak, **Focus** (a Pomodoro and countdown timer) exists primarily as a secondary utility launched via an app bar pill or modal sheet.
+**Streak** is originally an offline-first, private habit tracker built with Flutter for Android, Windows, and Linux. In upstream Streak, **Focus** (a Pomodoro countdown/stopwatch timer) exists primarily as a secondary utility launched via an app bar pill or modal sheet, while the app revolves primarily around the habit checklist.
 
-This fork transforms Streak into a **focus-first desktop app on Windows**, while preserving 100% of its habit-tracking capabilities, database schema, and cross-platform architecture.
+This fork reimagines Streak as an **executive, focus-first desktop productivity suite on Windows**, while preserving 100% of its habit-tracking capabilities, database schema, and cross-platform architecture. It elevates Focus to the central operational dashboard, introducing executive analytics, interactive timelines, multi-label tagging, proportional bubble clouds, and desktop-native dialog ergonomics.
 
 ---
 
-## 2. Platform Divergence: Windows vs. Other Platforms
+## 2. Platform Divergence Matrix
 
-To avoid disrupting mobile and other desktop platforms, all primary navigation and UI layout shifts are scoped specifically to **Windows Desktop** (`Platform.isWindows`).
+To avoid disrupting mobile and other desktop platforms, primary navigation and UI layout shifts are intelligently scoped to **Windows Desktop** (`Platform.isWindows`).
 
 ```
-+--------------------------------------------------------------------------------------------------+
-|                                     Platform Divergence Matrix                                   |
-+------------------------------+----------------------------------+--------------------------------+
-| Feature                      | Windows Desktop (This Fork)      | Other Platforms (Android/iOS)  |
-+------------------------------+----------------------------------+--------------------------------+
-| Primary Entrypoint           | Focus tab (Top of left rail)     | Today tab (Habits)             |
-| Default Launch Screen        | Focus Dashboard                  | Today (Habits)                 |
-| Left Rail Order              | Focus -> Today -> Todos -> ...   | Today -> Todos -> Plan -> ...  |
-| App Bar FocusPill            | Only visible when timer RUNNING  | Always visible in header       |
-| Start Session Action         | Opens FocusSetup in right pane   | Opens full-screen or modal     |
-| Session Management           | History list with Delete action  | History in nested settings/sub |
-| Timer Completion             | Auto-ends, saves, & dismisses    | Manual completion stop dialog  |
-+------------------------------+----------------------------------+--------------------------------+
++---------------------------------------------------------------------------------------------------------------+
+|                                          Platform Divergence Matrix                                           |
++------------------------------+-------------------------------------------+------------------------------------+
+| Feature                      | Windows Desktop (This Fork)               | Upstream / Other Platforms         |
++------------------------------+-------------------------------------------+------------------------------------+
+| Primary Entrypoint           | Focus tab (top of left navigation rail)   | Today tab (Habits)                 |
+| Default Launch Screen        | Executive Focus Dashboard                 | Habit Checklist (Today)            |
+| Left Rail Order              | Focus -> Habit -> Todos -> Plan -> ...    | Today -> Todos -> Plan -> ...      |
+| Navigation Tab Label         | Habits renamed to "Habit"                 | Named "Today"                      |
+| App Bar FocusPill            | Only visible in header when timer RUNS    | Always visible in header           |
+| Start Session Action         | Modal Dialog (`FocusSetupDialog`)         | Full-screen or modal sheet         |
+| Session Management           | History with delete & rollback confirm    | History in nested settings/dialog  |
+| Timer Completion             | Auto-ends at 00:00, saves, celebratory    | Manual completion stop dialog      |
+| Top-level Sub-Navigation     | Flat PillTabs (Today vs. Analytics)       | None (single view)                 |
+| Multi-Tag Focus              | Multiple labels/tags with color pills     | Single label string                |
+| Focus Targets                | Independent per-day and per-week targets  | Global static settings only        |
+| Analytics Visualizations     | Bubble Cloud, 24h Timeline, Heatmap, KPIs | Standard period bar charts         |
+| Desktop Ergonomics           | Centered modal dialogs for setup & habits | Full-page navigation pushes        |
++------------------------------+-------------------------------------------+------------------------------------+
 ```
 
-### Detailed Divergence Points
+---
 
-#### A. Left Navigation Rail (`lib/app/home_shell.dart`)
-- **Windows**:
-  - `_Tab.focus` is added as the top-most item in the navigation rail, above `_Tab.today`.
-  - When the app launches, the initial default selected tab is `_Tab.focus`.
-  - Pressing `Escape` or the back action from other tabs navigates back to `_Tab.focus`.
-  - When viewing the Focus tab, the right detail sidebar displays a dedicated Focus placeholder instead of the generic habit placeholder.
-- **Android, iOS, macOS, Linux, Web**:
-  - Bottom navigation bar and side rails retain `_Tab.today` as the first and default item.
-  - Zero disruption to mobile layouts or upstream behavior.
+## 3. Detailed Architectural & UI Divergence
 
-#### B. Header Focus Pill in `HomePage` (`lib/features/habits/pages/home_page.dart`)
-- **Windows**:
-  - The header `FocusPill` only appears when a session is actively running (`focus.isActive == true`). When idle, the header is uncluttered because Focus is already prominently featured in the navigation rail.
-- **Other Platforms**:
-  - Unconditionally displays the `FocusPill` in the app bar as in upstream.
+### 3.1 Executive Focus Dashboard (`FocusDashboardPage`)
+Located in `lib/features/focus/pages/focus_dashboard_page.dart`, the Focus Dashboard serves as the command center for Windows desktop. The page features a lifetime metrics header strip and dual sub-tabs (`Today` and `Analytics`) switchable via frosted `PillTabs` in the AppBar:
+
+#### A. Lifetime Metrics Strip (`FocusDashboardHeader`)
+- Always visible at the top of the dashboard.
+- Displays three core lifetime statistics formatted with bold 30px tabular typography:
+  1. **LOCKED IN**: Total focus hours accumulated across all historical sessions.
+  2. **ACTIVE DAYS**: Count of unique calendar days on which focus sessions were logged.
+  3. **DAY STREAK**: Current unbroken daily focus streak.
+
+#### B. Sub-Tab: Today
+A responsive 2-column layout (constrained to a maximum width of 1300px with a 48px central gap):
+1. **Today's Focus Time Hero Card (`_buildHeroCard`)** (Left Column, `flex: 5`):
+   - Flat surface container (`surfaceContainerHighest` with 0.45 opacity).
+   - "TODAY'S FOCUS TIME" header with goal percentage and "HIT" celebration badge when goal is reached.
+   - Large 56px tabular figures showing total time focused today (e.g. `2h 15m`).
+   - Daily progress bar and comparison against daily target (e.g. `2.2h / 3h`).
+   - Quick-edit pencil button opening the **Independent Daily Target Dialog**.
+   - Prominent **Start Session** / **Active Session** button with live status icons (play, flame, check).
+   - Real-time active session banner with pause/resume state and quick navigation to the active timer.
+2. **Today's Sessions Column (`_buildSessionsColumn`)** (Right Column, `flex: 4` + `flex: 2` right spacer):
+   - Intentionally narrowed with an empty right spacer for visual balance and desktop readability.
+   - Shows the **3 most recent completed sessions** for the day, with a session count badge.
+   - "See all X sessions" button opening a dedicated popup modal (`showPeriodSessionsDialog`).
+   - "All History" button opening the full date-grouped historical archive modal (`showFocusHistoryDialog`).
+3. **Session Cards (`FocusSessionCard`)**:
+   - Displays duration (`1h`, `45m`) directly alongside the session's tags.
+   - If a habit is attached, displays its icon glyph and a colored habit pill.
+   - All session labels/tags are rendered as distinct, color-coded pills using `focus.colorForLabel(tag)`.
+   - If no habit or tag exists, displays *only* the duration (clean, no generic "Focus" fallback text).
+   - Displays localized start-end times (`DateFormat.jm`, e.g., `9:00 AM – 10:00 AM`) and completion badge.
+   - Inline trash icon button that prompts confirmation before deleting and rolling back credited habit time.
+4. **Weekly Continuous Timeline (`WeeklyContinuousTimeline`)**:
+   - Centered across the bottom of both columns, constrained to **60% width**.
+   - Displays 7 horizontal daily tracks spanning a 24-hour time ruler (`00:00` to `24:00`).
+   - Visualizes exact session start times and durations as color-coded pills.
+   - Rich hover tooltips display habit title, tags, exact time range, and duration.
+   - Week offset controls allow stepping backward and forward through past weeks.
+
+#### C. Sub-Tab: Analytics
+A structured, flat analytical dashboard providing deep productivity insights:
+1. **Row 1: Weekly Target Comparison & 2×2 KPI Grid**:
+   - **Weekly Focus Target Card (`WeeklyFocusComparisonCard`)**: Left column. Compares weekly focus time against the weekly target with progress bar, hours remaining, week-over-week percentage change (`+X% vs last week`), and a pencil button to edit this week's target.
+   - **Focus KPI Grid (`FocusKpiGrid`)**: Right column. Compact 2×2 metric grid displaying:
+     - *Longest Session* (e.g. `2h 30m`)
+     - *Best Focus Day* with date (e.g. `4.5h (Oct 8)`)
+     - *This Month* total focus time
+     - *Longest Streak* in days
+2. **Row 2: Focus Time Range Chart**:
+   - Flat container with Week, Month, and Year segment toggles.
+   - Interactive bar chart (`FocusPeriodBar` & `FocusRangeBars`).
+   - Tapping any bar opens `showPeriodSessionsDialog` showing all individual sessions contributing to that bar.
+3. **Row 3: Day of Week & Time of Day Averages**:
+   - Equal-height side-by-side cards utilizing `IntrinsicHeight`.
+   - **Weekday Averages (`FocusWeekdayAveragesCard`)**: Compares All-Time vs. This-Month average focus time per day of the week.
+   - **Time of Day Breakdown (`FocusTimeOfDayCard`)**: Distributes focus time across 4 local periods: Morning (05:00–12:00), Afternoon (12:00–17:00), Evening (17:00–22:00), and Night (22:00–05:00).
+4. **Row 4: Annual Activity Map (`FocusActivityMap`)**:
+   - Full-width GitHub-style activity heatmap mapped to daily focus minutes.
+   - Responsive cell sizing calculated dynamically via `LayoutBuilder` so the full year renders cleanly without horizontal scrollbars.
+5. **Row 5: Focused On Bubble Cloud (`FocusTagCloud`)**:
+   - Displays the **Top 10 labels** for the selected timeframe (Week, Month, All Time).
+   - Proportional **Bubble Chart** (Last.fm style): Each label is rendered as a circle where the circle's radius scales with the square root of its duration ($\sqrt{\text{share}}$, true area scaling).
+   - Bubbles scale from a readable minimum of `54px` up to `~190px` for dominant tags.
+   - Smart text fitting: Words are never cut mid-word across lines; font sizes scale down automatically inside an inner safe container (`FittedBox`); 2-word labels stack cleanly onto 2 lines.
+   - Hover tooltips display total duration and label name.
 
 ---
 
-## 3. New Components & Pages
+### 3.2 Multi-Tag Focus & Label Management
 
-### 1. `FocusDashboardPage` (`lib/features/focus/pages/focus_dashboard_page.dart`)
-The main desktop dashboard rendered when the Focus tab is selected. Features two sub-tabs adapted to the active theme style (Express, Classic, or Minimal):
-
-#### Sub-tab: **Today**
-1. **Focus Today Hero Card (`FocusTodayHero`)**:
-   - Stylized large typography showing total focused hours/minutes today (e.g. `2h 30m`, `45m`, `0m`).
-   - Daily focus goal progress bar and percentage against `settings.focusDailyGoal`.
-   - Live running session indicator displaying real-time countdown, pause/running status, and quick-resume banner.
-   - Primary **Start session** / **Resume Active Session** button.
-2. **Right Sidebar Launcher**:
-   - Clicking "Start session" calls `openFocus(context)`, mounting `FocusSetupPage` directly into the Windows split scaffold's right detail pane (`_DetailPane`).
-3. **Today's Session History**:
-   - Shows all completed focus sessions for the current day, sorted newest first.
-   - Displays duration (e.g., `25m`, `1h 10m`).
-   - Displays localized time range from system clock (`DateFormat.jm`, e.g. `9:30 AM – 9:55 AM`).
-   - Habit association badge, color chip, custom label tags, and completion checkmark.
-4. **Session Deletion**:
-   - Each session card includes a trash icon button.
-   - Clicking trash prompts `showAppConfirmDialog`.
-   - Upon confirmation, it rolls back credited habit time via `countFocusTime(habits, focus, session, undo: true)`, removes the session ID from Hive storage, and displays a feedback snackbar.
-
-#### Sub-tab: **Details**
-1. **Metric Overview Tiles (`FocusMetricCard`)**: Week, Month, Total, and Average session duration.
-2. **Interactive Period Charts (`FocusPeriodBar` & `FocusRangeBars`)**: Interactive Week, Month, and Year focus duration bars with offset navigation.
-3. **Annual Activity Map (`FocusActivityMap`)**: Full GitHub-style annual heatmap powered by `YearHeatmap` mapped to daily focus minutes.
-4. **Distribution Rankings**: Breakdowns of focus time per habit and per custom label.
-
-### 2. Supporting Modular Widgets (`lib/features/focus/widgets/focus_dashboard_widgets.dart`)
-- `FocusTodayHero`: Hero card for today's hours, goal progress, active session badge, and start button.
-- `FocusSessionCard`: Card displaying duration, localized start-end times, habit glyph, tag, completion icon, and delete callback.
-- `FocusActivityMap`: Heatmap wrapper integrating `YearHeatmap`.
-- `FocusMetricCard`: Summary stat card for Details tab.
+- **Multi-Tag Sessions**: `FocusSession` supports `List<String> tags`, while preserving the legacy `label` field for full backwards compatibility.
+- **Label Picker (`FocusLabelPicker`)**: Allows selecting multiple tags during setup or creating new custom tags on the fly.
+- **Label Management**:
+  - Labels can be renamed with retroactive updates applied across all historical sessions in Hive.
+  - Labels can be deleted from suggestions while preserving historical records intact.
+- **Custom Hex Color Picker**: Allows inputting raw hex codes (`#RRGGBB`) in addition to preset palette swatches.
 
 ---
 
-## 4. Core Focus Engine Enhancements (Cross-Platform)
+### 3.3 Independent Daily & Weekly Targets
 
-### 1. Auto-End & Auto-Save (`lib/features/focus/state/focus_controller.dart`)
-- **Upstream Behavior**: When a standard countdown reached zero, the timer played an alert sound but remained in an open, uncompleted state until the user manually opened `FocusPage` and clicked stop/save.
-- **Fork Enhancement**:
-  - When `reachedTarget` evaluates to true on a countdown timer, a 2-second celebration window triggers, followed by `_autoEnd = Timer(const Duration(seconds: 2), () async { if (_open && reachedTarget) await stop(completed: true); });`.
-  - Automatically saves the session to Hive storage (`LocalStore.writeFocusSession`) and invokes `onRoundSaved?.call(session)`.
-  - If `FocusPage` is open, it detects `!focus.isActive`, displays an `AppSnackbar` confirming the saved duration, and dismisses itself automatically.
-  - Interacting with `pause()`, `reset()`, or `addMinute()` safely cancels the `_autoEnd` timer.
-
-### 2. Double-Crediting Prevention (`lib/features/focus/state/focus_actions.dart` & `focus_page.dart`)
-- In `FocusController.stop()`, `onRoundSaved?.call(session)` is called, which triggers `creditFocusRound(habits, focus, session)` attached in `HomeShellState`.
-- To prevent double-crediting habit time:
-  - `FocusPage._confirmStop` checks `if (focus.onRoundSaved == null)` before running manual habit crediting.
-  - `applyFocusAction` checks `if (focus.onRoundSaved != null) return;`.
-  - `countFocusTime` defends against double increments with `if (!undo && session.counted) return;`.
+- **Daily Targets**: Independent targets per day (`focus.dailyTargetFor(date)` / `focus.setDailyTarget(date, minutes)`). Allows setting a higher or lower target for today without modifying past or future day goals.
+- **Weekly Targets**: Independent targets per week (`focus.weeklyTargetFor(date)` / `focus.setWeeklyTarget(date, hours)`).
+- Quick modal dialogs allow selecting from standard presets or entering custom numbers.
 
 ---
 
-## 5. Database Schema & Persistence Guarantees
+### 3.4 Desktop Ergonomics & Modal Dialogs
 
-- **Hive Box Preservation**: All focus sessions continue to reside in Hive's standard `'focus'` box (`LocalStore._focusBox = 'focus'`).
-- **Data Compatibility**: No breaking changes were made to `FocusSession.toMap()` or `fromMap()`.
-- **Import / Export Compatibility**:
-  - Full backup archives (`.zip`) created by upstream Streak can be imported cleanly into this fork without data loss.
-  - Exports generated by this fork can be restored into upstream or other devices without migration errors.
-
----
-
-## 6. Build & CI Configuration
-
-### GitHub Actions (`.github/workflows/windows.yml`)
-- The upstream workflow is preserved with `workflow_dispatch`:
-  - **Running without a tag**: Extracts the version (`2.3.0`) from `pubspec.yaml`, builds the Windows release, packages it using Inno Setup 6.7.1, and uploads `Streak-windows-x64-setup.exe` to the workflow run's **Artifacts** section.
-  - **Running with a tag (e.g. `v2.3.0`)**: Builds the installer and publishes it directly to GitHub **Releases** (`https://github.com/0xNDM/streak/releases`).
+Instead of mobile-oriented full-page pushes, desktop interactions are refactored into centered, keyboard-accessible dialogs:
+- **`FocusSetupDialog`**: Quick modal for configuring duration (presets: 30m, 1h, 2h, custom), habit association, and tags before starting a session.
+- **`HabitFormDialog` & `HabitDetailsDialog`**: Desktop modal dialogs for creating, editing, and inspecting habits.
+- **`FocusHistoryDialog`**: Date-grouped modal archive of all historical focus sessions.
+- **`FocusPeriodSessionsDialog`**: Filtered session list for inspecting sessions on any given day, week, or bar tap.
+- **Navigation Shortcuts**: `Ctrl+Tab` / `Ctrl+Shift+Tab` cycles tabs; `Escape` navigates back or closes dialogs cleanly.
+- **Mini Timer Rail Chip (`MiniTimerChip`)**: Live pill in the left navigation rail displaying the active countdown.
 
 ---
 
-## 7. Automated Test Suite
+### 3.5 Core Focus Engine Enhancements
 
-- [`test/home_shell_test.dart`](file:///N:/Programming/streak/test/home_shell_test.dart):
-  - Validates that Windows launches directly to the Focus dashboard.
-  - Validates classic navigation and gestures across tabs.
+1. **Auto-End & Auto-Save**:
+   - Countdown timers automatically complete at `00:00`.
+   - Instantly triggers audio alert, plays celebration feedback, saves session to Hive, credits habit time, and dismisses the timer screen without requiring manual interaction.
+2. **Double-Crediting Prevention**:
+   - Multiple guards in `FocusController`, `FocusPage`, and `FocusActions` ensure habit time is never credited twice, even across auto-completes, app restarts, or manual stop triggers.
+3. **Session Deletion with Habit Rollback**:
+   - Deleting a session rolls back credited habit time via `countFocusTime(habits, focus, session, undo: true)` and purges the session from Hive.
+
+---
+
+## 4. Database Schema & Persistence Guarantees
+
+- **Hive Storage Preservation**: All focus data resides in Hive's standard `'focus'` box (`LocalStore._focusBox = 'focus'`).
+- **Data Compatibility**: `FocusSession.toMap()` and `fromMap()` maintain full two-way compatibility. `tags` serializes cleanly; if deserializing older upstream data, `tags` automatically falls back to `[label]`.
+- **Import / Export Compatibility**: Full backup archives (`.zip`) created by upstream Streak import seamlessly into this fork, and exports from this fork restore into upstream or mobile without data loss.
+
+---
+
+## 5. Automated Test Suite
+
 - [`test/focus_dashboard_test.dart`](file:///N:/Programming/streak/test/focus_dashboard_test.dart):
-  - Focus dashboard is the primary initial tab on Windows.
-  - Today sub-tab renders today's sessions with duration and start-end time ranges.
-  - Details sub-tab renders charts, metric cards, and the activity map.
-  - "Start session" triggers navigation to `FocusSetupPage`.
-  - Deleting a focus session prompts confirmation, updates UI, and removes from `LocalStore`.
-  - Database roundtrip persistence test for `FocusSession`.
+  - Focus dashboard is initial tab on Windows.
+  - Today sub-tab renders hero card, duration, start-end ranges, and 3-session cap.
+  - "See all sessions" dialog opens and displays full list.
+  - Analytics sub-tab renders KPI grid, weekly target, and charts.
+  - "Start session" modal dialog trigger.
+  - Session deletion prompts confirm dialog and deletes from store.
+  - Roundtrip serialization and persistence test for `FocusSession`.
+- [`test/home_shell_test.dart`](file:///N:/Programming/streak/test/home_shell_test.dart):
+  - Windows launches directly into Focus tab.
+  - Tab order and back navigation behavior on Windows vs other platforms.
