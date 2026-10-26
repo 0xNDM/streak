@@ -48,6 +48,7 @@ class FocusController extends ChangeNotifier {
         'round': _round,
         'acc': _accumulated,
         'since': _since?.toUtc().toIso8601String() ?? '',
+        'startedAt': _startedAt?.toUtc().toIso8601String() ?? '',
         'lastSeen': _lastSeen?.toUtc().toIso8601String() ?? '',
         'runId': _runId,
         'open': _open,
@@ -81,6 +82,7 @@ class FocusController extends ChangeNotifier {
   int _accumulated = 0;
   DateTime? _since;
   DateTime? _lastSeen;
+  DateTime? _startedAt;
   String _runId = '';
   Timer? _ticker;
   Timer? _heartbeat;
@@ -155,6 +157,8 @@ class FocusController extends ChangeNotifier {
     final since = sinceRaw.isEmpty
         ? null
         : DateTime.tryParse(sinceRaw)?.toLocal();
+    final startedAtRaw = (map['startedAt'] ?? '').toString();
+    _startedAt = startedAtRaw.isEmpty ? null : DateTime.tryParse(startedAtRaw)?.toLocal();
     final lastSeenRaw = (map['lastSeen'] ?? '').toString();
     final lastSeen =
         (DateTime.tryParse(lastSeenRaw)?.toLocal()) ??
@@ -176,13 +180,17 @@ class FocusController extends ChangeNotifier {
         ? List<String>.from(map['labelIds'] as List)
         : const <String>[];
     final completed = target > 0 && seconds >= target * 60;
+    final initialStart = _startedAt ?? lastSeen.subtract(Duration(seconds: seconds));
+    final validStart = initialStart.isAfter(lastSeen)
+        ? lastSeen.subtract(Duration(seconds: seconds))
+        : initialStart;
     final session = FocusSession(
       id: runId,
       habitId: (map['habitId'] ?? '').toString(),
       targetMinutes: focusMinutes,
       seconds: seconds,
       completed: completed,
-      startedAt: lastSeen.subtract(Duration(seconds: seconds)),
+      startedAt: validStart,
       endedAt: lastSeen,
       labelIds: labelIds,
     );
@@ -361,6 +369,7 @@ class FocusController extends ChangeNotifier {
     _accumulated = 0;
     _tasks.clear();
     _since = DateTime.now();
+    _startedAt = _since;
     _lastSeen = _since;
     _runId = const Uuid().v4();
     _celebrated = false;
@@ -417,6 +426,7 @@ class FocusController extends ChangeNotifier {
     _accumulated = 0;
     _runId = const Uuid().v4();
     _since = isRunning ? DateTime.now() : null;
+    _startedAt = _since;
     _lastSeen = _since;
     _celebrated = false;
     if (isRunning) {
@@ -511,6 +521,7 @@ class FocusController extends ChangeNotifier {
     _accumulated = 0;
     _since = null;
     _lastSeen = null;
+    _startedAt = null;
     _habitId = '';
     _labelIds = [];
     _tasks.clear();
@@ -547,13 +558,17 @@ class FocusController extends ChangeNotifier {
       return null;
     }
 
+    final initialStart = _startedAt ?? endedAt.subtract(Duration(seconds: seconds));
+    final validStart = initialStart.isAfter(endedAt)
+        ? endedAt.subtract(Duration(seconds: seconds))
+        : initialStart;
     final session = FocusSession(
       id: runId,
       habitId: habitId,
       targetMinutes: target,
       seconds: seconds,
       completed: completed,
-      startedAt: endedAt.subtract(Duration(seconds: seconds)),
+      startedAt: validStart,
       endedAt: endedAt,
       labelIds: labelIds,
     );
@@ -577,13 +592,17 @@ class FocusController extends ChangeNotifier {
     _switchIn = 0;
     final endedAt = _lastSeen = DateTime.now();
     final seconds = elapsedAt(endedAt);
+    final initialStart = _startedAt ?? endedAt.subtract(Duration(seconds: seconds));
+    final validStart = initialStart.isAfter(endedAt)
+        ? endedAt.subtract(Duration(seconds: seconds))
+        : initialStart;
     final session = FocusSession(
       id: _runId.isEmpty ? const Uuid().v4() : _runId,
       habitId: _habitId,
       targetMinutes: _focusMinutes,
       seconds: seconds,
       completed: true,
-      startedAt: endedAt.subtract(Duration(seconds: seconds)),
+      startedAt: validStart,
       endedAt: endedAt,
       labelIds: [..._labelIds],
     );
@@ -624,7 +643,9 @@ class FocusController extends ChangeNotifier {
               targetMinutes: _focusMinutes,
               seconds: seconds,
               completed: true,
-              startedAt: endedAt.subtract(Duration(seconds: seconds)),
+              startedAt: (_startedAt != null && !_startedAt!.isAfter(endedAt))
+                  ? _startedAt!
+                  : endedAt.subtract(Duration(seconds: seconds)),
               endedAt: endedAt,
               labelIds: [..._labelIds],
             ),

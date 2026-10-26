@@ -45,6 +45,20 @@ class FocusSessionCard extends StatelessWidget {
             ? '${minutes ~/ 60}h'
             : '${minutes ~/ 60}h ${minutes % 60}m');
 
+    final String sessionSubtitle;
+    if (session.hasPauses) {
+      final pauseMinutes = (session.pauseSeconds / 60).round();
+      final pauseStr = pauseMinutes < 60
+          ? '${pauseMinutes}m'
+          : (pauseMinutes % 60 == 0
+              ? '${pauseMinutes ~/ 60}h'
+              : '${pauseMinutes ~/ 60}h ${pauseMinutes % 60}m');
+      sessionSubtitle =
+          '$timeRange · $durationStr focus (${pauseStr} paused) · ${session.intensityPercent}% intensity';
+    } else {
+      sessionSubtitle = timeRange;
+    }
+
     final focus = context.read<FocusController>();
     final labelIds = session.labelIds;
 
@@ -120,13 +134,17 @@ class FocusSessionCard extends StatelessWidget {
                       color: session.completed ? context.tokens.success : context.tokens.muted,
                     ),
                     const SizedBox(width: 4),
-                    Text(
-                      timeRange,
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w500,
-                        color: context.tokens.muted,
-                        fontFeatures: const [FontFeature.tabularFigures()],
+                    Expanded(
+                      child: Text(
+                        sessionSubtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w500,
+                          color: context.tokens.muted,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
                       ),
                     ),
                   ],
@@ -135,7 +153,7 @@ class FocusSessionCard extends StatelessWidget {
             ),
           ),
           if (onEdit != null && focus.canEditSession(session)) ...[
-            const SizedBox(width: 2),
+            const SizedBox(width: 8),
             IconButton(
               icon: Icon(
                 LucideIcons.pencil,
@@ -144,13 +162,13 @@ class FocusSessionCard extends StatelessWidget {
               ),
               tooltip: context.l10n.edit,
               visualDensity: VisualDensity.compact,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+              padding: const EdgeInsets.all(6),
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
               onPressed: onEdit,
             ),
           ],
           if (onDelete != null) ...[
-            const SizedBox(width: 2),
+            const SizedBox(width: 6),
             IconButton(
               icon: Icon(
                 LucideIcons.trash2,
@@ -159,8 +177,8 @@ class FocusSessionCard extends StatelessWidget {
               ),
               tooltip: context.l10n.delete,
               visualDensity: VisualDensity.compact,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+              padding: const EdgeInsets.all(6),
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
               onPressed: onDelete,
             ),
           ],

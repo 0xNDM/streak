@@ -393,6 +393,19 @@ class _WeeklyContinuousTimelineState extends State<WeeklyContinuousTimeline> {
                   ],
                 ),
               ),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 58,
+                child: Text(
+                  'Total',
+                  textAlign: TextAlign.end,
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
+                    color: context.tokens.muted,
+                  ),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -428,6 +441,15 @@ class _DailyTrackRow extends StatelessWidget {
   final HabitsController habits;
   final Color defaultAccent;
 
+  String _formatDayTotal(int seconds) {
+    if (seconds <= 0) return '0m';
+    final minutes = (seconds / 60).round();
+    if (minutes < 60) return '${minutes}m';
+    final h = minutes ~/ 60;
+    final m = minutes % 60;
+    return m == 0 ? '${h}h' : '${h}h ${m}m';
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = context.colors;
@@ -435,6 +457,7 @@ class _DailyTrackRow extends StatelessWidget {
         DateFormat('E d', Localizations.localeOf(context).toString());
     final label = dayLabelFormat.format(date);
     final isToday = date.dayKey == AppClock.now().dayKey;
+    final dayFocusSeconds = sessions.fold<int>(0, (sum, s) => sum + s.seconds);
 
     return Row(
       children: [
@@ -490,6 +513,23 @@ class _DailyTrackRow extends StatelessWidget {
             },
           ),
         ),
+        const SizedBox(width: 12),
+        SizedBox(
+          width: 58,
+          child: Text(
+            dayFocusSeconds > 0 ? _formatDayTotal(dayFocusSeconds) : '0m',
+            textAlign: TextAlign.end,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight:
+                  dayFocusSeconds > 0 ? FontWeight.w700 : FontWeight.w500,
+              color: dayFocusSeconds > 0
+                  ? (isToday ? defaultAccent : context.tokens.muted)
+                  : context.tokens.muted.withValues(alpha: 0.4),
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -502,12 +542,16 @@ class _DailyTrackRow extends StatelessWidget {
     if (totalWidth <= 4.0) return const SizedBox.shrink();
     final start = session.startedAt;
     final startMinutes = start.hour * 60 + start.minute;
-    final durationMinutes = (session.seconds / 60).clamp(1.0, 1440.0);
+    final spanSeconds = math.max(
+      session.seconds,
+      session.endedAt.difference(start).inSeconds,
+    );
+    final spanMinutes = (spanSeconds / 60).clamp(1.0, 1440.0);
 
     final leftPos = (startMinutes / 1440.0) * totalWidth;
     final maxPillWidth = math.max(4.0, totalWidth);
     final pillWidth =
-        ((durationMinutes / 1440.0) * totalWidth).clamp(4.0, maxPillWidth);
+        ((spanMinutes / 1440.0) * totalWidth).clamp(4.0, maxPillWidth);
     final maxLeft = math.max(0.0, totalWidth - pillWidth);
     final safeLeft = leftPos.clamp(0.0, maxLeft);
 
@@ -519,12 +563,24 @@ class _DailyTrackRow extends StatelessWidget {
     final timeFormat = DateFormat('HH:mm');
     final endTime = session.endedAt;
     final timeStr =
-        '${timeFormat.format(start)} - ${timeFormat.format(endTime)}';
+        '${timeFormat.format(start)} – ${timeFormat.format(endTime)}';
     final habitTitle = habit?.name ?? context.l10n.focus;
     final labelNames = focus.labelNames(session.labelIds);
     final tagsStr = labelNames.isEmpty ? '' : ' [${labelNames.join(', ')}]';
-    final tooltipText =
-        '$habitTitle$tagsStr\n$timeStr (${formatHoursShort(session.seconds)})';
+    final String timeInfo;
+    if (session.hasPauses) {
+      final pauseMin = (session.pauseSeconds / 60).round();
+      final pauseStr = pauseMin < 60
+          ? '${pauseMin}m'
+          : (pauseMin % 60 == 0
+              ? '${pauseMin ~/ 60}h'
+              : '${pauseMin ~/ 60}h ${pauseMin % 60}m');
+      timeInfo =
+          '$timeStr · ${formatHoursShort(session.seconds)} focus (${pauseStr} paused) · ${session.intensityPercent}%';
+    } else {
+      timeInfo = '$timeStr (${formatHoursShort(session.seconds)})';
+    }
+    final tooltipText = '$habitTitle$tagsStr\n$timeInfo';
 
     return Positioned(
       left: safeLeft,

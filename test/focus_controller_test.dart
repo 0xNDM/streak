@@ -485,5 +485,24 @@ void main() {
       expect(editable.any((s) => s.id == 'recent-1'), isTrue);
       expect(editable.any((s) => s.id == 'old-1'), isFalse);
     });
+
+    test('focus session computes wall-clock span, pauses, and intensity', () {
+      final start = DateTime(2026, 10, 26, 6, 0);
+      final end = DateTime(2026, 10, 26, 9, 0);
+      final session = FocusSession(
+        id: 'wall-clock-1',
+        habitId: '',
+        targetMinutes: 120,
+        seconds: 7200, // 2 hours focus in 3 hours span
+        completed: true,
+        startedAt: start,
+        endedAt: end,
+      );
+
+      expect(session.spanSeconds, 10800); // 3 hours
+      expect(session.pauseSeconds, 3600); // 1 hour pause
+      expect(session.hasPauses, isTrue);
+      expect(session.intensityPercent, 67); // 7200 / 10800 = 66.67% -> 67%
+    });
   });
 }

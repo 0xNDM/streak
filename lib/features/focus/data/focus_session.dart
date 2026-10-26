@@ -27,6 +27,14 @@ class FocusSession {
 
   int get minutes => seconds ~/ 60;
 
+  int get spanSeconds => endedAt.difference(startedAt).inSeconds;
+  int get pauseSeconds => spanSeconds > seconds ? spanSeconds - seconds : 0;
+  bool get hasPauses => pauseSeconds >= 60;
+  int get intensityPercent {
+    if (spanSeconds <= 0) return 100;
+    return ((seconds / spanSeconds) * 100).round().clamp(0, 100);
+  }
+
   DateTime get countedOn => logicalDayOf(endedAt);
 
   static DateTime logicalDayOf(DateTime moment) =>
