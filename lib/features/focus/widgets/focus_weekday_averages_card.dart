@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:streak/app/theme/app_tokens.dart';
+import 'package:streak/core/extensions/date_extensions.dart';
 import 'package:streak/core/i18n/date_labels.dart';
 import 'package:streak/core/i18n/l10n.dart';
 import 'package:streak/features/focus/data/focus_session.dart';
 import 'package:streak/features/focus/state/focus_controller.dart';
+import 'package:streak/features/focus/widgets/focus_period_navigator.dart';
 import 'package:streak/features/settings/widgets/settings_rows.dart';
 
 class FocusWeekdayAveragesCard extends StatefulWidget {
@@ -21,20 +23,23 @@ class FocusWeekdayAveragesCard extends StatefulWidget {
   final Color accent;
 
   @override
-  State<FocusWeekdayAveragesCard> createState() => _FocusWeekdayAveragesCardState();
+  State<FocusWeekdayAveragesCard> createState() =>
+      _FocusWeekdayAveragesCardState();
 }
 
 class _FocusWeekdayAveragesCardState extends State<FocusWeekdayAveragesCard> {
-  int _subTab = 0; // 0 = All Time, 1 = This Month
+  int _subTab = 0; // 0 = Month, 1 = All Time
+  int _offset = 0;
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.colors;
     final locale = Localizations.localeOf(context);
+    final now = AppClock.now();
 
     final weekdayAverages = _subTab == 0
-        ? widget.focus.weekdayAverageSeconds
-        : widget.focus.currentMonthWeekdayAverageSeconds;
+        ? widget.focus.monthWeekdayAverageSeconds(offset: _offset, now: now)
+        : widget.focus.weekdayAverageSeconds;
 
     // Weekday order starting from weekStart
     final orderedWeekdays = <int>[];
@@ -60,6 +65,9 @@ class _FocusWeekdayAveragesCardState extends State<FocusWeekdayAveragesCard> {
     }
 
     final weekdayNameFormat = DateFormat.EEEE(locale.toString());
+    final periodLabel = _subTab == 0
+        ? formatMonthPeriod(context, _offset, now: now)
+        : context.l10n.period_all_time;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -101,23 +109,32 @@ class _FocusWeekdayAveragesCardState extends State<FocusWeekdayAveragesCard> {
                             fontWeight: FontWeight.w800,
                           ),
                         ),
-                        Text(
-                          maxWeekdayAvg > 0
-                              ? context.l10n.focus_peak_weekday(
-                                  weekdayNameFormat.format(
-                                    DateTime(2024, 1, bestWeekday),
-                                  ),
-                                )
-                              : (_subTab == 0
-                                  ? context.l10n.focus_all_time_average
-                                  : context.l10n.focus_month_average),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: context.tokens.muted,
-                            fontWeight: FontWeight.w500,
-                          ),
+                        Row(
+                          children: [
+                            Flexible(
+                              child: FocusPeriodNavigator(
+                                label: periodLabel,
+                                offset: _offset,
+                                showArrows: _subTab == 0,
+                                onOffsetChanged: (val) =>
+                                    setState(() => _offset = val),
+                                accent: widget.accent,
+                              ),
+                            ),
+                            if (maxWeekdayAvg > 0) ...[
+                              const SizedBox(width: 6),
+                              Text(
+                                '• ${context.l10n.focus_peak_weekday(weekdayNameFormat.format(DateTime(2024, 1, bestWeekday)))}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  color: context.tokens.muted,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ],
                     ),
@@ -126,14 +143,17 @@ class _FocusWeekdayAveragesCardState extends State<FocusWeekdayAveragesCard> {
               );
               final segmented = Segmented(
                 options: [
+                  context.l10n.month,
                   context.l10n.period_all_time,
-                  context.l10n.focus_this_month,
                 ],
                 index: _subTab,
-                onChanged: (i) => setState(() => _subTab = i),
+                onChanged: (i) => setState(() {
+                  _subTab = i;
+                  _offset = 0;
+                }),
               );
 
-              if (constraints.maxWidth < 360) {
+              if (constraints.maxWidth < 460) {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -158,67 +178,92 @@ class _FocusWeekdayAveragesCardState extends State<FocusWeekdayAveragesCard> {
             builder: (context, constraints) {
               final barWidth =
                   ((constraints.maxWidth - 48) / 7).clamp(18.0, 36.0);
+
               return Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  for (var i = 0; i < 7; i++)
+                  for (var i = 0; i < 7; i++) ...[
                     Builder(
                       builder: (context) {
                         final weekday = orderedWeekdays[i];
                         final avgSec = weekdayAverages[weekday] ?? 0.0;
-                        final factor = maxWeekdayAvg > 0
-                            ? (avgSec / maxWeekdayAvg).clamp(0.05, 1.0)
-                            : 0.05;
-                        final isBest =
-                            maxWeekdayAvg > 0 && weekday == bestWeekday;
+                        final ratio = maxWeekdayAvg > 0
+                            ? (avgSec / maxWeekdayAvg).clamp(0.0, 1.0)
+                            : 0.0;
+                        final isPeak =
+                            maxWeekdayAvg > 0 && avgSec == maxWeekdayAvg;
+                        final isZero = avgSec == 0;
 
-                        return Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              avgSec > 0
-                                  ? formatHoursShort(avgSec.round())
-                                  : '—',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight:
-                                    isBest ? FontWeight.w800 : FontWeight.w600,
-                                color: isBest
-                                    ? const Color(0xFF10B981)
-                                    : context.tokens.muted,
+                        final barColor = isZero
+                            ? scheme.surfaceContainerHighest
+                            : (isPeak
+                                ? const Color(0xFF10B981)
+                                : const Color(0xFF10B981)
+                                    .withValues(alpha: 0.45));
+
+                        final durationLabel = formatHoursShort(avgSec.round());
+                        final dayName = weekdayNameFormat
+                            .format(DateTime(2024, 1, weekday));
+
+                        return Tooltip(
+                          message: '$dayName: $durationLabel avg',
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                isZero ? '0' : durationLabel,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: isPeak
+                                      ? FontWeight.w800
+                                      : FontWeight.w600,
+                                  color: isPeak
+                                      ? const Color(0xFF10B981)
+                                      : context.tokens.muted,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 6),
-                            Container(
-                              width: barWidth,
-                              height: 110 * factor,
-                              decoration: BoxDecoration(
-                                color: avgSec > 0
-                                    ? (isBest
-                                        ? const Color(0xFF10B981)
-                                        : const Color(0xFF059669))
-                                    : scheme.surfaceContainerHighest
-                                        .withValues(alpha: 0.35),
-                                borderRadius: BorderRadius.circular(8),
+                              const SizedBox(height: 6),
+                              Container(
+                                width: barWidth,
+                                height: 90,
+                                alignment: Alignment.bottomCenter,
+                                decoration: BoxDecoration(
+                                  color: scheme.surfaceContainerHighest
+                                      .withValues(alpha: 0.3),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Container(
+                                  width: barWidth,
+                                  height: (90 * ratio).clamp(
+                                    isZero ? 0.0 : 4.0,
+                                    90.0,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: barColor,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              weekdayLabels[i],
-                              style: TextStyle(
-                                fontSize: 12.5,
-                                fontWeight:
-                                    isBest ? FontWeight.w800 : FontWeight.w600,
-                                color: isBest
-                                    ? scheme.onSurface
-                                    : context.tokens.muted,
+                              const SizedBox(height: 8),
+                              Text(
+                                weekdayLabels[i],
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: isPeak
+                                      ? FontWeight.w800
+                                      : FontWeight.w600,
+                                  color: isPeak
+                                      ? const Color(0xFF10B981)
+                                      : context.colors.onSurface,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         );
                       },
                     ),
+                  ],
                 ],
               );
             },

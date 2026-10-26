@@ -5,9 +5,8 @@ import 'package:streak/core/extensions/date_extensions.dart';
 import 'package:streak/core/i18n/l10n.dart';
 import 'package:streak/features/focus/data/focus_session.dart';
 import 'package:streak/features/focus/state/focus_controller.dart';
+import 'package:streak/features/focus/widgets/focus_period_navigator.dart';
 import 'package:streak/features/settings/widgets/settings_rows.dart';
-import 'package:streak/features/statistics/widgets/stat_charts.dart';
-import 'package:streak/features/statistics/widgets/stat_kit.dart';
 
 class FocusTimeOfDayCard extends StatefulWidget {
   const FocusTimeOfDayCard({
@@ -26,14 +25,20 @@ class FocusTimeOfDayCard extends StatefulWidget {
 }
 
 class _FocusTimeOfDayCardState extends State<FocusTimeOfDayCard> {
-  bool _isWeekly = true; // true = Weekly, false = Monthly
+  int _periodIndex = 0; // 0 = Week, 1 = Month, 2 = All Time
+  int _offset = 0;
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.colors;
     final now = AppClock.now();
+    final periodName = _periodIndex == 0
+        ? 'week'
+        : (_periodIndex == 1 ? 'month' : 'all_time');
+
     final breakdown = widget.focus.timeOfDayBreakdown(
-      isWeekly: _isWeekly,
+      period: periodName,
+      offset: _offset,
       now: now,
       weekStart: widget.weekStart,
     );
@@ -79,7 +84,6 @@ class _FocusTimeOfDayCardState extends State<FocusTimeOfDayCard> {
       ),
     ];
 
-    // Find peak period with highest seconds
     var peakIndex = 0;
     var maxSeconds = periods[0].seconds;
     for (var i = 1; i < periods.length; i++) {
@@ -88,6 +92,12 @@ class _FocusTimeOfDayCardState extends State<FocusTimeOfDayCard> {
         peakIndex = i;
       }
     }
+
+    final periodLabel = _periodIndex == 0
+        ? formatWeekPeriod(context, _offset, widget.weekStart, now: now)
+        : (_periodIndex == 1
+            ? formatMonthPeriod(context, _offset, now: now)
+            : context.l10n.period_all_time);
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -129,17 +139,13 @@ class _FocusTimeOfDayCardState extends State<FocusTimeOfDayCard> {
                             fontWeight: FontWeight.w800,
                           ),
                         ),
-                        Text(
-                          _isWeekly
-                              ? context.l10n.focus_this_week_local
-                              : context.l10n.focus_this_month_local,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: context.tokens.muted,
-                            fontWeight: FontWeight.w500,
-                          ),
+                        FocusPeriodNavigator(
+                          label: periodLabel,
+                          offset: _offset,
+                          showArrows: _periodIndex != 2,
+                          onOffsetChanged: (val) =>
+                              setState(() => _offset = val),
+                          accent: widget.accent,
                         ),
                       ],
                     ),
@@ -147,12 +153,19 @@ class _FocusTimeOfDayCardState extends State<FocusTimeOfDayCard> {
                 ],
               );
               final segmented = Segmented(
-                options: [context.l10n.week, context.l10n.month],
-                index: _isWeekly ? 0 : 1,
-                onChanged: (i) => setState(() => _isWeekly = i == 0),
+                options: [
+                  context.l10n.week,
+                  context.l10n.month,
+                  context.l10n.period_all_time,
+                ],
+                index: _periodIndex,
+                onChanged: (i) => setState(() {
+                  _periodIndex = i;
+                  _offset = 0;
+                }),
               );
 
-              if (constraints.maxWidth < 360) {
+              if (constraints.maxWidth < 460) {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -177,9 +190,11 @@ class _FocusTimeOfDayCardState extends State<FocusTimeOfDayCard> {
               padding: const EdgeInsets.symmetric(vertical: 24),
               child: Center(
                 child: Text(
-                  _isWeekly
+                  _periodIndex == 0
                       ? context.l10n.focus_no_focus_week
-                      : context.l10n.focus_no_focus_month,
+                      : (_periodIndex == 1
+                          ? context.l10n.focus_no_focus_month
+                          : context.l10n.focus_no_sessions_title),
                   style: TextStyle(
                     fontSize: 13,
                     color: context.tokens.muted,
@@ -228,52 +243,45 @@ class _FocusTimeOfDayCardState extends State<FocusTimeOfDayCard> {
                                 const SizedBox(width: 6),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 6, vertical: 2),
+                                    horizontal: 6,
+                                    vertical: 1.5,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFF10B981)
                                         .withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(LucideIcons.sparkles,
-                                          size: 10,
-                                          color: Color(0xFF10B981)),
-                                      const SizedBox(width: 3),
-                                      Text(
-                                        context.l10n.focus_peak,
-                                        style: const TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w800,
-                                          color: Color(0xFF10B981),
-                                        ),
-                                      ),
-                                    ],
+                                  child: Text(
+                                    context.l10n.focus_peak.toUpperCase(),
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      color: Color(0xFF10B981),
+                                      letterSpacing: 0.5,
+                                    ),
                                   ),
                                 ),
                               ],
                             ],
                           ),
                         ),
-                        const SizedBox(width: 8),
                         Text(
                           formatHoursShort(p.seconds),
                           style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 8),
                         SizedBox(
-                          width: 38,
+                          width: 42,
                           child: Text(
-                            '${(p.pct * 100).toStringAsFixed(0)}%',
+                            '${(p.pct * 100).round()}%',
                             textAlign: TextAlign.end,
                             style: TextStyle(
-                              fontSize: 12,
-                              color: context.tokens.muted,
+                              fontSize: 12.5,
                               fontWeight: FontWeight.w600,
+                              color: context.tokens.muted,
                             ),
                           ),
                         ),
@@ -281,21 +289,21 @@ class _FocusTimeOfDayCardState extends State<FocusTimeOfDayCard> {
                     ),
                     const SizedBox(height: 6),
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(4),
                       child: Stack(
                         children: [
                           Container(
-                            height: 8,
+                            height: 6,
                             width: double.infinity,
-                            color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                            color: scheme.surfaceContainerHighest,
                           ),
                           FractionallySizedBox(
                             widthFactor: p.pct.clamp(0.0, 1.0),
                             child: Container(
-                              height: 8,
+                              height: 6,
                               decoration: BoxDecoration(
                                 color: p.color,
-                                borderRadius: BorderRadius.circular(6),
+                                borderRadius: BorderRadius.circular(4),
                               ),
                             ),
                           ),

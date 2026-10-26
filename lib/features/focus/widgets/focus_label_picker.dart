@@ -28,20 +28,8 @@ class _FocusLabelPickerState extends State<FocusLabelPicker> {
   final Set<String> _expanded = {};
 
   Future<void> _add(BuildContext context) async {
-    final focus = context.read<FocusController>();
-    final picked = await showDialog<_LabelDraft>(
-      context: context,
-      builder: (_) => _NewLabelDialog(
-        parents: focus.labels.where((label) => !label.isChild).toList(),
-      ),
-    );
-    if (picked == null || !context.mounted) return;
-    final label = await focus.createLabel(
-      name: picked.name,
-      color: picked.color,
-      parentId: picked.parentId,
-    );
-    if (label == null) return;
+    final label = await showCreateOrEditLabelDialog(context);
+    if (label == null || !context.mounted) return;
     final updated = Set<String>.from(widget.selected)..add(label.id);
     if (label.parentId != null) updated.remove(label.parentId);
     if (label.parentId != null) _expanded.add(label.parentId!);
@@ -110,25 +98,7 @@ class _FocusLabelPickerState extends State<FocusLabelPicker> {
     if (!context.mounted || action == null) return;
 
     if (action == 'edit') {
-      final picked = await showDialog<_LabelDraft>(
-        context: context,
-        builder: (_) => _NewLabelDialog(
-          title: context.l10n.focus_label_edit,
-          initialName: label.name,
-          initialColor: label.color,
-        ),
-      );
-      if (picked == null || !context.mounted) return;
-      final ok = await focus.renameLabel(
-        label.id,
-        picked.name,
-        color: picked.color,
-      );
-      if (!ok && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.l10n.focus_label_exists)),
-        );
-      }
+      await showCreateOrEditLabelDialog(context, labelToEdit: label);
     } else if (action == 'archive') {
       await focus.archiveLabel(label.id);
       final ids = {label.id, ...childIds};
@@ -248,17 +218,69 @@ class _LabelDraft {
   final String? parentId;
 }
 
+Future<FocusLabel?> showCreateOrEditLabelDialog(
+  BuildContext context, {
+  FocusLabel? labelToEdit,
+  String? preselectedParentId,
+}) async {
+  final focus = context.read<FocusController>();
+  final isEditing = labelToEdit != null;
+  final hasChildren = isEditing && focus.childrenOf(labelToEdit.id).isNotEmpty;
+  final parents = focus.labels
+      .where((p) => !p.isChild && (!isEditing || p.id != labelToEdit.id))
+      .toList();
+
+  final picked = await showDialog<_LabelDraft>(
+    context: context,
+    builder: (_) => _NewLabelDialog(
+      title: isEditing
+          ? context.l10n.focus_label_edit
+          : context.l10n.focus_label_new,
+      initialName: labelToEdit?.name,
+      initialColor: labelToEdit?.color,
+      initialParentId: labelToEdit?.parentId ?? preselectedParentId,
+      parents: hasChildren ? const [] : parents,
+    ),
+  );
+  if (picked == null || !context.mounted) return null;
+
+  if (isEditing) {
+    final ok = await focus.renameLabel(
+      labelToEdit.id,
+      picked.name,
+      color: picked.color,
+      parentId: picked.parentId,
+      updateParent: true,
+    );
+    if (!ok && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.focus_label_exists)),
+      );
+      return null;
+    }
+    return focus.labelById(labelToEdit.id);
+  } else {
+    return await focus.createLabel(
+      name: picked.name,
+      color: picked.color,
+      parentId: picked.parentId,
+    );
+  }
+}
+
 class _NewLabelDialog extends StatefulWidget {
   const _NewLabelDialog({
     this.title,
     this.initialName,
     this.initialColor,
+    this.initialParentId,
     this.parents = const [],
   });
 
   final String? title;
   final String? initialName;
   final Color? initialColor;
+  final String? initialParentId;
   final List<FocusLabel> parents;
 
   @override
@@ -276,6 +298,7 @@ class _NewLabelDialogState extends State<_NewLabelDialog> {
     super.initState();
     _field = TextEditingController(text: widget.initialName ?? '');
     _color = widget.initialColor ?? FocusController.defaultTagColors[0];
+    _parentId = widget.initialParentId;
     _hexField = TextEditingController(
       text:
           '#${_color.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}',
@@ -315,7 +338,7 @@ class _NewLabelDialogState extends State<_NewLabelDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final canChooseParent = widget.title == null && widget.parents.isNotEmpty;
+    final canChooseParent = widget.parents.isNotEmpty;
     return AlertDialog(
       title: Text(widget.title ?? context.l10n.focus_label_new),
       content: SingleChildScrollView(

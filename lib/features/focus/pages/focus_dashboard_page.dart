@@ -14,6 +14,8 @@ import 'package:streak/features/focus/data/focus_stats.dart';
 import 'package:streak/features/focus/state/focus_actions.dart';
 import 'package:streak/features/focus/state/focus_controller.dart';
 import 'package:streak/features/focus/widgets/focus_analytics_widgets.dart';
+import 'package:streak/features/focus/widgets/focus_labels_view.dart';
+import 'package:streak/features/focus/widgets/focus_period_navigator.dart';
 import 'package:streak/features/focus/widgets/focus_dashboard_header.dart';
 import 'package:streak/features/focus/widgets/focus_dashboard_widgets.dart';
 import 'package:streak/features/focus/widgets/focus_history_dialog.dart';
@@ -42,10 +44,11 @@ class FocusDashboardPage extends StatefulWidget {
 }
 
 class _FocusDashboardPageState extends State<FocusDashboardPage> {
-  int _currentTab = 0; // 0 = Today, 1 = Analytics
+  int _currentTab = 0; // 0 = Today, 1 = Analytics, 2 = Labels
   FocusRange _range = FocusRange.week;
   int _offset = 0;
   int _labelPeriodIndex = 0; // 0 = Week, 1 = Month, 2 = All time
+  int _labelPeriodOffset = 0;
 
   void _startFocus(BuildContext context, FocusController focus) {
     if (focus.isActive) {
@@ -341,7 +344,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
     );
 
     return FocusTabShortcuts(
-      tabCount: 2,
+      tabCount: 3,
       index: _currentTab,
       onSelect: (i) => setState(() => _currentTab = i),
       child: Scaffold(
@@ -355,7 +358,11 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
               ),
               const SizedBox(width: 24),
               PillTabs(
-                tabs: [context.l10n.today, context.l10n.focus_analytics],
+                tabs: [
+                  context.l10n.today,
+                  context.l10n.focus_analytics,
+                  context.l10n.focus_labels,
+                ],
                 index: _currentTab,
                 onChanged: (i) => setState(() => _currentTab = i),
               ),
@@ -375,7 +382,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
                   const FocusDashboardHeader(),
                   const SizedBox(height: 12),
 
-                  // 2. Tab Body (Today vs Analytics)
+                  // 2. Tab Body (Today vs Analytics vs Labels)
                   if (_currentTab == 0)
                     _buildTodayTab(
                       context: context,
@@ -386,13 +393,19 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
                       dailyGoalMinutes: currentDailyGoal,
                       settings: settings,
                     )
-                  else
+                  else if (_currentTab == 1)
                     _buildAnalyticsTab(
                       context: context,
                       focus: focus,
                       stats: stats,
                       currentWeeklyHours: currentWeeklyHours,
                       settings: settings,
+                    )
+                  else
+                    FocusLabelsView(
+                      focus: focus,
+                      weekStart: settings.weekStart,
+                      accent: _lockInBright,
                     ),
                 ],
               ),
@@ -466,13 +479,16 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
               color: context.colors.outlineVariant.withValues(alpha: 0.15),
             ),
             const SizedBox(height: 20),
-            Center(
-              child: FractionallySizedBox(
-                widthFactor: 0.6,
-                child: WeeklyContinuousTimeline(
-                  sessions: focus.sessions,
-                  accent: _lockInBright,
-                  weekStart: settings.weekStart,
+            Transform.translate(
+              offset: Offset(wide ? -40.0 : 0.0, 0.0),
+              child: Center(
+                child: FractionallySizedBox(
+                  widthFactor: wide ? 0.6 : 1.0,
+                  child: WeeklyContinuousTimeline(
+                    sessions: focus.sessions,
+                    accent: _lockInBright,
+                    weekStart: settings.weekStart,
+                  ),
                 ),
               ),
             ),
@@ -797,11 +813,16 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
     required int currentWeeklyHours,
     required SettingsController settings,
   }) {
+    final now = AppClock.now();
     final labelPeriod = _labelPeriodIndex == 0
         ? 'week'
         : (_labelPeriodIndex == 1 ? 'month' : 'all');
     final labelEntries = focus
-        .labelRankingForPeriod(labelPeriod, settings.weekStart)
+        .labelRankingForPeriod(
+          labelPeriod,
+          settings.weekStart,
+          offset: _labelPeriodOffset,
+        )
         .take(10)
         .toList();
 
@@ -920,11 +941,11 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
                 children: [
                   LayoutBuilder(
                     builder: (ctx, c) {
-                      final isCompact = c.maxWidth < 340;
-                      if (isCompact) {
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
+                      final isCompact = c.maxWidth < 420;
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (isCompact) ...[
                             Text(
                               context.l10n.focus_focused_on,
                               style: const TextStyle(
@@ -940,37 +961,63 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
                                 context.l10n.period_all_time,
                               ],
                               index: _labelPeriodIndex,
-                              onChanged: (idx) =>
-                                  setState(() => _labelPeriodIndex = idx),
+                              onChanged: (idx) => setState(() {
+                                _labelPeriodIndex = idx;
+                                _labelPeriodOffset = 0;
+                              }),
+                            ),
+                          ] else ...[
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    context.l10n.focus_focused_on,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Segmented(
+                                  options: [
+                                    context.l10n.week,
+                                    context.l10n.month,
+                                    context.l10n.period_all_time,
+                                  ],
+                                  index: _labelPeriodIndex,
+                                  onChanged: (idx) => setState(() {
+                                    _labelPeriodIndex = idx;
+                                    _labelPeriodOffset = 0;
+                                  }),
+                                ),
+                              ],
                             ),
                           ],
-                        );
-                      }
-                      return Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              context.l10n.focus_focused_on,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                              ),
+                          if (_labelPeriodIndex != 2) ...[
+                            const SizedBox(height: 12),
+                            FocusPeriodNavigator(
+                              label: _labelPeriodIndex == 0
+                                  ? formatWeekPeriod(
+                                      context,
+                                      _labelPeriodOffset,
+                                      settings.weekStart,
+                                      now: now,
+                                    )
+                                  : formatMonthPeriod(
+                                      context,
+                                      _labelPeriodOffset,
+                                      now: now,
+                                    ),
+                              offset: _labelPeriodOffset,
+                              onOffsetChanged: (val) =>
+                                  setState(() => _labelPeriodOffset = val),
+                              accent: _lockInBright,
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Segmented(
-                            options: [
-                              context.l10n.week,
-                              context.l10n.month,
-                              context.l10n.period_all_time,
-                            ],
-                            index: _labelPeriodIndex,
-                            onChanged: (idx) =>
-                                setState(() => _labelPeriodIndex = idx),
-                          ),
+                          ],
                         ],
                       );
                     },

@@ -418,4 +418,72 @@ void main() {
       expect(settings.focusTrack, '');
     });
   });
+
+  group('FocusController label management and period offsets', () {
+    test('sub-labels maintain hierarchy and parent linkage', () async {
+      final focus = _controller();
+      final parent = await focus.createLabel('Learning', 0xFF3B82F6);
+      final child = await focus.createLabel('Flutter Course', 0xFF10B981, parentId: parent.id);
+
+      expect(child.parentId, parent.id);
+      expect(child.isChild, isTrue);
+
+      final children = focus.childLabelsOf(parent.id);
+      expect(children.length, 1);
+      expect(children.first.id, child.id);
+
+      final topLevel = focus.topLevelLabels;
+      expect(topLevel.any((l) => l.id == parent.id), isTrue);
+      expect(topLevel.any((l) => l.id == child.id), isFalse);
+
+      expect(focus.labelDisplayName(child.id), 'Learning > Flutter Course');
+    });
+
+    test('archive and unarchive labels', () async {
+      final focus = _controller();
+      final label = await focus.createLabel('Reading', 0xFF3B82F6);
+      expect(focus.activeLabels.any((l) => l.id == label.id), isTrue);
+
+      await focus.archiveLabel(label.id);
+      expect(focus.activeLabels.any((l) => l.id == label.id), isFalse);
+      expect(focus.archivedLabels.any((l) => l.id == label.id), isTrue);
+
+      await focus.unarchiveLabel(label.id);
+      expect(focus.activeLabels.any((l) => l.id == label.id), isTrue);
+      expect(focus.archivedLabels.any((l) => l.id == label.id), isFalse);
+    });
+
+    test('recentEditableSessions returns sessions within 12 hours', () async {
+      final focus = _controller();
+      final now = DateTime.now();
+
+      final recent = FocusSession(
+        id: 'recent-1',
+        habitId: '',
+        targetMinutes: 25,
+        seconds: 1500,
+        completed: true,
+        startedAt: now.subtract(const Duration(hours: 3)),
+        endedAt: now.subtract(const Duration(hours: 2, minutes: 35)),
+      );
+
+      final old = FocusSession(
+        id: 'old-1',
+        habitId: '',
+        targetMinutes: 25,
+        seconds: 1500,
+        completed: true,
+        startedAt: now.subtract(const Duration(hours: 15)),
+        endedAt: now.subtract(const Duration(hours: 14, minutes: 35)),
+      );
+
+      await LocalStore.writeFocusSession(recent);
+      await LocalStore.writeFocusSession(old);
+      await focus.recoverIfNeeded();
+
+      final editable = focus.recentEditableSessions(maxAgeHours: 12, now: now);
+      expect(editable.any((s) => s.id == 'recent-1'), isTrue);
+      expect(editable.any((s) => s.id == 'old-1'), isFalse);
+    });
+  });
 }

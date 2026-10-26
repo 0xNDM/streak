@@ -967,20 +967,31 @@ class FocusController extends ChangeNotifier {
     return label;
   }
 
-  Future<bool> renameLabel(String id, String name, {Color? color}) async {
+  List<FocusLabel> get archivedLabels => List.unmodifiable(
+        _labels.where((label) => label.archived),
+      );
+
+  Future<bool> renameLabel(
+    String id,
+    String name, {
+    Color? color,
+    String? parentId,
+    bool updateParent = false,
+  }) async {
     final index = _labels.indexWhere((label) => label.id == id);
     if (index == -1) return false;
     final clean = name.trim();
     if (clean.isEmpty) return false;
     final current = _labels[index];
-    if (labelNameTaken(clean, parentId: current.parentId, exceptId: id)) {
+    final targetParent = updateParent ? parentId : current.parentId;
+    if (labelNameTaken(clean, parentId: targetParent, exceptId: id)) {
       return false;
     }
     _labels[index] = FocusLabel(
       id: current.id,
       name: clean,
       colorValue: (color ?? current.color).toARGB32(),
-      parentId: current.parentId,
+      parentId: targetParent,
       archived: current.archived,
     );
     await LocalStore.writeFocusLabels(_labels);
@@ -1023,6 +1034,33 @@ class FocusController extends ChangeNotifier {
       await LocalStore.writeFocusSession(updated);
     }
     notifyListeners();
+  }
+
+  Future<void> unarchiveLabel(String id) async {
+    final index = _labels.indexWhere((label) => label.id == id);
+    if (index == -1) return;
+    final current = _labels[index];
+    var parentId = current.parentId;
+    if (parentId != null) {
+      final p = labelById(parentId);
+      if (p == null || p.archived) parentId = null;
+    }
+    _labels[index] = current.copyWith(archived: false, parentId: parentId);
+    for (var i = 0; i < _labels.length; i++) {
+      if (_labels[i].parentId == id && _labels[i].archived) {
+        _labels[i] = _labels[i].copyWith(archived: false);
+      }
+    }
+    await LocalStore.writeFocusLabels(_labels);
+    notifyListeners();
+  }
+
+  List<FocusSession> recentEditableSessions({DateTime? now}) {
+    final base = now ?? DateTime.now();
+    return _sessions
+        .where((s) => canEditSession(s, now: base))
+        .toList()
+      ..sort((a, b) => b.endedAt.compareTo(a.endedAt));
   }
 
   Future<void> deleteLabel(String id, {bool permanent = false}) =>
@@ -1171,51 +1209,72 @@ class FocusController extends ChangeNotifier {
     return averages;
   }
 
-  Map<int, double> get currentMonthWeekdayAverageSeconds {
-    final now = AppClock.now();
-    final startOfMonth = DateTime(now.year, now.month, 1).atMidnight;
-    final today = now.atMidnight;
+  Map<int, double> monthWeekdayAverageSeconds({int offset = 0, DateTime? now}) {
+    final base = now ?? AppClock.now();
+    final anchor = DateTime(base.year, base.month + offset);
+    final startOfMonth = DateTime(anchor.year, anchor.month, 1).atMidnight;
+    final endOfMonth = DateTime(anchor.year, anchor.month + 1, 0).atMidnight;
+    final today = base.atMidnight;
+    final isCurrent = anchor.year == base.year && anchor.month == base.month;
+    final limitDay = isCurrent ? today : endOfMonth;
 
     final weekdayOccurrences = <int, int>{for (var i = 1; i <= 7; i++) i: 0};
     var cursor = startOfMonth;
-    while (!cursor.isAfter(today)) {
-      weekdayOccurrences[cursor.weekday] = (weekdayOccurrences[cursor.weekday] ?? 0) + 1;
+    while (!cursor.isAfter(limitDay)) {
+      weekdayOccurrences[cursor.weekday] =
+          (weekdayOccurrences[cursor.weekday] ?? 0) + 1;
       cursor = cursor.addDays(1);
     }
 
     final weekdayTotals = <int, int>{for (var i = 1; i <= 7; i++) i: 0};
     for (final session in _allSlices) {
       final d = session.countedOn;
-      if (d.year == now.year && d.month == now.month) {
-        weekdayTotals[d.weekday] = (weekdayTotals[d.weekday] ?? 0) + session.seconds;
+      if (d.year == anchor.year && d.month == anchor.month) {
+        weekdayTotals[d.weekday] =
+            (weekdayTotals[d.weekday] ?? 0) + session.seconds;
       }
     }
 
     final averages = <int, double>{};
     for (var i = 1; i <= 7; i++) {
       final occurrences = weekdayOccurrences[i] ?? 0;
-      averages[i] = occurrences == 0 ? 0.0 : (weekdayTotals[i] ?? 0) / occurrences;
+      averages[i] =
+          occurrences == 0 ? 0.0 : (weekdayTotals[i] ?? 0) / occurrences;
     }
     return averages;
   }
 
+  Map<int, double> get currentMonthWeekdayAverageSeconds =>
+      monthWeekdayAverageSeconds(offset: 0);
+
   int get currentStreak =>
       focusStreaks(_allSlices, now: AppClock.now()).current;
 
-  List<MapEntry<String, int>> labelRankingForPeriod(String period, int weekStart) {
-    final now = AppClock.now();
+  List<MapEntry<String, int>> labelRankingForPeriod(
+    String period,
+    int weekStart, {
+    int offset = 0,
+    DateTime? now,
+  }) {
+    final base = now ?? AppClock.now();
     DateTime from;
+    DateTime to;
     if (period == 'week') {
-      from = now.startOfWeek(weekStart).atMidnight;
+      from = base.startOfWeek(weekStart).addDays(offset * 7).atMidnight;
+      to = from.addDays(7);
     } else if (period == 'month') {
-      from = DateTime(now.year, now.month, 1).atMidnight;
+      final anchor = DateTime(base.year, base.month + offset);
+      from = DateTime(anchor.year, anchor.month, 1).atMidnight;
+      to = DateTime(anchor.year, anchor.month + 1, 1).atMidnight;
     } else {
       from = DateTime(1970);
+      to = DateTime(2100);
     }
 
     final map = <String, int>{};
     for (final session in _allSlices) {
-      if (!session.countedOn.atMidnight.isBefore(from)) {
+      final dt = session.countedOn.atMidnight;
+      if (!dt.isBefore(from) && dt.isBefore(to)) {
         for (final labelId in session.labelIds) {
           if (labelId.isNotEmpty) {
             map[labelId] = (map[labelId] ?? 0) + session.seconds;
@@ -1224,6 +1283,59 @@ class FocusController extends ChangeNotifier {
       }
     }
     return (map.entries.toList()..sort((a, b) => b.value.compareTo(a.value)));
+  }
+
+  ({
+    int totalPeriodSeconds,
+    int totalSessions,
+    Map<String, int> secondsByLabel,
+    Map<String, int> sessionCountByLabel,
+  }) labelAnalysisForPeriod(
+    String period,
+    int weekStart, {
+    int offset = 0,
+    DateTime? now,
+  }) {
+    final base = now ?? AppClock.now();
+    DateTime from;
+    DateTime to;
+    if (period == 'week') {
+      from = base.startOfWeek(weekStart).addDays(offset * 7).atMidnight;
+      to = from.addDays(7);
+    } else if (period == 'month') {
+      final anchor = DateTime(base.year, base.month + offset);
+      from = DateTime(anchor.year, anchor.month, 1).atMidnight;
+      to = DateTime(anchor.year, anchor.month + 1, 1).atMidnight;
+    } else {
+      from = DateTime(1970);
+      to = DateTime(2100);
+    }
+
+    final secondsMap = <String, int>{};
+    final countMap = <String, int>{};
+    var totalPeriodSec = 0;
+    var totalSess = 0;
+
+    for (final session in _allSlices) {
+      final dt = session.countedOn.atMidnight;
+      if (!dt.isBefore(from) && dt.isBefore(to)) {
+        totalPeriodSec += session.seconds;
+        totalSess++;
+        for (final labelId in session.labelIds) {
+          if (labelId.isNotEmpty) {
+            secondsMap[labelId] = (secondsMap[labelId] ?? 0) + session.seconds;
+            countMap[labelId] = (countMap[labelId] ?? 0) + 1;
+          }
+        }
+      }
+    }
+
+    return (
+      totalPeriodSeconds: totalPeriodSec,
+      totalSessions: totalSess,
+      secondsByLabel: secondsMap,
+      sessionCountByLabel: countMap,
+    );
   }
 
   Map<String, int> get monthlyTotalSeconds {
@@ -1245,24 +1357,38 @@ class FocusController extends ChangeNotifier {
   }
 
   ({int morningSec, int afternoonSec, int eveningSec, int nightSec, int totalSec})
-      timeOfDayBreakdown({required bool isWeekly, required DateTime now, required int weekStart}) {
+      timeOfDayBreakdown({
+    bool? isWeekly,
+    String? period,
+    int offset = 0,
+    required DateTime now,
+    required int weekStart,
+  }) {
     var morning = 0;
     var afternoon = 0;
     var evening = 0;
     var night = 0;
 
-    final weekFrom = now.startOfWeek(weekStart).atMidnight;
-    final weekTo = weekFrom.addDays(7);
-    final monthStart = DateTime(now.year, now.month);
-    final monthEnd = DateTime(now.year, now.month + 1);
+    final mode = period ?? (isWeekly == false ? 'month' : 'week');
+    final DateTime? from;
+    final DateTime? to;
+
+    if (mode == 'week') {
+      from = now.startOfWeek(weekStart).addDays(offset * 7).atMidnight;
+      to = from.addDays(7);
+    } else if (mode == 'month') {
+      final anchor = DateTime(now.year, now.month + offset);
+      from = DateTime(anchor.year, anchor.month, 1).atMidnight;
+      to = DateTime(anchor.year, anchor.month + 1, 1).atMidnight;
+    } else {
+      from = null;
+      to = null;
+    }
 
     for (final session in _allSlices) {
-      final dt = session.countedOn;
-      if (isWeekly) {
-        if (dt.isBefore(weekFrom) || !dt.isBefore(weekTo)) continue;
-      } else {
-        if (dt.isBefore(monthStart) || !dt.isBefore(monthEnd)) continue;
-      }
+      final dt = session.countedOn.atMidnight;
+      if (from != null && dt.isBefore(from)) continue;
+      if (to != null && !dt.isBefore(to)) continue;
 
       final hour = session.startedAt.toLocal().hour;
       final sec = session.seconds;

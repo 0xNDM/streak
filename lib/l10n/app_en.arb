@@ -1484,5 +1484,13 @@
   "focus_week_number": "W{number}",
   "@focus_week_number": {"placeholders": {"number": {"type": "int"}}},
   "focus_total_time": "Total: {time}",
-  "@focus_total_time": {"placeholders": {"time": {"type": "String"}}}
+  "@focus_total_time": {"placeholders": {"time": {"type": "String"}}},
+  "focus_labels": "Labels",
+  "focus_sub_labels": "Sub-labels",
+  "focus_add_sub_label": "Add sub-label",
+  "focus_archived_labels": "Archived Labels",
+  "focus_no_archived_labels": "No archived labels",
+  "focus_recent_sessions_editable": "Recent Sessions (Editable)",
+  "focus_editable_12h_hint": "Edit labels and duration within 12h of completion",
+  "focus_no_editable_sessions": "No editable sessions in the past 12 hours"
 }

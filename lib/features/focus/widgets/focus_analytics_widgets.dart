@@ -39,11 +39,17 @@ class WeeklyFocusComparisonCard extends StatelessWidget {
     final change = stats.weeklyChangePercent;
     final isUp = change >= 0;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.45),
+        color: isDark
+            ? scheme.surfaceContainerHigh.withValues(alpha: 0.6)
+            : scheme.surfaceContainerHighest.withValues(alpha: 0.45),
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: scheme.outlineVariant.withValues(alpha: isDark ? 0.25 : 0.35),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -96,39 +102,7 @@ class WeeklyFocusComparisonCard extends StatelessWidget {
                   ),
                 ],
               ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: (isUp ? context.tokens.success : context.tokens.warning)
-                      .withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      isUp ? LucideIcons.trendingUp : LucideIcons.trendingDown,
-                      size: 15,
-                      color:
-                          isUp ? context.tokens.success : context.tokens.warning,
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      context.l10n.focus_vs_last_week(
-                        '${isUp ? '+' : ''}${change.toStringAsFixed(0)}',
-                      ),
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w700,
-                        color: isUp
-                            ? context.tokens.success
-                            : context.tokens.warning,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              const SizedBox.shrink(),
             ],
           ),
           const SizedBox(height: 14),
@@ -309,11 +283,17 @@ class _WeeklyContinuousTimelineState extends State<WeeklyContinuousTimeline> {
       }
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.45),
+        color: isDark
+            ? scheme.surfaceContainerHigh.withValues(alpha: 0.6)
+            : scheme.surfaceContainerHighest.withValues(alpha: 0.45),
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: scheme.outlineVariant.withValues(alpha: isDark ? 0.25 : 0.35),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -392,21 +372,24 @@ class _WeeklyContinuousTimelineState extends State<WeeklyContinuousTimeline> {
               Expanded(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
-                    Text('00:00',
-                        style: TextStyle(fontSize: 10, color: Colors.grey)),
-                    Text('04:00',
-                        style: TextStyle(fontSize: 10, color: Colors.grey)),
-                    Text('08:00',
-                        style: TextStyle(fontSize: 10, color: Colors.grey)),
-                    Text('12:00',
-                        style: TextStyle(fontSize: 10, color: Colors.grey)),
-                    Text('16:00',
-                        style: TextStyle(fontSize: 10, color: Colors.grey)),
-                    Text('20:00',
-                        style: TextStyle(fontSize: 10, color: Colors.grey)),
-                    Text('24:00',
-                        style: TextStyle(fontSize: 10, color: Colors.grey)),
+                  children: [
+                    for (final t in const [
+                      '00:00',
+                      '04:00',
+                      '08:00',
+                      '12:00',
+                      '16:00',
+                      '20:00',
+                      '24:00',
+                    ])
+                      Text(
+                        t,
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w600,
+                          color: context.tokens.muted,
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -470,15 +453,35 @@ class _DailyTrackRow extends StatelessWidget {
           child: LayoutBuilder(
             builder: (context, box) {
               final totalWidth = box.maxWidth;
+              final isDark = Theme.of(context).brightness == Brightness.dark;
               return Container(
-                height: 24,
+                height: 26,
+                clipBehavior: Clip.antiAlias,
                 decoration: BoxDecoration(
-                  color:
-                      scheme.surfaceContainerHighest.withValues(alpha: 0.35),
-                  borderRadius: BorderRadius.circular(6),
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : Colors.black.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(7),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.1)
+                        : Colors.black.withValues(alpha: 0.07),
+                  ),
                 ),
                 child: Stack(
                   children: [
+                    for (var h = 4; h <= 20; h += 4)
+                      Positioned(
+                        left: (h / 24.0) * totalWidth,
+                        top: 0,
+                        bottom: 0,
+                        child: Container(
+                          width: 1,
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.06)
+                              : Colors.black.withValues(alpha: 0.04),
+                        ),
+                      ),
                     for (final session in sessions)
                       _buildSessionPill(context, session, totalWidth),
                   ],
@@ -543,15 +546,38 @@ class _DailyTrackRow extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             color: color,
-            borderRadius: BorderRadius.circular(pillWidth > 12 ? 4 : 2),
+            borderRadius: BorderRadius.circular(pillWidth > 12 ? 5 : 2),
+            border: Border.all(
+              color: Colors.white.withValues(
+                alpha: Theme.of(context).brightness == Brightness.dark ? 0.35 : 0.6,
+              ),
+              width: 0.8,
+            ),
             boxShadow: [
               BoxShadow(
-                color: color.withValues(alpha: 0.25),
-                blurRadius: 2,
+                color: color.withValues(alpha: 0.4),
+                blurRadius: 3,
                 offset: const Offset(0, 1),
               ),
             ],
           ),
+          alignment: Alignment.center,
+          child: pillWidth >= 36
+              ? FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Text(
+                      formatHoursShort(session.seconds),
+                      style: const TextStyle(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                )
+              : null,
         ),
       ),
     );

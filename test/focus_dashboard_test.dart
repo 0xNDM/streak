@@ -14,6 +14,7 @@ import 'package:streak/features/focus/pages/focus_dashboard_page.dart';
 import 'package:streak/features/focus/pages/focus_setup_page.dart';
 import 'package:streak/features/focus/state/focus_controller.dart';
 import 'package:streak/features/focus/widgets/focus_dashboard_header.dart';
+import 'package:streak/features/focus/widgets/focus_labels_view.dart';
 import 'package:streak/features/focus/widgets/focus_dashboard_widgets.dart';
 import 'package:streak/features/focus/widgets/focus_setup_dialog.dart';
 import 'package:streak/features/focus/widgets/mini_timer_chip.dart';
@@ -261,5 +262,36 @@ void main() {
 
     expect(find.byType(MiniTimerChip), findsOneWidget);
     expect(find.text(formatDuration(focus.displaySeconds)), findsOneWidget);
+  });
+
+  testWidgets('Labels sub-tab displays labels management view and editable sessions',
+      (tester) async {
+    final now = DateTime.now();
+    final session = FocusSession(
+      id: 'session-editable',
+      habitId: '',
+      targetMinutes: 25,
+      seconds: 1500,
+      completed: true,
+      startedAt: now.subtract(const Duration(hours: 2)),
+      endedAt: now.subtract(const Duration(hours: 1, minutes: 35)),
+      labelIds: const ['work'],
+    );
+
+    await tester.runAsync(() async {
+      await _addLabel('work', 'Work');
+      await LocalStore.writeFocusSession(session);
+    });
+
+    await pumpScreen(tester, const FocusDashboardPage());
+    await tester.pumpAndSettle();
+
+    // Switch to Labels sub-tab
+    await tester.tap(find.text('Labels'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(FocusLabelsView), findsOneWidget);
+    expect(find.text('Work'), findsWidgets);
+    expect(find.text('Recent Sessions (Editable)'), findsOneWidget);
   });
 }
