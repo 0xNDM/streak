@@ -19,11 +19,13 @@ class FocusSessionCard extends StatelessWidget {
     super.key,
     required this.session,
     this.habit,
+    this.onEdit,
     this.onDelete,
   });
 
   final FocusSession session;
   final Habit? habit;
+  final VoidCallback? onEdit;
   final VoidCallback? onDelete;
 
   @override
@@ -33,7 +35,7 @@ class FocusSessionCard extends StatelessWidget {
     final timeFormat = DateFormat.jm(locale);
 
     final start = session.startedAt;
-    final end = session.startedAt.add(Duration(seconds: session.seconds));
+    final end = session.endedAt;
     final timeRange = '${timeFormat.format(start)} – ${timeFormat.format(end)}';
 
     final minutes = (session.seconds / 60).round();
@@ -44,9 +46,7 @@ class FocusSessionCard extends StatelessWidget {
             : '${minutes ~/ 60}h ${minutes % 60}m');
 
     final focus = context.watch<FocusController>();
-    final sessionTags = session.tags.isNotEmpty
-        ? session.tags
-        : (session.label.isNotEmpty ? [session.label] : const <String>[]);
+    final labelIds = session.labelIds;
 
     final currentHabit = habit;
     final habitColor = currentHabit?.color ?? scheme.primary;
@@ -91,7 +91,7 @@ class FocusSessionCard extends StatelessWidget {
                         color: scheme.onSurface,
                       ),
                     ),
-                    if (sessionTags.isNotEmpty || currentHabit != null) ...[
+                    if (labelIds.isNotEmpty || currentHabit != null) ...[
                       const SizedBox(width: 8),
                       Expanded(
                         child: Wrap(
@@ -100,8 +100,11 @@ class FocusSessionCard extends StatelessWidget {
                           children: [
                             if (currentHabit != null)
                               _buildPill(currentHabit.name, habitColor),
-                            for (final tag in sessionTags)
-                              _buildPill(tag, focus.colorForLabel(tag)),
+                            for (final labelId in labelIds)
+                              _buildPill(
+                                focus.labelDisplayName(labelId),
+                                focus.colorForLabel(labelId),
+                              ),
                           ],
                         ),
                       ),
@@ -131,6 +134,21 @@ class FocusSessionCard extends StatelessWidget {
               ],
             ),
           ),
+          if (onEdit != null) ...[
+            const SizedBox(width: 6),
+            IconButton(
+              icon: Icon(
+                LucideIcons.pencil,
+                size: 15,
+                color: context.tokens.muted.withValues(alpha: 0.7),
+              ),
+              tooltip: context.l10n.edit,
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+              onPressed: onEdit,
+            ),
+          ],
           if (onDelete != null) ...[
             const SizedBox(width: 6),
             IconButton(

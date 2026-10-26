@@ -32,7 +32,7 @@ void main() {
   testWidgets('focus history says when there is nothing', (tester) async {
     await pumpScreen(tester, const FocusHistoryPage());
 
-    expect(find.text('History'), findsOneWidget);
+    expect(find.text('Focus History'), findsOneWidget);
   });
 
   testWidgets('notes list the day and its cards', (tester) async {

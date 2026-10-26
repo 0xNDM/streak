@@ -31,7 +31,7 @@ class FocusSetupDialog extends StatefulWidget {
 
 class _FocusSetupDialogState extends State<FocusSetupDialog> {
   late String _habitId = widget.habitId ?? '';
-  Set<String> _tags = {};
+  Set<String> _labelIds = {};
   int _minutes = 25;
   bool _pomodoro = false;
   int _breakMinutes = 5;
@@ -52,7 +52,7 @@ class _FocusSetupDialogState extends State<FocusSetupDialog> {
 
   void _pick(Habit habit) {
     _habitId = habit.id;
-    _tags = {};
+    _labelIds = {};
     _minutes = habit.focusMinutes;
     _pomodoro = habit.focusBreakMinutes > 0;
     if (_pomodoro) _breakMinutes = habit.focusBreakMinutes;
@@ -76,8 +76,7 @@ class _FocusSetupDialogState extends State<FocusSetupDialog> {
         startHabitId: _habitId,
         startMinutes: _minutes,
         breakMinutes: breakMinutes,
-        startLabel: _tags.join(', '),
-        startTags: _tags.toList(),
+        startLabelIds: _labelIds.toList(),
       ),
       fade: true,
       name: FocusPage.routeName,
@@ -169,9 +168,8 @@ class _FocusSetupDialogState extends State<FocusSetupDialog> {
                     ),
                     const SizedBox(height: 8),
                     FocusLabelPicker(
-                      habitId: _habitId,
-                      selected: _tags,
-                      onChanged: (tags) => setState(() => _tags = tags),
+                      selected: _labelIds,
+                      onChanged: (tags) => setState(() => _labelIds = tags),
                     ),
                     const SizedBox(height: 18),
                     Text(

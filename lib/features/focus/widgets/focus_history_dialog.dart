@@ -12,6 +12,7 @@ import 'package:streak/features/focus/data/focus_session.dart';
 import 'package:streak/features/focus/state/focus_actions.dart';
 import 'package:streak/features/focus/state/focus_controller.dart';
 import 'package:streak/features/focus/widgets/focus_dashboard_widgets.dart';
+import 'package:streak/features/focus/widgets/focus_session_edit_dialog.dart';
 import 'package:streak/features/habits/state/habits_controller.dart';
 import 'package:streak/features/statistics/widgets/stat_kit.dart';
 
@@ -90,7 +91,8 @@ class _FocusHistoryViewState extends State<FocusHistoryView> {
       groupDate.putIfAbsent(key, () => s.countedOn);
     }
 
-    final sortedKeys = grouped.keys.toList();
+    final sortedKeys = grouped.keys.toList()
+      ..sort((a, b) => b.compareTo(a));
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -99,9 +101,12 @@ class _FocusHistoryViewState extends State<FocusHistoryView> {
           children: [
             const Icon(LucideIcons.history, size: 20),
             const SizedBox(width: 8),
-            const Text(
-              'Focus History',
-              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+            Text(
+              context.l10n.focus_history,
+              style: const TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 18,
+              ),
             ),
             const SizedBox(width: 10),
             Container(
@@ -134,8 +139,8 @@ class _FocusHistoryViewState extends State<FocusHistoryView> {
           ? Center(
               child: AppEmptyState(
                 icon: LucideIcons.timer,
-                title: 'No Focus Sessions Yet',
-                message: 'Your completed focus sessions will appear here grouped by date.',
+                title: context.l10n.focus_history_empty,
+                message: context.l10n.focus_history_empty_sub,
               ),
             )
           : ListView.builder(
@@ -192,6 +197,7 @@ class _FocusHistoryViewState extends State<FocusHistoryView> {
                             habit: session.habitId.isEmpty
                                 ? null
                                 : habits.byId(session.habitId),
+                            onEdit: () => editFocusSession(context, session),
                             onDelete: () => _deleteSession(context, session),
                           ),
                         ),

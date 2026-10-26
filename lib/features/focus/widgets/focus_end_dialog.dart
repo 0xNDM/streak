@@ -10,11 +10,9 @@ class FocusEndDialog extends StatelessWidget {
     required this.reached,
     required this.lines,
     required this.accent,
-    this.addsTime = false,
   });
 
   final bool reached;
-  final bool addsTime;
   final List<String> lines;
   final Color accent;
 
@@ -56,20 +54,6 @@ class FocusEndDialog extends StatelessWidget {
               style: sheetBodyStyle(context, size: 14),
             ),
             const SizedBox(height: 24),
-            if (!reached) ...[
-              _FocusDialogButton(
-                icon: LucideIcons.circleCheck,
-                label: addsTime
-                    ? context.l10n.focus_end_add_time
-                    : context.l10n.focus_end_complete,
-                background: color,
-                foreground: color.computeLuminance() > 0.6
-                    ? Colors.black
-                    : Colors.white,
-                onTap: () => Navigator.of(context).pop('done'),
-              ),
-              const SizedBox(height: 10),
-            ],
             _FocusDialogButton(
               icon: LucideIcons.square,
               label:

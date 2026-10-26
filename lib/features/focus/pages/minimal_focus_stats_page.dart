@@ -180,7 +180,7 @@ class _MinimalFocusStatsPageState extends State<MinimalFocusStatsPage> {
                           children: [
                             for (final (i, entry) in stats.labelRanking.indexed)
                               MinimalRow(
-                                label: entry.key,
+                                label: focus.labelDisplayName(entry.key),
                                 value: formatHoursShort(entry.value),
                                 leading: Icon(
                                   LucideIcons.tag,

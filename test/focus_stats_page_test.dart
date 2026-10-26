@@ -22,6 +22,7 @@ FocusSession _session({
       seconds: minutes * 60,
       completed: true,
       startedAt: startedAt,
+      endedAt: startedAt.add(Duration(minutes: minutes)),
     );
 
 Future<void> _seedSessions(

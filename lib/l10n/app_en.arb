@@ -188,8 +188,39 @@
   "pick_one_day": "Pick at least one day",
   "reminder_habit_days": "On the habit's days",
   "reminder_habit_days_hint": "It rings on the days the habit is due.",
+  "focus_complete_on": "Completed {duration} on {name}",
+  "@focus_complete_on": {
+    "placeholders": {
+      "duration": { "type": "String" },
+      "name": { "type": "String" }
+    }
+  },
+  "focus_complete_session": "Completed {duration} focused session",
+  "@focus_complete_session": {
+    "placeholders": { "duration": { "type": "String" } }
+  },
+  "focus_start_new": "Start New",
+  "focus_close_title": "End focus session?",
+  "focus_close_body": "A focus session is still active. End it and close Streak, or keep going?",
+  "focus_close_end": "End session & close",
+  "focus_keep_going": "Keep going",
+  "focus_edit_session": "Edit session",
+  "focus_edit_expired": "Sessions can only be edited for 12 hours after they end.",
+  "focus_edit_invalid": "Enter a duration in minutes.",
+  "focus_edit_saved": "Session updated",
   "focus_label": "Label",
   "focus_label_none": "No label",
+  "focus_label_edit": "Edit Label",
+  "focus_label_archive": "Archive Label",
+  "focus_label_delete": "Delete Label Permanently",
+  "focus_label_delete_body": "Remove \"{name}\" everywhere? It will be removed from past sessions as well.",
+  "@focus_label_delete_body": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "focus_label_exists": "A label with this name already exists.",
+  "focus_label_parent": "Parent label",
+  "focus_label_no_parent": "No parent",
+  "focus_label_hex": "Hex Color",
   "focus_label_new": "New label",
   "focus_label_hint": "Maths, reading, work...",
   "focus_label_remove": "Remove label",
@@ -829,7 +860,7 @@
   "focus_log_date": "Date",
   "focus_log_saved": "Session added",
   "perfect_streak": "Perfect day streak",
-  "focus_history": "History",
+  "focus_history": "Focus History",
   "focus_history_empty": "No sessions yet",
   "focus_history_empty_sub": "Every focus session you finish shows up here.",
   "focus_history_day": "{count, plural, =1{1 session} other{{count} sessions}}",

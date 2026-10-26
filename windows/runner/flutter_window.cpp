@@ -35,13 +35,38 @@ bool FlutterWindow::OnCreate() {
           flutter_controller_->engine()->messenger(), "streak/window",
           &flutter::StandardMethodCodec::GetInstance());
   window_channel_->SetMethodCallHandler([this](const auto& call, auto result) {
-    const auto* on = std::get_if<bool>(call.arguments());
-    if (call.method_name() != "fullscreen" || on == nullptr) {
-      result->NotImplemented();
+    if (call.method_name() == "fullscreen") {
+      const auto* on = std::get_if<bool>(call.arguments());
+      if (on == nullptr) {
+        result->Error("bad_args", "Expected a bool");
+        return;
+      }
+      SetFullscreen(*on);
+      result->Success();
       return;
     }
-    SetFullscreen(*on);
-    result->Success();
+    if (call.method_name() == "enableCloseGuard") {
+      close_guard_ = true;
+      close_pending_ = false;
+      result->Success();
+      return;
+    }
+    if (call.method_name() == "close") {
+      close_approved_ = true;
+      close_pending_ = false;
+      result->Success();
+      HWND hwnd = GetHandle();
+      if (hwnd != nullptr) {
+        PostMessage(hwnd, WM_CLOSE, 0, 0);
+      }
+      return;
+    }
+    if (call.method_name() == "cancelClose") {
+      close_pending_ = false;
+      result->Success();
+      return;
+    }
+    result->NotImplemented();
   });
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
@@ -82,6 +107,9 @@ void FlutterWindow::SetFullscreen(bool on) {
 }
 
 void FlutterWindow::OnDestroy() {
+  close_guard_ = false;
+  close_pending_ = false;
+  close_approved_ = false;
   window_channel_ = nullptr;
   if (flutter_controller_) {
     flutter_controller_ = nullptr;
@@ -94,6 +122,20 @@ LRESULT
 FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
                               WPARAM const wparam,
                               LPARAM const lparam) noexcept {
+  if (message == WM_CLOSE) {
+    if (!close_guard_ || close_approved_ || !window_channel_) {
+      close_approved_ = false;
+      return Win32Window::MessageHandler(hwnd, message, wparam, lparam);
+    }
+    if (!close_pending_) {
+      close_pending_ = true;
+      window_channel_->InvokeMethod(
+          "closeRequested",
+          std::unique_ptr<flutter::EncodableValue>(), nullptr);
+    }
+    return 0;
+  }
+
   if (flutter_controller_) {
     std::optional<LRESULT> result =
         flutter_controller_->HandleTopLevelWindowProc(hwnd, message, wparam,

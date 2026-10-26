@@ -65,8 +65,8 @@ Future<void> countFocusTime(
       piece.countedOn,
       undo ? -minutes : minutes,
     );
-    if (!undo) await focus.markCounted(piece.id);
   }
+  if (!undo && !session.counted) await focus.markCounted(session.id);
 }
 
 Future<void> drainFocusActions() async {

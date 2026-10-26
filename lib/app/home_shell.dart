@@ -35,6 +35,7 @@ import 'package:streak/features/settings/state/settings_controller.dart';
 import 'package:streak/features/statistics/pages/statistics_page.dart';
 import 'package:streak/features/todos/pages/todos_page.dart';
 import 'package:streak/features/todos/state/todos_controller.dart';
+import 'package:streak/services/desktop_window.dart';
 import 'package:streak/services/home_widget_service.dart';
 import 'package:streak/services/widget_action_service.dart';
 
@@ -84,8 +85,47 @@ class _HomeShellState extends State<HomeShell>
     final focus = context.read<FocusController>();
     final habits = context.read<HabitsController>();
     focus.onRoundSaved =
-        (session) => unawaited(creditFocusRound(habits, focus, session));
+        (session) => creditFocusRound(habits, focus, session);
+    unawaited(focus.recoverIfNeeded());
+    unawaited(DesktopWindow.installCloseHandler(_handleCloseRequest));
     _waitForNextDay();
+  }
+
+  Future<void> _handleCloseRequest() async {
+    if (!mounted) {
+      await DesktopWindow.confirmClose();
+      return;
+    }
+    final focus = context.read<FocusController>();
+    if (!focus.isActive || focus.isCompleted) {
+      await DesktopWindow.confirmClose();
+      return;
+    }
+
+    final end = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(context.l10n.focus_close_title),
+        content: Text(context.l10n.focus_close_body),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(context.l10n.focus_keep_going),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(context.l10n.focus_close_end),
+          ),
+        ],
+      ),
+    );
+    if (end == true) {
+      await focus.stop(completed: false);
+      await DesktopWindow.confirmClose();
+    } else {
+      await DesktopWindow.cancelClose();
+    }
   }
 
   void _waitForNextDay() {

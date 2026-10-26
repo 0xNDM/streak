@@ -31,6 +31,7 @@ FocusSession _session(DateTime day, int minutes) => FocusSession(
   seconds: minutes * 60,
   completed: true,
   startedAt: day,
+  endedAt: day.add(Duration(minutes: minutes)),
 );
 
 void main() {

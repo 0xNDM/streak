@@ -6,6 +6,7 @@ import 'package:streak/core/database/data_location.dart';
 import 'package:streak/core/utils/app_dirs.dart';
 import 'package:streak/features/habits/data/category.dart';
 import 'package:streak/features/habits/data/habit.dart';
+import 'package:streak/features/focus/data/focus_label.dart';
 import 'package:streak/features/focus/data/focus_session.dart';
 import 'package:streak/features/habits/data/habit_note.dart';
 import 'package:streak/features/todos/data/todo.dart';
@@ -165,6 +166,27 @@ class LocalStore {
     }
   }
 
+  static const focusLabelCatalogKey = 'focusLabelCatalog';
+
+  static List<FocusLabel> readFocusLabels() {
+    final raw = _settings.get(focusLabelCatalogKey);
+    if (raw is! List) return <FocusLabel>[];
+    final result = <FocusLabel>[];
+    for (final item in raw) {
+      try {
+        result.add(FocusLabel.fromMap(Map<String, dynamic>.from(item as Map)));
+      } catch (e) {
+        debugPrint('Skipped an unreadable focus label: $e');
+      }
+    }
+    return result;
+  }
+
+  static Future<void> writeFocusLabels(Iterable<FocusLabel> labels) =>
+      writeSetting(focusLabelCatalogKey, [
+        for (final label in labels) label.toMap(),
+      ]);
+
   static List<HabitNote> readNotes() {
     final result = <HabitNote>[];
     for (final raw in _notes.values) {
@@ -316,6 +338,8 @@ class LocalStore {
     await _todos.clear();
     await _todoTags.clear();
     await _categories.clear();
+    await _settings.delete(focusLabelCatalogKey);
+    await _settings.delete('focusActive');
   }
 
   static Future<void> wipeEverything() async {

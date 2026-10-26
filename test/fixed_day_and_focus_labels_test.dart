@@ -17,7 +17,7 @@ Habit _monthly(DateTime start, {int every = 1}) => Habit(
       createdAt: start,
     );
 
-FocusSession _session(String id, {String label = '', int minutes = 30}) =>
+FocusSession _session(String id, {List<String> labelIds = const [], int minutes = 30}) =>
     FocusSession(
       id: id,
       habitId: 'study',
@@ -25,7 +25,8 @@ FocusSession _session(String id, {String label = '', int minutes = 30}) =>
       seconds: minutes * 60,
       completed: true,
       startedAt: DateTime(2026, 8, 12, 10),
-      label: label,
+      endedAt: DateTime(2026, 8, 12, 10).add(Duration(minutes: minutes)),
+      labelIds: labelIds,
     );
 
 void main() {
@@ -89,13 +90,14 @@ void main() {
   });
 
   group('focus labels', () {
-    test('a label survives a backup, and old sessions have none', () {
-      final map = _session('a', label: 'Maths').toMap();
-      expect(FocusSession.fromMap(map).label, 'Maths');
-      expect(FocusSession.fromMap(map..remove('label')).label, '');
+    test('label ids survive a backup and legacy labels are ignored', () {
+      final map = _session('a', labelIds: const ['maths']).toMap();
+      expect(FocusSession.fromMap(map).labelIds, ['maths']);
+      map['label'] = 'Legacy';
+      expect(FocusSession.fromMap(map).labelIds, ['maths']);
     });
 
-    test('a session cut at midnight keeps its label on every piece', () {
+    test('a session cut at midnight keeps its labels on every piece', () {
       final late = FocusSession(
         id: 'night',
         habitId: '',
@@ -103,27 +105,28 @@ void main() {
         seconds: 2 * 3600,
         completed: true,
         startedAt: DateTime(2026, 8, 12, 23),
-        label: 'Reading',
+        endedAt: DateTime(2026, 8, 13, 1),
+        labelIds: const ['reading'],
       );
       final pieces = late.split();
       expect(pieces.length, 2);
-      expect(pieces.every((piece) => piece.label == 'Reading'), isTrue);
+      expect(pieces.every((piece) => piece.labelIds.single == 'reading'), isTrue);
     });
 
     test('time adds up per label and unlabelled sessions stay out', () {
       final stats = FocusStats.compute(
         sessions: [
-          _session('a', label: 'Maths', minutes: 30),
-          _session('b', label: 'Physics', minutes: 50),
-          _session('c', label: 'Maths', minutes: 40),
+          _session('a', labelIds: const ['maths'], minutes: 30),
+          _session('b', labelIds: const ['physics'], minutes: 50),
+          _session('c', labelIds: const ['maths'], minutes: 40),
           _session('d', minutes: 20),
         ],
         range: FocusRange.week,
         now: DateTime(2026, 8, 12, 18),
         weekStart: DateTime.monday,
       );
-      expect(stats.perLabel, {'Maths': 70 * 60, 'Physics': 50 * 60});
-      expect(stats.labelRanking.first.key, 'Maths');
+      expect(stats.perLabel, {'maths': 70 * 60, 'physics': 50 * 60});
+      expect(stats.labelRanking.first.key, 'maths');
     });
   });
 }

@@ -77,6 +77,7 @@ void main() {
           seconds: seconds,
           completed: true,
           startedAt: startedAt,
+          endedAt: startedAt.add(Duration(seconds: seconds)),
         );
 
     test('splits where the day changes and keeps every second', () {
@@ -99,11 +100,12 @@ void main() {
       expect(pieces.map((piece) => piece.id), ['night', 'night-2']);
     });
 
-    test('crossing by a few seconds stays in one piece', () {
+    test('crossing by a few seconds still lands on both days', () {
       final pieces = session(DateTime(2026, 9, 14, 23, 59), 70).split();
 
-      expect(pieces.length, 1);
-      expect(pieces.single.seconds, 70);
+      expect(pieces.length, 2);
+      expect(pieces.map((piece) => piece.seconds), [60, 10]);
+      expect(pieces.fold(0, (sum, piece) => sum + piece.seconds), 70);
     });
 
     test('a session inside one day is left alone', () {

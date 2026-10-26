@@ -36,7 +36,7 @@ const backupSettingKeys = {
   'focusScene',
   'focusShuffle',
   'focusVolume',
-  'focusLabels',
+  'focusLabelCatalog',
   'focusTrack',
   'focusTracks',
   'focusWholeRounds',

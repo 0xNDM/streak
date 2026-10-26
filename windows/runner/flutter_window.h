@@ -29,6 +29,9 @@ class FlutterWindow : public Win32Window {
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>>
       window_channel_;
   bool fullscreen_ = false;
+  bool close_guard_ = false;
+  bool close_pending_ = false;
+  bool close_approved_ = false;
   LONG windowed_style_ = 0;
   WINDOWPLACEMENT windowed_placement_ = {sizeof(WINDOWPLACEMENT)};
 };

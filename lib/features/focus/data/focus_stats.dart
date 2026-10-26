@@ -103,9 +103,11 @@ class FocusStats {
     final scoped = habitId == null
         ? sessions
         : sessions.where((s) => s.habitId == habitId).toList();
+    final scopedSlices = [
+      for (final session in scoped) ...session.slices(),
+    ];
 
-    final today =
-        now.subtract(Duration(hours: AppClock.cutoffHour)).atMidnight;
+    final today = now.atMidnight;
     final weekFrom = today.startOfWeek(weekStart);
     final buckets = _bucketsFor(range, today, weekStart, offset);
     final series = List<int>.filled(buckets.length, 0);
@@ -135,11 +137,14 @@ class FocusStats {
     var nightSec = 0;
 
     for (final session in scoped) {
+      totalSeconds += session.seconds;
+      if (session.seconds > longestSession) longestSession = session.seconds;
+    }
+
+    for (final session in scopedSlices) {
       final day = session.countedOn;
       final epoch = day.epochDay;
       final sec = session.seconds;
-      totalSeconds += sec;
-      if (sec > longestSession) longestSession = sec;
 
       // Accumulate per day
       perDayMap[epoch] = (perDayMap[epoch] ?? 0) + sec;
@@ -186,13 +191,9 @@ class FocusStats {
       perHabit[session.habitId] =
           (perHabit[session.habitId] ?? 0) + sec;
 
-      final sessionTags = session.tags.isNotEmpty
-          ? session.tags
-          : (session.label.isNotEmpty ? [session.label] : const <String>[]);
-
-      for (final tag in sessionTags) {
-        if (tag.isNotEmpty) {
-          perLabel[tag] = (perLabel[tag] ?? 0) + sec;
+      for (final labelId in session.labelIds) {
+        if (labelId.isNotEmpty) {
+          perLabel[labelId] = (perLabel[labelId] ?? 0) + sec;
         }
       }
     }

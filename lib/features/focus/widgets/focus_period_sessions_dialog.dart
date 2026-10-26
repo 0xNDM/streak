@@ -6,6 +6,7 @@ import 'package:streak/core/widgets/app_empty_state.dart';
 import 'package:streak/features/focus/data/focus_session.dart';
 import 'package:streak/features/focus/state/focus_controller.dart';
 import 'package:streak/features/focus/widgets/focus_dashboard_widgets.dart';
+import 'package:streak/features/focus/widgets/focus_session_edit_dialog.dart';
 import 'package:streak/features/habits/state/habits_controller.dart';
 
 Future<void> showPeriodSessionsDialog({
@@ -140,6 +141,7 @@ class _PeriodSessionsDialog extends StatelessWidget {
                       habit: session.habitId.isEmpty
                           ? null
                           : habits.byId(session.habitId),
+                      onEdit: () => editFocusSession(context, session),
                       onDelete: onDelete == null
                           ? null
                           : () => onDelete!(session),

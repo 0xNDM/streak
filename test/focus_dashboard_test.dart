@@ -8,6 +8,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:streak/app/home_shell.dart';
 import 'package:streak/core/database/local_store.dart';
+import 'package:streak/features/focus/data/focus_label.dart';
 import 'package:streak/features/focus/data/focus_session.dart';
 import 'package:streak/features/focus/pages/focus_dashboard_page.dart';
 import 'package:streak/features/focus/pages/focus_setup_page.dart';
@@ -18,6 +19,15 @@ import 'package:streak/features/focus/widgets/focus_setup_dialog.dart';
 import 'package:streak/features/focus/widgets/mini_timer_chip.dart';
 
 import 'support/app_harness.dart';
+
+Future<void> _addLabel(String id, String name) async {
+  final labels = LocalStore.readFocusLabels();
+  if (labels.any((label) => label.id == id)) return;
+  await LocalStore.writeFocusLabels([
+    ...labels,
+    FocusLabel(id: id, name: name, colorValue: 0xFF3B82F6),
+  ]);
+}
 
 void main() {
   useEmptyStore();
@@ -52,10 +62,12 @@ void main() {
       seconds: 25 * 60,
       completed: true,
       startedAt: now.subtract(const Duration(minutes: 30)),
-      label: 'Deep Work',
+      endedAt: now.subtract(const Duration(minutes: 5)),
+      labelIds: const ['deep-work'],
     );
 
     await tester.runAsync(() async {
+      await _addLabel('deep-work', 'Deep Work');
       await LocalStore.writeFocusSession(sessionToday);
     });
 
@@ -77,7 +89,8 @@ void main() {
       targetMinutes: 45,
       seconds: 45 * 60,
       completed: true,
-      startedAt: now,
+      startedAt: now.subtract(const Duration(minutes: 45)),
+      endedAt: now,
     );
 
     await tester.runAsync(() async {
@@ -122,7 +135,8 @@ void main() {
       seconds: 1800,
       completed: true,
       startedAt: DateTime(2026, 10, 9, 8, 30),
-      label: 'Coding',
+      endedAt: DateTime(2026, 10, 9, 9),
+      labelIds: const ['coding'],
     );
 
     await LocalStore.writeFocusSession(session);
@@ -132,7 +146,7 @@ void main() {
     final retrieved = stored.firstWhere((s) => s.id == 'db-test-1');
     expect(retrieved.habitId, 'habit-101');
     expect(retrieved.seconds, 1800);
-    expect(retrieved.label, 'Coding');
+    expect(retrieved.labelIds, ['coding']);
     expect(retrieved.completed, isTrue);
   });
 
@@ -146,10 +160,12 @@ void main() {
       seconds: 1200,
       completed: true,
       startedAt: now.subtract(const Duration(minutes: 25)),
-      label: 'Quick Review',
+      endedAt: now.subtract(const Duration(minutes: 5)),
+      labelIds: const ['quick-review'],
     );
 
     await tester.runAsync(() async {
+      await _addLabel('quick-review', 'Quick Review');
       await LocalStore.writeFocusSession(session);
     });
 
@@ -188,13 +204,15 @@ void main() {
           seconds: 15 * 60,
           completed: true,
           startedAt: now.subtract(Duration(minutes: 10 + i * 40)),
-          label: 'Session $i',
+          endedAt: now.subtract(Duration(minutes: i * 40)),
+          labelIds: ['session-$i'],
         ),
     ];
 
     await tester.runAsync(() async {
-      for (final session in sessions) {
-        await LocalStore.writeFocusSession(session);
+      for (var i = 0; i < sessions.length; i++) {
+        await _addLabel('session-$i', 'Session $i');
+        await LocalStore.writeFocusSession(sessions[i]);
       }
     });
 
@@ -216,6 +234,7 @@ void main() {
 
   testWidgets('Rail mini timer chip appears while a session is active',
       (tester) async {
+
     if (!Platform.isWindows) return;
 
     await pumpScreen(tester, const HomeShell());

@@ -19,6 +19,7 @@ import 'package:streak/features/focus/widgets/focus_dashboard_widgets.dart';
 import 'package:streak/features/focus/widgets/focus_history_dialog.dart';
 import 'package:streak/features/focus/widgets/focus_period_bar.dart';
 import 'package:streak/features/focus/widgets/focus_period_sessions_dialog.dart';
+import 'package:streak/features/focus/widgets/focus_session_edit_dialog.dart';
 import 'package:streak/features/focus/widgets/focus_pill.dart';
 import 'package:streak/features/focus/widgets/focus_range_bars.dart';
 import 'package:streak/features/focus/widgets/focus_setup_dialog.dart';
@@ -313,8 +314,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
       weekStart: settings.weekStart,
     );
 
-    final defaultDailyGoal =
-        settings.focusDailyGoal > 0 ? settings.focusDailyGoal : 60;
+    final defaultDailyGoal = settings.focusDailyGoal;
     final currentDailyGoal = focus.dailyTargetFor(today, defaultDailyGoal);
 
     final defaultWeeklyHours = (defaultDailyGoal * 7) ~/ 60;
@@ -476,6 +476,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
   }) {
     final scheme = context.colors;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final hasGoal = dailyGoalMinutes > 0;
     final goalLabel = dailyGoalMinutes >= 60
         ? '${(dailyGoalMinutes / 60).toStringAsFixed(dailyGoalMinutes % 60 == 0 ? 0 : 1)}h'
         : '${dailyGoalMinutes}m';
@@ -523,14 +524,15 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
                     ),
                     const SizedBox(width: 8),
                   ],
-                  Text(
-                    '$dailyPercent%',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: _lockInBright,
+                  if (hasGoal)
+                    Text(
+                      '$dailyPercent%',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: _lockInBright,
+                      ),
                     ),
-                  ),
                   IconButton(
                     icon: const Icon(LucideIcons.pencil, size: 14),
                     visualDensity: VisualDensity.compact,
@@ -567,7 +569,9 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '${formatHoursShort(todaySeconds)} / $goalLabel',
+                hasGoal
+                    ? '${formatHoursShort(todaySeconds)} / $goalLabel'
+                    : formatHoursShort(todaySeconds),
                 style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w800,
@@ -584,16 +588,18 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
                 ),
             ],
           ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
-              value: dailyRatio,
-              minHeight: 8,
-              backgroundColor: scheme.surfaceContainerHighest,
-              valueColor: const AlwaysStoppedAnimation<Color>(_lockInBright),
+          if (hasGoal) ...[
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: LinearProgressIndicator(
+                value: dailyRatio,
+                minHeight: 8,
+                backgroundColor: scheme.surfaceContainerHighest,
+                valueColor: const AlwaysStoppedAnimation<Color>(_lockInBright),
+              ),
             ),
-          ),
+          ],
           const SizedBox(height: 20),
           SizedBox(
             height: 48,
@@ -764,6 +770,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
               habit: session.habitId.isEmpty
                   ? null
                   : habits.byId(session.habitId),
+              onEdit: () => editFocusSession(context, session),
               onDelete: () => _deleteSession(context, focus, session),
             ),
           if (todaySessions.length > visible.length)
@@ -1042,29 +1049,31 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
             ),
             const SizedBox(height: 16),
 
-            // Row 3: Day of week and Time of day (IntrinsicHeight for equal height)
+            // Row 3: Day of week and Time of day
             if (isWide)
-              IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: Container(
-                        clipBehavior: Clip.hardEdge,
-                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
-                        child: weekdayCard,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Container(
+                      clipBehavior: Clip.hardEdge,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
                       ),
+                      child: weekdayCard,
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Container(
-                        clipBehavior: Clip.hardEdge,
-                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
-                        child: timeOfDayCard,
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Container(
+                      clipBehavior: Clip.hardEdge,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
                       ),
+                      child: timeOfDayCard,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               )
             else ...[
               weekdayCard,

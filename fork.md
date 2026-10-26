@@ -30,7 +30,7 @@ To avoid disrupting mobile and other desktop platforms, primary navigation and U
 | Navigation Tab Label         | Habits renamed to "Habit"                 | Named "Today"                      |
 | App Bar FocusPill            | Only visible in header when timer RUNS    | Always visible in header           |
 | Start Session Action         | Modal Dialog (`FocusSetupDialog`)         | Full-screen or modal sheet         |
-| Session Management           | History with delete & rollback confirm    | History in nested settings/dialog  |
+| Session Management           | History with 12h editing, delete & rollback | History in nested settings/dialog |
 | Timer Completion             | Auto-ends at 00:00, saves, celebratory    | Manual completion stop dialog      |
 | Top-level Sub-Navigation     | Flat PillTabs (Today vs. Analytics)       | None (single view)                 |
 | Multi-Tag Focus              | Multiple labels/tags with color pills     | Single label string                |
@@ -99,7 +99,7 @@ A structured, flat analytical dashboard providing deep productivity insights:
 3. **Row 3: Day of Week & Time of Day Averages**:
    - Equal-height side-by-side cards utilizing `IntrinsicHeight`.
    - **Weekday Averages (`FocusWeekdayAveragesCard`)**: Compares All-Time vs. This-Month average focus time per day of the week.
-   - **Time of Day Breakdown (`FocusTimeOfDayCard`)**: Distributes focus time across 4 local periods: Morning (05:00–12:00), Afternoon (12:00–17:00), Evening (17:00–22:00), and Night (22:00–05:00).
+   - **Time of Day Breakdown (`FocusTimeOfDayCard`)**: Distributes focus time across 4 local periods: Morning (04:00–11:00), Afternoon (11:00–17:00), Evening (17:00–22:00), and Night (22:00–04:00).
 4. **Row 4: Annual Activity Map (`FocusActivityMap`)**:
    - Full-width GitHub-style activity heatmap mapped to daily focus minutes.
    - Responsive cell sizing calculated dynamically via `LayoutBuilder` so the full year renders cleanly without horizontal scrollbars.
@@ -114,18 +114,21 @@ A structured, flat analytical dashboard providing deep productivity insights:
 
 ### 3.2 Multi-Tag Focus & Label Management
 
-- **Multi-Tag Sessions**: `FocusSession` supports `List<String> tags`, while preserving the legacy `label` field for full backwards compatibility.
-- **Label Picker (`FocusLabelPicker`)**: Allows selecting multiple tags during setup or creating new custom tags on the fly.
+- **Multi-Label Sessions**: `FocusSession` schema v2 stores `List<String> labelIds`; the old `label`/`tags` fields are no longer read.
+- **Global Label Catalog**: Labels are independent of habits and persist in `LocalStore` under `focusLabelCatalog`.
+- **Label Picker (`FocusLabelPicker`)**: Selects multiple labels during setup, creates labels on the fly, and manages them through long-press actions.
+- **Hierarchical Labels**: Optional one-level parent/child labels. Selecting a parent clears its selected children and vice versa; historical names remain resolvable after archiving.
 - **Label Management**:
-  - Labels can be renamed with retroactive updates applied across all historical sessions in Hive.
-  - Labels can be deleted from suggestions while preserving historical records intact.
+  - Labels can be renamed with retroactive display updates across all historical sessions.
+  - Archiving hides a label from future picks while preserving its history.
+  - Permanent deletion removes the label and its ID from past sessions.
 - **Custom Hex Color Picker**: Allows inputting raw hex codes (`#RRGGBB`) in addition to preset palette swatches.
 
 ---
 
 ### 3.3 Independent Daily & Weekly Targets
 
-- **Daily Targets**: Independent targets per day (`focus.dailyTargetFor(date)` / `focus.setDailyTarget(date, minutes)`). Allows setting a higher or lower target for today without modifying past or future day goals.
+- **Daily Targets**: Independent targets per day (`focus.dailyTargetFor(date)` / `focus.setDailyTarget(date, minutes)`). `0` means Off and hides the goal progress.
 - **Weekly Targets**: Independent targets per week (`focus.weeklyTargetFor(date)` / `focus.setWeeklyTarget(date, hours)`).
 - Quick modal dialogs allow selecting from standard presets or entering custom numbers.
 
@@ -138,6 +141,8 @@ Instead of mobile-oriented full-page pushes, desktop interactions are refactored
 - **`HabitFormDialog` & `HabitDetailsDialog`**: Desktop modal dialogs for creating, editing, and inspecting habits.
 - **`FocusHistoryDialog`**: Date-grouped modal archive of all historical focus sessions.
 - **`FocusPeriodSessionsDialog`**: Filtered session list for inspecting sessions on any given day, week, or bar tap.
+- **12-Hour Session Editing**: Recent sessions can be edited from history or session cards. The end time stays fixed while duration and labels change; time-habit credit is undone and re-applied. A label-only edit keeps existing credit.
+- **Close Guard**: Closing the Windows window while a focus session is active prompts to end the session and close or keep going. Completed sessions close silently.
 - **Navigation Shortcuts**: `Ctrl+Tab` / `Ctrl+Shift+Tab` cycles tabs; `Escape` navigates back or closes dialogs cleanly.
 - **Mini Timer Rail Chip (`MiniTimerChip`)**: Live pill in the left navigation rail displaying the active countdown.
 
@@ -149,17 +154,22 @@ Instead of mobile-oriented full-page pushes, desktop interactions are refactored
    - Countdown timers automatically complete at `00:00`.
    - Instantly triggers audio alert, plays celebration feedback, saves session to Hive, credits habit time, and dismisses the timer screen without requiring manual interaction.
 2. **Double-Crediting Prevention**:
-   - Multiple guards in `FocusController`, `FocusPage`, and `FocusActions` ensure habit time is never credited twice, even across auto-completes, app restarts, or manual stop triggers.
-3. **Session Deletion with Habit Rollback**:
+   - Each run has a persisted `runId`, and a `counted` marker prevents duplicate habit credit across auto-completes, restarts, and manual stops.
+3. **Crash Recovery Without Auto-Resume**:
+   - A 15-second heartbeat stores `lastSeen`. If the app dies, the interrupted session is finalized at `lastSeen` instead of resuming; sessions under 30 seconds are discarded.
+4. **Session Deletion with Habit Rollback**:
    - Deleting a session rolls back credited habit time via `countFocusTime(habits, focus, session, undo: true)` and purges the session from Hive.
+5. **Logical-Day Splitting**:
+   - Sessions crossing the day cutoff are split on demand (`FocusSession.slices()`), so time-of-day, daily goals, and habit progress stay accurate.
 
 ---
 
 ## 4. Database Schema & Persistence Guarantees
 
 - **Hive Storage Preservation**: All focus data resides in Hive's standard `'focus'` box (`LocalStore._focusBox = 'focus'`).
-- **Data Compatibility**: `FocusSession.toMap()` and `fromMap()` maintain full two-way compatibility. `tags` serializes cleanly; if deserializing older upstream data, `tags` automatically falls back to `[label]`.
-- **Import / Export Compatibility**: Full backup archives (`.zip`) created by upstream Streak import seamlessly into this fork, and exports from this fork restore into upstream or mobile without data loss.
+- **Session Schema v2**: Stored sessions include `endedAt`, `labelIds`, and `schema: 2`. Legacy `label`/`tags` values are ignored rather than migrated at runtime.
+- **Label Catalog Backup**: `focusLabelCatalog` is included in exported archives.
+- **Import / Export Compatibility**: Full backup archives (`.zip`) created by this fork restore labels and sessions. Older upstream archives still import their sessions without labels.
 
 ---
 

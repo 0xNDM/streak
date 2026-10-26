@@ -36,7 +36,7 @@ class FocusSetupPage extends StatefulWidget {
 
 class _FocusSetupPageState extends State<FocusSetupPage> {
   late String _habitId = widget.habitId ?? '';
-  Set<String> _tags = {};
+  Set<String> _labelIds = {};
   int _minutes = 25;
   bool _pomodoro = false;
   int _breakMinutes = 5;
@@ -57,7 +57,7 @@ class _FocusSetupPageState extends State<FocusSetupPage> {
 
   void _pick(Habit habit) {
     _habitId = habit.id;
-    _tags = {};
+    _labelIds = {};
     _minutes = habit.focusMinutes;
     _pomodoro = habit.focusBreakMinutes > 0;
     if (_pomodoro) _breakMinutes = habit.focusBreakMinutes;
@@ -84,8 +84,7 @@ class _FocusSetupPageState extends State<FocusSetupPage> {
         startHabitId: _habitId,
         startMinutes: _minutes,
         breakMinutes: breakMinutes,
-        startLabel: _tags.join(', '),
-        startTags: _tags.toList(),
+        startLabelIds: _labelIds.toList(),
       ),
       fade: true,
       name: FocusPage.routeName,
@@ -185,7 +184,7 @@ class _FocusSetupPageState extends State<FocusSetupPage> {
                       selected: _habitId.isEmpty,
                       onTap: () => setState(() {
                         _habitId = '';
-                        _tags = {};
+                        _labelIds = {};
                       }),
                     ),
                   ),
@@ -210,9 +209,9 @@ class _FocusSetupPageState extends State<FocusSetupPage> {
                       children: [
                         _Label(context.l10n.focus_label),
                         FocusLabelPicker(
-                          habitId: _habitId,
-                          selected: _tags,
-                          onChanged: (value) => setState(() => _tags = value),
+                          selected: _labelIds,
+                          onChanged: (value) =>
+                              setState(() => _labelIds = value),
                         ),
                       ],
                     ),

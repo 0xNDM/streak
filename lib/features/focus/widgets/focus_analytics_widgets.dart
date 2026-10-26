@@ -499,18 +499,17 @@ class _DailyTrackRow extends StatelessWidget {
     final safeLeft = leftPos.clamp(0.0, maxLeft);
 
     final habit = habits.byId(session.habitId);
-    final firstTag =
-        session.tags.isNotEmpty ? session.tags.first : session.label;
+    final firstTag = session.labelIds.isEmpty ? '' : session.labelIds.first;
     final tagColor = firstTag.isNotEmpty ? focus.colorForLabel(firstTag) : null;
     final color = tagColor ?? habit?.color ?? defaultAccent;
 
     final timeFormat = DateFormat('HH:mm');
-    final endTime = start.add(Duration(seconds: session.seconds));
+    final endTime = session.endedAt;
     final timeStr =
-        '${timeFormat.format(start)} – ${timeFormat.format(endTime)}';
+        '${timeFormat.format(start)} - ${timeFormat.format(endTime)}';
     final habitTitle = habit?.name ?? 'Focus Session';
-    final tagsStr =
-        session.tags.isNotEmpty ? ' [${session.tags.join(', ')}]' : '';
+    final labelNames = focus.labelNames(session.labelIds);
+    final tagsStr = labelNames.isEmpty ? '' : ' [${labelNames.join(', ')}]';
     final tooltipText =
         '$habitTitle$tagsStr\n$timeStr (${formatHoursShort(session.seconds)})';
 
@@ -679,17 +678,18 @@ class FocusTagCloud extends StatelessWidget {
                   final tagColor = focus.colorForLabel(entry.key);
                   final durationStr = formatHoursShort(entry.value);
                   final innerSize = bubbleSize * 0.75;
+                  final displayName = focus.labelDisplayName(entry.key);
                   
                   // If exactly 2 words, explicitly put them on 2 lines so they fit nicely.
                   // Otherwise, let it be 1 line. We do NOT constrain the width of the Text,
                   // so a single word is never cut/broken. The FittedBox handles scaling it down.
-                  final words = entry.key.trim().split(RegExp(r'\s+'));
+                  final words = displayName.trim().split(RegExp(r'\s+'));
                   final formattedText = words.length == 2
                       ? '${words[0]}\n${words[1]}'
-                      : entry.key;
+                      : displayName;
 
                   return Tooltip(
-                    message: '$durationStr • ${entry.key}',
+                    message: '$durationStr - $displayName',
                     waitDuration: const Duration(milliseconds: 300),
                     child: Container(
                       width: bubbleSize,

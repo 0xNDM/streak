@@ -32,7 +32,7 @@ class FocusDurationChips extends StatelessWidget {
     final value = await showNumberKeypadDialog(
       context,
       title: context.l10n.focus_duration,
-      value: 0,
+      value: minutes,
       unit: context.l10n.unit_min_short,
       min: allowFlow ? 0 : 1,
     );

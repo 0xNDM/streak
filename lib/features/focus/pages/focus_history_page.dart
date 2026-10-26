@@ -22,6 +22,7 @@ import 'package:streak/features/focus/data/focus_session.dart';
 import 'package:streak/features/focus/state/focus_actions.dart';
 import 'package:streak/features/focus/state/focus_controller.dart';
 import 'package:streak/features/focus/widgets/focus_log_sheet.dart';
+import 'package:streak/features/focus/widgets/focus_session_edit_dialog.dart';
 import 'package:streak/features/habits/state/habits_controller.dart';
 import 'package:streak/features/settings/widgets/minimal_settings_widgets.dart';
 import 'package:streak/features/settings/state/settings_controller.dart';
@@ -93,6 +94,9 @@ class _FocusHistoryPageState extends State<FocusHistoryPage> {
     if (added != true || !mounted) return;
     AppSnackbar.success(context, context.l10n.focus_log_saved);
   }
+
+  Future<void> _edit(FocusSession session) =>
+      editFocusSession(context, session);
 
   PreferredSizeWidget _appBar(BuildContext context, List<FocusSession> all) {
     final style = context.watch<SettingsController>();
@@ -177,8 +181,10 @@ class _FocusHistoryPageState extends State<FocusHistoryPage> {
 
     final days = <String, List<FocusSession>>{};
     for (final session in sessions) {
-      days.putIfAbsent(session.startedAt.dayKey, () => []).add(session);
+      days.putIfAbsent(session.countedOn.dayKey, () => []).add(session);
     }
+    final dayEntries = days.entries.toList()
+      ..sort((a, b) => b.key.compareTo(a.key));
 
     return PopScope(
       canPop: !_selecting,
@@ -206,7 +212,7 @@ class _FocusHistoryPageState extends State<FocusHistoryPage> {
                       child: ExpressHeadline(title: _title(context)),
                     ),
                   if (minimal) MinimalTitle(title: _title(context)),
-                  for (final (index, day) in days.entries.indexed)
+                  for (final (index, day) in dayEntries.indexed)
                     Entrance(
                       index: index,
                       delay: _entrance,
@@ -224,6 +230,7 @@ class _FocusHistoryPageState extends State<FocusHistoryPage> {
                               selected: _selected.contains(session.id),
                               selecting: _selecting,
                               onToggle: () => _toggle(session.id),
+                              onEdit: () => _edit(session),
                             ),
                           const SizedBox(height: 14),
                         ],
@@ -310,12 +317,14 @@ class _SessionTile extends StatelessWidget {
     required this.selected,
     required this.selecting,
     required this.onToggle,
+    required this.onEdit,
   });
 
   final FocusSession session;
   final bool selected;
   final bool selecting;
   final VoidCallback onToggle;
+  final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -333,7 +342,7 @@ class _SessionTile extends StatelessWidget {
         button: true,
         selected: selected,
         child: GestureDetector(
-          onTap: selecting ? onToggle : null,
+          onTap: selecting ? onToggle : onEdit,
           onLongPress: onToggle,
           child: AnimatedContainer(
             duration: express

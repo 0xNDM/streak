@@ -64,6 +64,9 @@ Future<void> _seedEverything(int count) async {
         seconds: 1500 + i,
         completed: true,
         startedAt: AppClock.now().subtract(Duration(days: i)),
+        endedAt: AppClock.now()
+            .subtract(Duration(days: i))
+            .add(const Duration(minutes: 25)),
       ),
     );
     await LocalStore.writeTodo(

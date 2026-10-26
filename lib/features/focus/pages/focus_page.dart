@@ -46,15 +46,13 @@ class FocusPage extends StatefulWidget implements FullWidthPage {
     this.startHabitId,
     this.startMinutes,
     this.breakMinutes,
-    this.startLabel = '',
-    this.startTags = const [],
+    this.startLabelIds = const [],
   });
 
   final String? startHabitId;
   final int? startMinutes;
   final int? breakMinutes;
-  final String startLabel;
-  final List<String> startTags;
+  final List<String> startLabelIds;
 
   static const routeName = 'focus';
 
@@ -93,8 +91,7 @@ class _FocusPageState extends State<FocusPage> {
         habitId: widget.startHabitId ?? '',
         targetMinutes: widget.startMinutes!,
         breakMinutes: widget.breakMinutes ?? 0,
-        label: widget.startLabel,
-        tags: widget.startTags,
+        labelIds: widget.startLabelIds,
       );
       unawaited(_startSavedTrack());
     });
@@ -227,7 +224,6 @@ class _FocusPageState extends State<FocusPage> {
       context: context,
       builder: (dialog) => FocusEndDialog(
         reached: reached,
-        addsTime: habit?.isTimeAmount ?? false,
         lines: lines,
         accent: habit?.color ?? Theme.of(dialog).colorScheme.primary,
       ),
@@ -236,7 +232,7 @@ class _FocusPageState extends State<FocusPage> {
 
     setState(() => _leaving = true);
     final habitId = focus.habitId;
-    final completed = reached || result == 'done';
+    final completed = reached;
     final session = await focus.stop(completed: completed);
     if (!mounted) return;
 
@@ -263,6 +259,11 @@ class _FocusPageState extends State<FocusPage> {
     AppNavigator.pop();
   }
 
+  void _acknowledgeIfCompleted() {
+    if (!_focus.isCompleted) return;
+    unawaited(_focus.finishCompleted());
+  }
+
   Future<void> _doneCompleted() async {
     setState(() => _leaving = true);
     await _focus.stop(completed: true);
@@ -274,9 +275,12 @@ class _FocusPageState extends State<FocusPage> {
     setState(() => _leaving = true);
     await _focus.stop(completed: true);
     if (!mounted) return;
+    final rootContext = AppNavigator.key.currentContext;
     AppNavigator.pop();
     if (Platform.isWindows) {
-      showFocusSetupDialog(context);
+      if (rootContext != null && rootContext.mounted) {
+        showFocusSetupDialog(rootContext);
+      }
     } else {
       AppNavigator.push(const FocusPage(), name: FocusPage.routeName);
     }
@@ -291,7 +295,10 @@ class _FocusPageState extends State<FocusPage> {
     final starting = leading && !focus.isActive;
     final habitId = starting ? (widget.startHabitId ?? '') : focus.habitId;
     final habit = habitId.isEmpty ? null : habits.byId(habitId);
-    final tag = starting ? widget.startLabel : focus.label;
+    final tag = (starting ? widget.startLabelIds : focus.labelIds)
+        .map(focus.labelDisplayName)
+        .where((name) => name.isNotEmpty)
+        .join(', ');
     final title = tag.isEmpty
         ? (habit?.name ?? context.l10n.focus)
         : habit == null
@@ -329,9 +336,13 @@ class _FocusPageState extends State<FocusPage> {
         ? (longBreak ? context.l10n.focus_long_break : context.l10n.focus_break)
         : title;
 
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: AppTheme.systemBars(Brightness.dark),
-      child: Scaffold(
+    return PopScope(
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) _acknowledgeIfCompleted();
+      },
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: AppTheme.systemBars(Brightness.dark),
+        child: Scaffold(
         backgroundColor: Colors.black,
         resizeToAvoidBottomInset: false,
         body: Stack(
@@ -585,6 +596,7 @@ class _FocusPageState extends State<FocusPage> {
                 child: _LeadIn(value: _leadValue),
               ),
           ],
+        ),
         ),
       ),
     );
@@ -1328,14 +1340,14 @@ class _CompletedBanner extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Row(
+          Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('🎉', style: TextStyle(fontSize: 22)),
-              SizedBox(width: 8),
+              const Text('🎉', style: TextStyle(fontSize: 22)),
+              const SizedBox(width: 8),
               Text(
-                'Session Complete!',
-                style: TextStyle(
+                context.l10n.focus_done_title,
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
@@ -1347,8 +1359,8 @@ class _CompletedBanner extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             habit != null
-                ? 'Completed $durationStr on ${habit.name}'
-                : 'Completed $durationStr focused session',
+                ? context.l10n.focus_complete_on(durationStr, habit.name)
+                : context.l10n.focus_complete_session(durationStr),
             style: const TextStyle(
               color: Color(0xFFA1A1AA),
               fontSize: 13.5,
@@ -1370,9 +1382,12 @@ class _CompletedBanner extends StatelessWidget {
                     ),
                   ),
                   icon: const Icon(LucideIcons.check, size: 16),
-                  label: const Text(
-                    'Done',
-                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                  label: Text(
+                    context.l10n.done,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
               ),
@@ -1391,9 +1406,12 @@ class _CompletedBanner extends StatelessWidget {
                     ),
                   ),
                   icon: const Icon(LucideIcons.play, size: 15),
-                  label: const Text(
-                    'Start New',
-                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                  label: Text(
+                    context.l10n.focus_start_new,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
               ),

@@ -147,7 +147,11 @@ class _ExpressFocusStatsPageState extends State<ExpressFocusStatsPage> {
           child: ExpressRanking(
             entries: [
               for (final entry in stats.labelRanking)
-                (name: entry.key, color: accent, count: entry.value),
+                (
+                  name: focus.labelDisplayName(entry.key),
+                  color: focus.colorForLabel(entry.key),
+                  count: entry.value,
+                ),
             ],
             format: formatHoursShort,
           ),
