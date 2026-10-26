@@ -395,7 +395,7 @@ class _WeeklyContinuousTimelineState extends State<WeeklyContinuousTimeline> {
               ),
               const SizedBox(width: 12),
               SizedBox(
-                width: 58,
+                width: 72,
                 child: Text(
                   'Total',
                   textAlign: TextAlign.end,
@@ -518,18 +518,24 @@ class _DailyTrackRow extends StatelessWidget {
         ),
         const SizedBox(width: 12),
         SizedBox(
-          width: 58,
-          child: Text(
-            dayFocusSeconds > 0 ? _formatDayTotal(dayFocusSeconds) : '0m',
-            textAlign: TextAlign.end,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight:
-                  dayFocusSeconds > 0 ? FontWeight.w700 : FontWeight.w500,
-              color: dayFocusSeconds > 0
-                  ? (isToday ? defaultAccent : context.tokens.muted)
-                  : context.tokens.muted.withValues(alpha: 0.4),
-              fontFeatures: const [FontFeature.tabularFigures()],
+          width: 72,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: Text(
+              dayFocusSeconds > 0 ? _formatDayTotal(dayFocusSeconds) : '0m',
+              maxLines: 1,
+              softWrap: false,
+              textAlign: TextAlign.end,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight:
+                    dayFocusSeconds > 0 ? FontWeight.w700 : FontWeight.w500,
+                color: dayFocusSeconds > 0
+                    ? (isToday ? defaultAccent : context.tokens.muted)
+                    : context.tokens.muted.withValues(alpha: 0.4),
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
             ),
           ),
         ),
@@ -591,6 +597,7 @@ class _DailyTrackRow extends StatelessWidget {
       top: 2,
       bottom: 2,
       child: Tooltip(
+        waitDuration: const Duration(milliseconds: 100),
         message: tooltipText,
         preferBelow: false,
         decoration: BoxDecoration(
@@ -620,23 +627,6 @@ class _DailyTrackRow extends StatelessWidget {
               ),
             ],
           ),
-          alignment: Alignment.center,
-          child: pillWidth >= 36
-              ? FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Text(
-                      formatHoursShort(session.seconds),
-                      style: const TextStyle(
-                        fontSize: 9.5,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                )
-              : null,
         ),
       ),
     );
