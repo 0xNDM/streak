@@ -711,16 +711,16 @@ class _ParentLabelCardState extends State<_ParentLabelCard> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                PopupMenuButton<String>(
-                  icon: const Icon(LucideIcons.ellipsis, size: 16),
-                  tooltip: 'Options',
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  constraints:
-                      const BoxConstraints(minWidth: 28, minHeight: 28),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: PopupMenuButton<String>(
+                    icon: const Icon(LucideIcons.ellipsis, size: 16),
+                    tooltip: 'Options',
+                    padding: EdgeInsets.zero,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   onSelected: (val) {
                     switch (val) {
                       case 'add_sub':
@@ -791,6 +791,7 @@ class _ParentLabelCardState extends State<_ParentLabelCard> {
                     ),
                   ],
                 ),
+              ),
                 if (children.isNotEmpty)
                   IconButton(
                     icon: Icon(
@@ -891,18 +892,16 @@ class _ParentLabelCardState extends State<_ParentLabelCard> {
                                 ),
                               ),
                               const SizedBox(width: 6),
-                              PopupMenuButton<String>(
-                                icon: const Icon(LucideIcons.ellipsis, size: 14),
-                                tooltip: 'Options',
-                                visualDensity: VisualDensity.compact,
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(
-                                  minWidth: 24,
-                                  minHeight: 24,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
+                              SizedBox(
+                                width: 28,
+                                height: 28,
+                                child: PopupMenuButton<String>(
+                                  icon: const Icon(LucideIcons.ellipsis, size: 14),
+                                  tooltip: 'Options',
+                                  padding: EdgeInsets.zero,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                 onSelected: (val) {
                                   switch (val) {
                                     case 'edit':
@@ -959,6 +958,7 @@ class _ParentLabelCardState extends State<_ParentLabelCard> {
                                   ),
                                 ],
                               ),
+                            ),
                             ],
                           ),
                         );
