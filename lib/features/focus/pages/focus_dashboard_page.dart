@@ -480,7 +480,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
             ),
             const SizedBox(height: 20),
             Transform.translate(
-              offset: Offset(wide ? -40.0 : 0.0, 0.0),
+              offset: Offset(wide ? -75.0 : 0.0, 0.0),
               child: Center(
                 child: FractionallySizedBox(
                   widthFactor: wide ? 0.6 : 1.0,
@@ -1013,6 +1013,11 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
                                       now: now,
                                     ),
                               offset: _labelPeriodOffset,
+                              resetLabel: _labelPeriodIndex == 0
+                                  ? context.l10n.period_this_week
+                                  : (_labelPeriodIndex == 1
+                                      ? context.l10n.period_this_month
+                                      : null),
                               onOffsetChanged: (val) =>
                                   setState(() => _labelPeriodOffset = val),
                               accent: _lockInBright,

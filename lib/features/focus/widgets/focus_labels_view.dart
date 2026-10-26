@@ -132,6 +132,11 @@ class _FocusLabelsViewState extends State<FocusLabelsView> {
                             FocusPeriodNavigator(
                               label: periodLabel,
                               offset: _offset,
+                              resetLabel: _periodIndex == 0
+                                  ? context.l10n.period_this_week
+                                  : (_periodIndex == 1
+                                      ? context.l10n.period_this_month
+                                      : null),
                               showArrows: _periodIndex != 2,
                               onOffsetChanged: (val) =>
                                   setState(() => _offset = val),
@@ -706,46 +711,85 @@ class _ParentLabelCardState extends State<_ParentLabelCard> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                // Action Buttons
-                IconButton(
-                  icon: const Icon(LucideIcons.plus, size: 16),
-                  tooltip: context.l10n.focus_add_sub_label,
+                PopupMenuButton<String>(
+                  icon: const Icon(LucideIcons.ellipsis, size: 16),
+                  tooltip: 'Options',
                   visualDensity: VisualDensity.compact,
                   padding: EdgeInsets.zero,
                   constraints:
                       const BoxConstraints(minWidth: 28, minHeight: 28),
-                  onPressed: widget.onAddSubLabel,
-                ),
-                IconButton(
-                  icon: const Icon(LucideIcons.pencil, size: 14),
-                  tooltip: context.l10n.edit,
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  constraints:
-                      const BoxConstraints(minWidth: 28, minHeight: 28),
-                  onPressed: widget.onEdit,
-                ),
-                IconButton(
-                  icon: const Icon(LucideIcons.archive, size: 14),
-                  tooltip: context.l10n.focus_label_archive,
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  constraints:
-                      const BoxConstraints(minWidth: 28, minHeight: 28),
-                  onPressed: widget.onArchive,
-                ),
-                IconButton(
-                  icon: Icon(
-                    LucideIcons.trash2,
-                    size: 14,
-                    color: context.tokens.danger,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  tooltip: context.l10n.delete,
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  constraints:
-                      const BoxConstraints(minWidth: 28, minHeight: 28),
-                  onPressed: widget.onDelete,
+                  onSelected: (val) {
+                    switch (val) {
+                      case 'add_sub':
+                        widget.onAddSubLabel();
+                      case 'edit':
+                        widget.onEdit();
+                      case 'archive':
+                        widget.onArchive();
+                      case 'delete':
+                        widget.onDelete();
+                    }
+                  },
+                  itemBuilder: (ctx) => [
+                    PopupMenuItem(
+                      value: 'add_sub',
+                      height: 36,
+                      child: Row(
+                        children: [
+                          const Icon(LucideIcons.plus, size: 15),
+                          const SizedBox(width: 10),
+                          Text(ctx.l10n.focus_add_sub_label,
+                              style: const TextStyle(fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'edit',
+                      height: 36,
+                      child: Row(
+                        children: [
+                          const Icon(LucideIcons.pencil, size: 15),
+                          const SizedBox(width: 10),
+                          Text(ctx.l10n.edit,
+                              style: const TextStyle(fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'archive',
+                      height: 36,
+                      child: Row(
+                        children: [
+                          const Icon(LucideIcons.archive, size: 15),
+                          const SizedBox(width: 10),
+                          Text(ctx.l10n.focus_label_archive,
+                              style: const TextStyle(fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuDivider(height: 8),
+                    PopupMenuItem(
+                      value: 'delete',
+                      height: 36,
+                      child: Row(
+                        children: [
+                          Icon(LucideIcons.trash2,
+                              size: 15, color: ctx.tokens.danger),
+                          const SizedBox(width: 10),
+                          Text(
+                            ctx.l10n.delete,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: ctx.tokens.danger,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
                 if (children.isNotEmpty)
                   IconButton(
@@ -847,42 +891,73 @@ class _ParentLabelCardState extends State<_ParentLabelCard> {
                                 ),
                               ),
                               const SizedBox(width: 6),
-                              IconButton(
-                                icon: const Icon(LucideIcons.pencil, size: 13),
-                                tooltip: context.l10n.edit,
+                              PopupMenuButton<String>(
+                                icon: const Icon(LucideIcons.ellipsis, size: 14),
+                                tooltip: 'Options',
                                 visualDensity: VisualDensity.compact,
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(
                                   minWidth: 24,
                                   minHeight: 24,
                                 ),
-                                onPressed: () => widget.onEditChild(child),
-                              ),
-                              IconButton(
-                                icon: const Icon(LucideIcons.archive, size: 13),
-                                tooltip: context.l10n.focus_label_archive,
-                                visualDensity: VisualDensity.compact,
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(
-                                  minWidth: 24,
-                                  minHeight: 24,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                onPressed: () => widget.onArchiveChild(child),
-                              ),
-                              IconButton(
-                                icon: Icon(
-                                  LucideIcons.trash2,
-                                  size: 13,
-                                  color: context.tokens.danger,
-                                ),
-                                tooltip: context.l10n.delete,
-                                visualDensity: VisualDensity.compact,
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(
-                                  minWidth: 24,
-                                  minHeight: 24,
-                                ),
-                                onPressed: () => widget.onDeleteChild(child),
+                                onSelected: (val) {
+                                  switch (val) {
+                                    case 'edit':
+                                      widget.onEditChild(child);
+                                    case 'archive':
+                                      widget.onArchiveChild(child);
+                                    case 'delete':
+                                      widget.onDeleteChild(child);
+                                  }
+                                },
+                                itemBuilder: (ctx) => [
+                                  PopupMenuItem(
+                                    value: 'edit',
+                                    height: 36,
+                                    child: Row(
+                                      children: [
+                                        const Icon(LucideIcons.pencil, size: 14),
+                                        const SizedBox(width: 10),
+                                        Text(ctx.l10n.edit,
+                                            style: const TextStyle(fontSize: 13)),
+                                      ],
+                                    ),
+                                  ),
+                                  PopupMenuItem(
+                                    value: 'archive',
+                                    height: 36,
+                                    child: Row(
+                                      children: [
+                                        const Icon(LucideIcons.archive, size: 14),
+                                        const SizedBox(width: 10),
+                                        Text(ctx.l10n.focus_label_archive,
+                                            style: const TextStyle(fontSize: 13)),
+                                      ],
+                                    ),
+                                  ),
+                                  const PopupMenuDivider(height: 8),
+                                  PopupMenuItem(
+                                    value: 'delete',
+                                    height: 36,
+                                    child: Row(
+                                      children: [
+                                        Icon(LucideIcons.trash2,
+                                            size: 14, color: ctx.tokens.danger),
+                                        const SizedBox(width: 10),
+                                        Text(
+                                          ctx.l10n.delete,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: ctx.tokens.danger,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),

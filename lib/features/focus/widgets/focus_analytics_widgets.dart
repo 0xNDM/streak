@@ -368,7 +368,7 @@ class _WeeklyContinuousTimelineState extends State<WeeklyContinuousTimeline> {
           // Time ruler
           Row(
             children: [
-              const SizedBox(width: 58),
+              const SizedBox(width: 72),
               Expanded(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -462,9 +462,12 @@ class _DailyTrackRow extends StatelessWidget {
     return Row(
       children: [
         SizedBox(
-          width: 58,
+          width: 72,
           child: Text(
             label,
+            maxLines: 1,
+            softWrap: false,
+            overflow: TextOverflow.visible,
             style: TextStyle(
               fontSize: 12.5,
               fontWeight: isToday ? FontWeight.w800 : FontWeight.w600,
@@ -704,10 +707,51 @@ class FocusTagCloud extends StatelessWidget {
                       // If exactly 2 words, explicitly put them on 2 lines so they fit nicely.
                       // Otherwise, let it be 1 line. We do NOT constrain the width of the Text,
                       // so a single word is never cut/broken. The FittedBox handles scaling it down.
-                      final words = displayName.trim().split(RegExp(r'\s+'));
-                      final formattedText = words.length == 2
-                          ? '${words[0]}\n${words[1]}'
-                          : displayName;
+                      final bool isSubLabel = displayName.contains(' > ');
+                      final Widget textWidget;
+                      if (isSubLabel) {
+                        final parts = displayName.split(' > ');
+                        textWidget = Text.rich(
+                          TextSpan(
+                            children: [
+                              TextSpan(
+                                text: '${parts[0]}\n',
+                                style: TextStyle(
+                                  fontSize: (14 + (12 * scale)) * 0.75,
+                                  fontWeight: FontWeight.w600,
+                                  color: tagColor.withValues(alpha: 0.75),
+                                  height: 1.1,
+                                ),
+                              ),
+                              TextSpan(
+                                text: parts.sublist(1).join('\n'),
+                                style: TextStyle(
+                                  fontSize: 15 + (13 * scale),
+                                  fontWeight: FontWeight.w900,
+                                  color: tagColor,
+                                  height: 1.1,
+                                ),
+                              ),
+                            ],
+                          ),
+                          textAlign: TextAlign.center,
+                        );
+                      } else {
+                        final words = displayName.trim().split(RegExp(r'\s+'));
+                        final formattedText = words.length == 2
+                            ? '${words[0]}\n${words[1]}'
+                            : displayName;
+                        textWidget = Text(
+                          formattedText,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 16 + (14 * scale),
+                            fontWeight: FontWeight.w800,
+                            color: tagColor,
+                            height: 1.15,
+                          ),
+                        );
+                      }
 
                       return Tooltip(
                         message: '$durationStr - $displayName',
@@ -729,16 +773,7 @@ class FocusTagCloud extends StatelessWidget {
                             child: Center(
                               child: FittedBox(
                                 fit: BoxFit.scaleDown,
-                                child: Text(
-                                  formattedText,
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 16 + (14 * scale),
-                                    fontWeight: FontWeight.w800,
-                                    color: tagColor,
-                                    height: 1.15,
-                                  ),
-                                ),
+                                child: textWidget,
                               ),
                             ),
                           ),

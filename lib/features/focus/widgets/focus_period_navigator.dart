@@ -41,6 +41,7 @@ class FocusPeriodNavigator extends StatelessWidget {
     required this.label,
     required this.offset,
     required this.onOffsetChanged,
+    this.resetLabel,
     this.showArrows = true,
     this.accent,
   });
@@ -48,6 +49,7 @@ class FocusPeriodNavigator extends StatelessWidget {
   final String label;
   final int offset;
   final ValueChanged<int> onOffsetChanged;
+  final String? resetLabel;
   final bool showArrows;
   final Color? accent;
 
@@ -96,23 +98,36 @@ class FocusPeriodNavigator extends StatelessWidget {
           tooltip: context.l10n.a11y_next_week,
           onTap: offset < 0 ? () => onOffsetChanged(offset + 1) : null,
         ),
-        if (offset != 0) ...[
-          const SizedBox(width: 6),
-          InkWell(
-            onTap: () => onOffsetChanged(0),
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: tint.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                context.l10n.today,
-                style: TextStyle(
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w800,
-                  color: tint,
+        if (offset != 0 && resetLabel != null && resetLabel!.isNotEmpty) ...[
+          const SizedBox(width: 14),
+          Tooltip(
+            message: resetLabel!,
+            child: InkWell(
+              onTap: () => onOffsetChanged(0),
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: tint.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: tint.withValues(alpha: 0.25),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(LucideIcons.rotateCcw, size: 10, color: tint),
+                    const SizedBox(width: 4),
+                    Text(
+                      resetLabel!,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: tint,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

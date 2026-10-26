@@ -115,6 +115,9 @@ class _FocusWeekdayAveragesCardState extends State<FocusWeekdayAveragesCard> {
                               child: FocusPeriodNavigator(
                                 label: periodLabel,
                                 offset: _offset,
+                                resetLabel: _subTab == 0
+                                    ? context.l10n.period_this_month
+                                    : null,
                                 showArrows: _subTab == 0,
                                 onOffsetChanged: (val) =>
                                     setState(() => _offset = val),

@@ -142,6 +142,11 @@ class _FocusTimeOfDayCardState extends State<FocusTimeOfDayCard> {
                         FocusPeriodNavigator(
                           label: periodLabel,
                           offset: _offset,
+                          resetLabel: _periodIndex == 0
+                              ? context.l10n.period_this_week
+                              : (_periodIndex == 1
+                                  ? context.l10n.period_this_month
+                                  : null),
                           showArrows: _periodIndex != 2,
                           onOffsetChanged: (val) =>
                               setState(() => _offset = val),

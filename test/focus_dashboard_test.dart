@@ -293,5 +293,14 @@ void main() {
     expect(find.byType(FocusLabelsView), findsOneWidget);
     expect(find.text('Work'), findsWidgets);
     expect(find.text('Recent Sessions (Editable)'), findsOneWidget);
+
+    final threeDot = find.byIcon(LucideIcons.ellipsis);
+    expect(threeDot, findsWidgets);
+    await tester.tap(threeDot.first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Edit'), findsOneWidget);
+    expect(find.text('Archive Label'), findsOneWidget);
+    expect(find.text('Delete'), findsOneWidget);
   });
 }
