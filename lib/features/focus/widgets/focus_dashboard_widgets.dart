@@ -45,7 +45,7 @@ class FocusSessionCard extends StatelessWidget {
             ? '${minutes ~/ 60}h'
             : '${minutes ~/ 60}h ${minutes % 60}m');
 
-    final focus = context.watch<FocusController>();
+    final focus = context.read<FocusController>();
     final labelIds = session.labelIds;
 
     final currentHabit = habit;
@@ -134,8 +134,8 @@ class FocusSessionCard extends StatelessWidget {
               ],
             ),
           ),
-          if (onEdit != null) ...[
-            const SizedBox(width: 6),
+          if (onEdit != null && focus.canEditSession(session)) ...[
+            const SizedBox(width: 2),
             IconButton(
               icon: Icon(
                 LucideIcons.pencil,
@@ -145,12 +145,12 @@ class FocusSessionCard extends StatelessWidget {
               tooltip: context.l10n.edit,
               visualDensity: VisualDensity.compact,
               padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+              constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
               onPressed: onEdit,
             ),
           ],
           if (onDelete != null) ...[
-            const SizedBox(width: 6),
+            const SizedBox(width: 2),
             IconButton(
               icon: Icon(
                 LucideIcons.trash2,
@@ -160,7 +160,7 @@ class FocusSessionCard extends StatelessWidget {
               tooltip: context.l10n.delete,
               visualDensity: VisualDensity.compact,
               padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+              constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
               onPressed: onDelete,
             ),
           ],
@@ -240,7 +240,7 @@ class FocusActivityMap extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 Text(
-                  'Less',
+                  context.l10n.focus_activity_less,
                   style: TextStyle(fontSize: 11, color: context.tokens.muted),
                 ),
                 const SizedBox(width: 4),
@@ -257,7 +257,7 @@ class FocusActivityMap extends StatelessWidget {
                 ],
                 const SizedBox(width: 4),
                 Text(
-                  'More',
+                  context.l10n.focus_activity_more,
                   style: TextStyle(fontSize: 11, color: context.tokens.muted),
                 ),
               ],

@@ -76,6 +76,7 @@ A responsive 2-column layout (constrained to a maximum width of 1300px with a 48
    - If no habit or tag exists, displays *only* the duration (clean, no generic "Focus" fallback text).
    - Displays localized start-end times (`DateFormat.jm`, e.g., `9:00 AM – 10:00 AM`) and completion badge.
    - Inline trash icon button that prompts confirmation before deleting and rolling back credited habit time.
+   - The edit pencil is hidden once a session is older than the 12-hour edit window.
 4. **Weekly Continuous Timeline (`WeeklyContinuousTimeline`)**:
    - Centered across the bottom of both columns, constrained to **60% width**.
    - Displays 7 horizontal daily tracks spanning a 24-hour time ruler (`00:00` to `24:00`).
@@ -94,10 +95,11 @@ A structured, flat analytical dashboard providing deep productivity insights:
      - *Longest Streak* in days
 2. **Row 2: Focus Time Range Chart**:
    - Flat container with Week, Month, and Year segment toggles.
+   - Month bars use calendar weeks aligned to the user's selected week start.
    - Interactive bar chart (`FocusPeriodBar` & `FocusRangeBars`).
    - Tapping any bar opens `showPeriodSessionsDialog` showing all individual sessions contributing to that bar.
 3. **Row 3: Day of Week & Time of Day Averages**:
-   - Equal-height side-by-side cards utilizing `IntrinsicHeight`.
+   - Side-by-side cards that size to their own content.
    - **Weekday Averages (`FocusWeekdayAveragesCard`)**: Compares All-Time vs. This-Month average focus time per day of the week.
    - **Time of Day Breakdown (`FocusTimeOfDayCard`)**: Distributes focus time across 4 local periods: Morning (04:00–11:00), Afternoon (11:00–17:00), Evening (17:00–22:00), and Night (22:00–04:00).
 4. **Row 4: Annual Activity Map (`FocusActivityMap`)**:
@@ -106,7 +108,7 @@ A structured, flat analytical dashboard providing deep productivity insights:
 5. **Row 5: Focused On Bubble Cloud (`FocusTagCloud`)**:
    - Displays the **Top 10 labels** for the selected timeframe (Week, Month, All Time).
    - Proportional **Bubble Chart** (Last.fm style): Each label is rendered as a circle where the circle's radius scales with the square root of its duration ($\sqrt{\text{share}}$, true area scaling).
-   - Bubbles scale from a readable minimum of `54px` up to `~190px` for dominant tags.
+   - Bubbles scale from a readable minimum of `54px` up to `~190px` for dominant tags, bounded by the available card width on narrow layouts.
    - Smart text fitting: Words are never cut mid-word across lines; font sizes scale down automatically inside an inner safe container (`FittedBox`); 2-word labels stack cleanly onto 2 lines.
    - Hover tooltips display total duration and label name.
 
@@ -183,6 +185,12 @@ Instead of mobile-oriented full-page pushes, desktop interactions are refactored
   - "Start session" modal dialog trigger.
   - Session deletion prompts confirm dialog and deletes from store.
   - Roundtrip serialization and persistence test for `FocusSession`.
+- [`test/focus_stats_test.dart`](file:///N:/Programming/streak/test/focus_stats_test.dart):
+  - Today/week/month/total windows, selected week start, day/week/year buckets, and calendar-week month buckets.
+  - Per-habit and per-label scoping, period offsets, and streak cutoff behavior.
+- [`test/focus_controller_test.dart`](file:///N:/Programming/streak/test/focus_controller_test.dart):
+  - Weekly target keys follow the selected week start.
+  - Run IDs, logical-day slicing, label persistence, and the 12-hour edit window.
 - [`test/home_shell_test.dart`](file:///N:/Programming/streak/test/home_shell_test.dart):
   - Windows launches directly into Focus tab.
   - Tab order and back navigation behavior on Windows vs other platforms.

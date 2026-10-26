@@ -261,8 +261,9 @@ class _DayHeader extends StatelessWidget {
       return context.l10n.yesterday;
     }
     final locale = Localizations.localeOf(context).toString();
-    final pattern = day.year == today.year ? 'EEEE, d MMM' : 'd MMM yyyy';
-    return DateFormat(pattern, locale).format(day);
+    return day.year == today.year
+        ? DateFormat.MMMEd(locale).format(day)
+        : DateFormat.yMMMEd(locale).format(day);
   }
 
   @override

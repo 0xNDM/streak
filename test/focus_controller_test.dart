@@ -16,6 +16,17 @@ FocusController _controller() {
 void main() {
   useEmptyStore();
 
+  test('weekly target keys use the selected week start', () {
+    expect(
+      FocusController.weekKey(DateTime(2026, 1, 1), DateTime.monday),
+      '29-12-2025',
+    );
+    expect(
+      FocusController.weekKey(DateTime(2026, 1, 1), DateTime.sunday),
+      '28-12-2025',
+    );
+  });
+
   group('coming back to a saved session', () {
     Future<void> save({
       required int acc,

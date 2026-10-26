@@ -702,6 +702,7 @@ class _NavRail extends StatelessWidget {
                     onTap: () => onSelect(tab),
                   ),
                 ),
+              const Spacer(),
               MiniTimerChip(compact: compact),
             ],
           ),

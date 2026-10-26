@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:streak/core/extensions/date_extensions.dart';
 import 'package:streak/core/i18n/date_labels.dart';
+import 'package:streak/core/i18n/l10n.dart';
 import 'package:streak/features/focus/data/focus_session.dart';
 import 'package:streak/features/focus/data/focus_stats.dart';
 import 'package:streak/features/settings/state/settings_controller.dart';
@@ -30,9 +31,10 @@ class FocusRangeBars extends StatelessWidget {
     FocusRange.year => 20,
   };
 
-  void _handleBarTap(int index) {
+  void _handleBarTap(BuildContext context, int index) {
     if (onBarTap == null || index < 0 || index >= stats.buckets.length) return;
     final bucket = stats.buckets[index];
+    final locale = Localizations.localeOf(context).toString();
     DateTime start;
     DateTime end;
     String title;
@@ -41,17 +43,18 @@ class FocusRangeBars extends StatelessWidget {
       case FocusRange.week:
         start = bucket.atMidnight;
         end = start.addDays(1).subtract(const Duration(milliseconds: 1));
-        title = DateFormat('EEEE, MMM d, y').format(start);
+        title = DateFormat.yMMMMEEEEd(locale).format(start);
       case FocusRange.month:
         start = bucket.atMidnight;
         end = start.addDays(7).subtract(const Duration(milliseconds: 1));
-        final endDisplay = start.addDays(6);
-        title = '${DateFormat('MMM d').format(start)} - ${DateFormat('MMM d, y').format(endDisplay)}';
+        title =
+            '${DateFormat.MMMd(locale).format(start)} - '
+            '${DateFormat.yMMMd(locale).format(start.addDays(6))}';
       case FocusRange.year:
         start = DateTime(bucket.year, bucket.month, 1).atMidnight;
         final next = DateTime(bucket.year, bucket.month + 1, 1).atMidnight;
         end = next.subtract(const Duration(milliseconds: 1));
-        title = DateFormat('MMMM y').format(start);
+        title = DateFormat.yMMMM(locale).format(start);
     }
 
     onBarTap!(start, end, title);
@@ -67,7 +70,7 @@ class FocusRangeBars extends StatelessWidget {
           context.read<SettingsController>().weekStart,
         )[index];
       case FocusRange.month:
-        return 'W${index + 1}';
+        return context.l10n.focus_week_number(index + 1);
       case FocusRange.year:
         return index.isEven
             ? DateFormat.MMM(locale.toString()).format(stats.buckets[index])
@@ -87,7 +90,9 @@ class FocusRangeBars extends StatelessWidget {
       tooltip: (value) => formatHoursShort((value * 60).round()),
       axisFormat: (value) =>
           value <= 0 ? '0' : formatHoursShort((value * 60).round()),
-      onBarTap: onBarTap != null ? _handleBarTap : null,
+      onBarTap: onBarTap != null
+          ? (index) => _handleBarTap(context, index)
+          : null,
     );
   }
 }

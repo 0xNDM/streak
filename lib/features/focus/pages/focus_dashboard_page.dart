@@ -74,7 +74,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
     int currentMinutes,
   ) async {
     final controller = TextEditingController(
-      text: currentMinutes > 0 ? '$currentMinutes' : '60',
+      text: currentMinutes > 0 ? '$currentMinutes' : '',
     );
     final presets = [30, 45, 60, 90, 120, 180, 240];
     int selected = currentMinutes;
@@ -89,7 +89,11 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
               borderRadius: BorderRadius.circular(20),
             ),
             title: Text(
-              'Daily Target (${DateFormat('EEE, MMM d').format(today)})',
+              ctx.l10n.focus_daily_target_title(
+                DateFormat.MMMEd(
+                  Localizations.localeOf(ctx).toString(),
+                ).format(today),
+              ),
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
             ),
             content: Column(
@@ -97,7 +101,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Set independent focus target for today. Changing this does not alter past or future day goals.',
+                  ctx.l10n.focus_daily_target_sub,
                   style: TextStyle(fontSize: 13, color: ctx.tokens.muted),
                 ),
                 const SizedBox(height: 16),
@@ -105,6 +109,18 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
+                    ChoiceChip(
+                      label: Text(ctx.l10n.off),
+                      selected: selected == 0,
+                      onSelected: (val) {
+                        if (val) {
+                          setDialogState(() {
+                            selected = 0;
+                            controller.clear();
+                          });
+                        }
+                      },
+                    ),
                     for (final p in presets)
                       ChoiceChip(
                         label: Text(
@@ -129,9 +145,9 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
                   controller: controller,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
-                    labelText: 'Target in minutes',
-                    hintText: 'e.g. 90',
-                    suffixText: 'mins',
+                    labelText: ctx.l10n.focus_target_minutes,
+                    hintText: ctx.l10n.focus_target_minutes_hint,
+                    suffixText: ctx.l10n.unit_min_short,
                     filled: true,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -158,12 +174,12 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
                 ),
                 onPressed: () async {
                   final target = int.tryParse(controller.text) ?? selected;
-                  if (target > 0) {
+                  if (target >= 0) {
                     await focus.setDailyTarget(today, target);
                   }
                   if (ctx.mounted) Navigator.pop(ctx);
                 },
-                child: const Text('Save Target'),
+                child: Text(ctx.l10n.focus_save_target),
               ),
             ],
           );
@@ -193,16 +209,16 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
-            title: const Text(
-              'Weekly Target',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+            title: Text(
+              ctx.l10n.focus_weekly_target_title,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
             ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Set independent focus target for this week. Changing this does not alter other weeks.',
+                  ctx.l10n.focus_weekly_target_sub,
                   style: TextStyle(fontSize: 13, color: ctx.tokens.muted),
                 ),
                 const SizedBox(height: 16),
@@ -230,9 +246,9 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
                   controller: controller,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
-                    labelText: 'Target in hours',
-                    hintText: 'e.g. 15',
-                    suffixText: 'hours',
+                    labelText: ctx.l10n.focus_target_hours,
+                    hintText: ctx.l10n.focus_target_hours_hint,
+                    suffixText: ctx.l10n.unit_hours,
                     filled: true,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -268,7 +284,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
                   }
                   if (ctx.mounted) Navigator.pop(ctx);
                 },
-                child: const Text('Save Target'),
+                child: Text(ctx.l10n.focus_save_target),
               ),
             ],
           );
@@ -300,7 +316,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
     final settings = context.watch<SettingsController>();
 
     context.select<FocusController, int>((f) => f.revision);
-    final focus = context.watch<FocusController>();
+    final focus = context.read<FocusController>();
     final habits = context.watch<HabitsController>();
 
     final today = AppClock.now();
@@ -339,7 +355,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
               ),
               const SizedBox(width: 24),
               PillTabs(
-                tabs: const ['Today', 'Analytics'],
+                tabs: [context.l10n.today, context.l10n.focus_analytics],
                 index: _currentTab,
                 onChanged: (i) => setState(() => _currentTab = i),
               ),
@@ -493,15 +509,20 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                "TODAY'S FOCUS TIME",
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.2,
-                  color: context.tokens.muted,
+              Expanded(
+                child: Text(
+                  context.l10n.focus_todays_focus_time,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.2,
+                    color: context.tokens.muted,
+                  ),
                 ),
               ),
+              const SizedBox(width: 8),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -513,9 +534,9 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
                         color: _lockInBright.withValues(alpha: 0.18),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Text(
-                        'HIT',
-                        style: TextStyle(
+                      child: Text(
+                        context.l10n.focus_hit,
+                        style: const TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w900,
                           color: _lockInBright,
@@ -545,7 +566,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
                       focus,
                       dailyGoalMinutes,
                     ),
-                    tooltip: 'Set daily goal',
+                    tooltip: context.l10n.focus_set_daily_goal,
                   ),
                 ],
               ),
@@ -579,7 +600,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
               ),
               if (dailyHit)
                 Text(
-                  'Goal reached',
+                  context.l10n.quant_goal_days,
                   style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w700,
@@ -622,8 +643,10 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
               ),
               label: Text(
                 focus.isCompleted
-                    ? 'Session Complete'
-                    : (focus.isActive ? 'Active Session' : 'Start Session'),
+                    ? context.l10n.focus_done_title
+                    : (focus.isActive
+                        ? context.l10n.focus_active_session
+                        : context.l10n.focus_start),
                 style: const TextStyle(
                   fontWeight: FontWeight.w800,
                   fontSize: 15,
@@ -634,49 +657,7 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
           ),
           if (focus.isActive) ...[
             const SizedBox(height: 12),
-            InkWell(
-              onTap: () => openFocus(context),
-              borderRadius: BorderRadius.circular(12),
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      focus.isCompleted
-                          ? LucideIcons.circleCheck
-                          : (focus.isRunning
-                              ? LucideIcons.timer
-                              : LucideIcons.pause),
-                      size: 14,
-                      color: focus.isCompleted
-                          ? context.tokens.success
-                          : (focus.isRunning
-                              ? _lockInBright
-                              : context.tokens.warning),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      focus.isCompleted
-                          ? 'Session complete! 🎉 · Tap to review'
-                          : (focus.isRunning
-                              ? 'Session running · ${formatDuration(focus.displaySeconds)} • Tap to view'
-                              : 'Session paused · ${formatDuration(focus.displaySeconds)} • Tap to resume'),
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w700,
-                        color: focus.isCompleted
-                            ? context.tokens.success
-                            : (focus.isRunning
-                                ? (isDark ? _lockInBright : _lockInDarkGreen)
-                                : context.tokens.warning),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            const _ActiveSessionStatus(),
           ],
         ],
       ),
@@ -700,9 +681,9 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
           children: [
             Row(
               children: [
-                const Text(
-                  "Today's Sessions",
-                  style: TextStyle(
+                Text(
+                  context.l10n.focus_todays_sessions,
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
                   ),
@@ -731,8 +712,8 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
             TextButton.icon(
               onPressed: () => showFocusHistoryDialog(context),
               icon: const Icon(LucideIcons.history, size: 14),
-              label: const Text('All History',
-                  style: TextStyle(fontSize: 12)),
+              label: Text(context.l10n.focus_all_history,
+                  style: const TextStyle(fontSize: 12)),
             ),
           ],
         ),
@@ -753,7 +734,8 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
                 Icon(LucideIcons.clock, size: 28, color: context.tokens.muted),
                 const SizedBox(height: 10),
                 Text(
-                  'No focus sessions recorded today yet',
+                  context.l10n.focus_no_sessions_today,
+                  textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -779,7 +761,9 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
               child: OutlinedButton.icon(
                 onPressed: () => _openTodaySessionsDialog(focus, today),
                 icon: const Icon(LucideIcons.listCollapse, size: 15),
-                label: Text('See all ${todaySessions.length} sessions'),
+                label: Text(
+                  context.l10n.focus_see_all_sessions(todaySessions.length),
+                ),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   shape: RoundedRectangleBorder(
@@ -796,7 +780,9 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
   void _openTodaySessionsDialog(FocusController focus, DateTime today) {
     showPeriodSessionsDialog(
       context: context,
-      title: DateFormat('EEE, MMM d').format(today),
+      title: DateFormat.MMMEd(
+        Localizations.localeOf(context).toString(),
+      ).format(today),
       start: today,
       end: today.add(const Duration(days: 1)),
       filter: (session) => session.countedOn.dayKey == today.dayKey,
@@ -855,10 +841,16 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Focus Time',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                  Expanded(
+                    child: Text(
+                      context.l10n.focus_focus_time,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w800),
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Segmented(
                     options: [
                       context.l10n.week,
@@ -899,14 +891,13 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
           ),
         );
 
-        // Row 3: Day of week and Time of day — equal height via IntrinsicHeight
+        // Row 3: Day of week and Time of day
         final weekdayCard = FocusWeekdayAveragesCard(
           focus: focus,
           weekStart: settings.weekStart,
           accent: _lockInBright,
         );
 
-        // ProductiveTimeCard removed — Time of Day breakdown is sufficient
         final timeOfDayCard = FocusTimeOfDayCard(
           focus: focus,
           weekStart: settings.weekStart,
@@ -934,16 +925,20 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Focused on',
-                              style: TextStyle(
+                            Text(
+                              context.l10n.focus_focused_on,
+                              style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w800,
                               ),
                             ),
                             const SizedBox(height: 8),
                             Segmented(
-                              options: const ['Week', 'Month', 'All Time'],
+                              options: [
+                                context.l10n.week,
+                                context.l10n.month,
+                                context.l10n.period_all_time,
+                              ],
                               index: _labelPeriodIndex,
                               onChanged: (idx) =>
                                   setState(() => _labelPeriodIndex = idx),
@@ -954,15 +949,24 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
                       return Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            'Focused on',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
+                          Expanded(
+                            child: Text(
+                              context.l10n.focus_focused_on,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
                           ),
+                          const SizedBox(width: 8),
                           Segmented(
-                            options: const ['Week', 'Month', 'All Time'],
+                            options: [
+                              context.l10n.week,
+                              context.l10n.month,
+                              context.l10n.period_all_time,
+                            ],
                             index: _labelPeriodIndex,
                             onChanged: (idx) =>
                                 setState(() => _labelPeriodIndex = idx),
@@ -993,9 +997,10 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Activity Map',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+              Text(
+                context.l10n.focus_activity_map,
+                style: const TextStyle(
+                    fontSize: 15, fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 16),
               FocusActivityMap(
@@ -1091,6 +1096,62 @@ class _FocusDashboardPageState extends State<FocusDashboardPage> {
           ],
         );
       },
+    );
+  }
+}
+
+class _ActiveSessionStatus extends StatelessWidget {
+  const _ActiveSessionStatus();
+
+  @override
+  Widget build(BuildContext context) {
+    final focus = context.watch<FocusController>();
+    if (!focus.isActive) return const SizedBox.shrink();
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final color = focus.isCompleted
+        ? context.tokens.success
+        : (focus.isRunning
+            ? (isDark ? _lockInBright : _lockInDarkGreen)
+            : context.tokens.warning);
+
+    return InkWell(
+      onTap: () => openFocus(context),
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              focus.isCompleted
+                  ? LucideIcons.circleCheck
+                  : (focus.isRunning ? LucideIcons.timer : LucideIcons.pause),
+              size: 14,
+              color: color,
+            ),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                focus.isCompleted
+                    ? context.l10n.focus_session_completed_tap
+                    : (focus.isRunning
+                        ? context.l10n.focus_session_running_tap(
+                            formatDuration(focus.displaySeconds),
+                          )
+                        : context.l10n.focus_session_paused_tap(
+                            formatDuration(focus.displaySeconds),
+                          )),
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

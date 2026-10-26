@@ -1,5 +1,4 @@
-import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:flutter/foundation.dart';
 import 'package:streak/core/extensions/date_extensions.dart';
 import 'package:streak/features/focus/data/focus_session.dart';
 
@@ -24,7 +23,6 @@ class FocusStats {
     required this.perHabit,
     required this.rangeCount,
     this.perLabel = const {},
-    required this.productiveWindow,
   });
 
   final int todaySeconds;
@@ -43,7 +41,6 @@ class FocusStats {
   final Map<String, int> perHabit;
   final Map<String, int> perLabel;
   final int rangeCount;
-  final ({String title, IconData icon, int seconds, double percentage}) productiveWindow;
 
   double get weeklyChangePercent {
     if (previousWeekSeconds == 0) return weekSeconds > 0 ? 100.0 : 0.0;
@@ -80,11 +77,12 @@ class FocusStats {
         return [for (var i = 0; i < 7; i++) first.addDays(i)];
       case FocusRange.month:
         final anchor = DateTime(today.year, today.month + offset);
-        final days = DateTime(anchor.year, anchor.month + 1, 0).day;
-        final weekCount = (days / 7).ceil();
+        final first = DateTime(anchor.year, anchor.month, 1)
+            .startOfWeek(weekStart);
+        final last = DateTime(anchor.year, anchor.month + 1, 0);
+        final weekCount = ((last.epochDay - first.epochDay) ~/ 7) + 1;
         return [
-          for (var i = 0; i < weekCount; i++)
-            DateTime(anchor.year, anchor.month, 1 + i * 7),
+          for (var i = 0; i < weekCount; i++) first.addDays(i * 7),
         ];
       case FocusRange.year:
         final year = today.year + offset;
@@ -109,6 +107,7 @@ class FocusStats {
 
     final today = now.atMidnight;
     final weekFrom = today.startOfWeek(weekStart);
+    final monthAnchor = DateTime(today.year, today.month + offset);
     final buckets = _bucketsFor(range, today, weekStart, offset);
     final series = List<int>.filled(buckets.length, 0);
     final perHabit = <String, int>{};
@@ -129,12 +128,6 @@ class FocusStats {
 
     final perDayMap = <int, int>{};
     final perDayDateMap = <int, DateTime>{};
-
-    // Productive hours buckets
-    var morningSec = 0;
-    var afternoonSec = 0;
-    var eveningSec = 0;
-    var nightSec = 0;
 
     for (final session in scoped) {
       totalSeconds += session.seconds;
@@ -159,24 +152,14 @@ class FocusStats {
         monthSeconds += sec;
       }
 
-      // Time of day calculation using local time
-      final hour = session.startedAt.toLocal().hour;
-      if (hour >= 4 && hour < 11) {
-        morningSec += sec;
-      } else if (hour >= 11 && hour < 17) {
-        afternoonSec += sec;
-      } else if (hour >= 17 && hour < 22) {
-        eveningSec += sec;
-      } else {
-        nightSec += sec;
-      }
-
       final int index;
       if (range == FocusRange.year) {
         index = (day.year == bucketYear ? day.month - 1 : -1);
       } else if (range == FocusRange.month) {
-        if (day.year == buckets.first.year && day.month == buckets.first.month) {
-          index = ((day.day - 1) ~/ 7).clamp(0, buckets.length - 1);
+        if (day.year == monthAnchor.year &&
+            day.month == monthAnchor.month) {
+          index = ((day.startOfWeek(weekStart).epochDay - firstBucket) ~/ 7)
+              .clamp(0, buckets.length - 1);
         } else {
           index = -1;
         }
@@ -208,75 +191,7 @@ class FocusStats {
       }
     });
 
-    // Streaks calculation
-    final sortedDays = perDayMap.keys.toList()..sort();
-    var currentStreak = 0;
-    var longestStreak = 0;
-    if (sortedDays.isNotEmpty) {
-      var running = 0;
-      int? prev;
-      for (final d in sortedDays) {
-        if (prev != null && d == prev + 1) {
-          running++;
-        } else {
-          running = 1;
-        }
-        if (running > longestStreak) longestStreak = running;
-        prev = d;
-      }
-
-      // Current streak: check if today or yesterday is the last active day
-      final lastDay = sortedDays.last;
-      if (lastDay == todayIndex || lastDay == todayIndex - 1) {
-        var streakCounter = 0;
-        var check = lastDay;
-        while (perDayMap.containsKey(check)) {
-          streakCounter++;
-          check--;
-        }
-        currentStreak = streakCounter;
-      }
-    }
-
-    // Determine Most Productive Time Window
-    final maxSec = [morningSec, afternoonSec, eveningSec, nightSec].reduce((a, b) => a > b ? a : b);
-    final ({String title, IconData icon, int seconds, double percentage}) productiveWindow;
-    if (maxSec == 0) {
-      productiveWindow = (
-        title: 'Morning (9 AM - 12 PM)',
-        icon: LucideIcons.sun,
-        seconds: 0,
-        percentage: 0.0,
-      );
-    } else if (maxSec == morningSec) {
-      productiveWindow = (
-        title: 'Morning (4 AM - 11 AM)',
-        icon: LucideIcons.sunrise,
-        seconds: morningSec,
-        percentage: totalSeconds == 0 ? 0.0 : morningSec / totalSeconds,
-      );
-    } else if (maxSec == afternoonSec) {
-      productiveWindow = (
-        title: 'Afternoon (11 AM - 5 PM)',
-        icon: LucideIcons.sun,
-        seconds: afternoonSec,
-        percentage: totalSeconds == 0 ? 0.0 : afternoonSec / totalSeconds,
-      );
-    } else if (maxSec == eveningSec) {
-      productiveWindow = (
-        title: 'Evening (5 PM - 10 PM)',
-        icon: LucideIcons.sunset,
-        seconds: eveningSec,
-        percentage: totalSeconds == 0 ? 0.0 : eveningSec / totalSeconds,
-      );
-    } else {
-      productiveWindow = (
-        title: 'Night (10 PM - 4 AM)',
-        icon: LucideIcons.moon,
-        seconds: nightSec,
-        percentage: totalSeconds == 0 ? 0.0 : nightSec / totalSeconds,
-      );
-    }
+    final streaks = focusStreaks(scopedSlices, now: now);
 
     return FocusStats(
       todaySeconds: todaySeconds,
@@ -288,14 +203,13 @@ class FocusStats {
       longestSessionSeconds: longestSession,
       longestDaySeconds: longestDaySec,
       longestDayDate: longestDayDate,
-      currentStreak: currentStreak,
-      longestStreak: longestStreak,
+      currentStreak: streaks.current,
+      longestStreak: streaks.longest,
       buckets: buckets,
       series: series,
       perHabit: perHabit,
       perLabel: perLabel,
       rangeCount: rangeCount,
-      productiveWindow: productiveWindow,
     );
   }
 }

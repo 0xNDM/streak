@@ -99,13 +99,13 @@ This fork reimagines the desktop experience on Windows with a modern, focus-firs
 - 📊 **Executive Analytics Suite**:
   - **Weekly Target Comparison**: Progress bar against weekly target, remaining hours, and week-over-week performance delta (`+X% vs last week`).
   - **Compact 2x2 KPI Grid**: Longest session, Best focus day (with date), This Month total hours, and Longest Streak.
-  - **Interactive Range Chart**: Tap any bar in Week, Month, or Year views to inspect all sessions in a dedicated modal.
-  - **Day-of-Week & Time-of-Day Breakdowns**: Side-by-side equal-height analysis comparing All-Time vs. This-Month weekday averages, plus Morning/Afternoon/Evening/Night distribution.
+  - **Interactive Range Chart**: Tap any bar in Week, Month (calendar weeks), or Year views to inspect all sessions in a dedicated modal.
+  - **Day-of-Week & Time-of-Day Breakdowns**: Side-by-side analysis comparing All-Time vs. This-Month weekday averages, plus Morning/Afternoon/Evening/Night distribution.
   - **Auto-Fitting Annual Heatmap**: GitHub-style full-year activity heatmap with dynamic responsive cell sizing (no horizontal scrollbars).
 - 🫧 **Interactive Proportional Bubble Cloud**:
   - Last.fm-style bubble chart showcasing your **Top 10 focus labels**.
   - Bubble radius scales proportionally with the square root of time spent ($\sqrt{\text{share}}$, true area scaling).
-  - Responsive bubbles scale from 54px up to ~190px.
+  - Responsive bubbles scale from 54px up to ~190px and stay inside the card on narrow layouts.
   - Smart text containment: never cuts single words across lines, scales down smoothly, and stacks two-word labels into two lines.
   - Interactive hover tooltips reveal exact duration and label name.
 - 🏷️ **Multi-Tag Sessions & Label Management**:

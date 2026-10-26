@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:streak/app/theme/app_tokens.dart';
+import 'package:streak/core/i18n/l10n.dart';
 import 'package:streak/features/focus/data/focus_session.dart';
 import 'package:streak/features/focus/state/focus_controller.dart';
 import 'package:streak/features/focus/widgets/focus_pill.dart';
@@ -29,7 +30,7 @@ class MiniTimerChip extends StatelessWidget {
       padding: const EdgeInsets.only(top: 14),
       child: Semantics(
         button: true,
-        label: 'Focus timer',
+        label: context.l10n.focus_timer,
         child: GestureDetector(
           onTap: () => openFocus(context),
           child: Container(
@@ -49,14 +50,17 @@ class MiniTimerChip extends StatelessWidget {
               ),
             ),
             child: compact
-                ? Text(
-                    formatDuration(focus.displaySeconds),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w700,
-                      color: ink,
-                      fontFeatures: const [FontFeature.tabularFigures()],
+                ? FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      formatDuration(focus.displaySeconds),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        color: ink,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
                     ),
                   )
                 : Row(

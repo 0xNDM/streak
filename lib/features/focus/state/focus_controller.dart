@@ -84,7 +84,6 @@ class FocusController extends ChangeNotifier {
   String _runId = '';
   Timer? _ticker;
   Timer? _heartbeat;
-  Timer? _autoEnd;
   List<FocusSession>? _view;
   List<FocusSession>? _slices;
   Map<String, int>? _perDay;
@@ -374,7 +373,6 @@ class FocusController extends ChangeNotifier {
 
   void pause({DateTime? at}) {
     unawaited(FocusAudio.stopAlert());
-    _autoEnd?.cancel();
     if (_since == null) return;
     _accumulated = elapsedAt(at ?? DateTime.now());
     _since = null;
@@ -415,7 +413,6 @@ class FocusController extends ChangeNotifier {
     _isCompleted = false;
     _savedCompletedSession = null;
     _pendingCompleted = null;
-    _autoEnd?.cancel();
     unawaited(FocusAudio.stopAlert());
     _accumulated = 0;
     _runId = const Uuid().v4();
@@ -435,7 +432,6 @@ class FocusController extends ChangeNotifier {
     if (!_open || isFlow) return;
     _awaiting = false;
     _switchIn = 0;
-    _autoEnd?.cancel();
     unawaited(FocusAudio.stopAlert());
     if (reachedTarget) {
       _accumulated = targetSeconds;
@@ -508,7 +504,6 @@ class FocusController extends ChangeNotifier {
   Future<void> _clearActive() async {
     _stopTicker();
     _stopHeartbeat();
-    _autoEnd?.cancel();
     _awaiting = false;
     _switchIn = 0;
     unawaited(FocusAudio.stopAlert());
@@ -1097,10 +1092,8 @@ class FocusController extends ChangeNotifier {
     notifyListeners();
   }
 
-  static String weekKey(DateTime date, int weekStart) {
-    final start = date.startOfWeek(weekStart);
-    return '${start.year}-W${((start.difference(DateTime(start.year, 1, 1)).inDays) / 7).ceil() + 1}_${start.dayKey}';
-  }
+  static String weekKey(DateTime date, int weekStart) =>
+      date.startOfWeek(weekStart).dayKey;
 
   int weeklyTargetFor(DateTime date, int defaultHours, {int weekStart = 1}) {
     final map = LocalStore.settingMap(_weeklyTargetsKey);
@@ -1206,26 +1199,8 @@ class FocusController extends ChangeNotifier {
     return averages;
   }
 
-  int get currentStreak {
-    if (_sessions.isEmpty) return 0;
-    final todayIndex = AppClock.now().epochDay;
-    final activeDays = <int>{};
-    for (final s in _allSlices) {
-      if (s.seconds >= 30) {
-        activeDays.add(s.countedOn.epochDay);
-      }
-    }
-    if (activeDays.isEmpty) return 0;
-    final lastDay = (activeDays.toList()..sort()).last;
-    if (lastDay < todayIndex - 1) return 0;
-    var streak = 0;
-    var check = lastDay;
-    while (activeDays.contains(check)) {
-      streak++;
-      check--;
-    }
-    return streak;
-  }
+  int get currentStreak =>
+      focusStreaks(_allSlices, now: AppClock.now()).current;
 
   List<MapEntry<String, int>> labelRankingForPeriod(String period, int weekStart) {
     final now = AppClock.now();
@@ -1269,7 +1244,7 @@ class FocusController extends ChangeNotifier {
     return totals;
   }
 
-  ({int morningSec, int afternoonSec, int eveningSec, int nightSec, int totalSec, String peakPeriod})
+  ({int morningSec, int afternoonSec, int eveningSec, int nightSec, int totalSec})
       timeOfDayBreakdown({required bool isWeekly, required DateTime now, required int weekStart}) {
     var morning = 0;
     var afternoon = 0;
@@ -1304,20 +1279,6 @@ class FocusController extends ChangeNotifier {
     }
 
     final total = morning + afternoon + evening + night;
-    var peak = 'Morning (4 AM – 11 AM)';
-    var maxSec = morning;
-    if (afternoon > maxSec) {
-      maxSec = afternoon;
-      peak = 'Afternoon (11 AM – 5 PM)';
-    }
-    if (evening > maxSec) {
-      maxSec = evening;
-      peak = 'Evening (5 PM – 10 PM)';
-    }
-    if (night > maxSec) {
-      maxSec = night;
-      peak = 'Night (10 PM – 4 AM)';
-    }
 
     return (
       morningSec: morning,
@@ -1325,13 +1286,11 @@ class FocusController extends ChangeNotifier {
       eveningSec: evening,
       nightSec: night,
       totalSec: total,
-      peakPeriod: peak,
     );
   }
 
   @override
   void dispose() {
-    _autoEnd?.cancel();
     _stopTicker();
     _stopHeartbeat();
     super.dispose();

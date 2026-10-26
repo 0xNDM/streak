@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:streak/app/theme/app_tokens.dart';
+import 'package:streak/core/i18n/l10n.dart';
 import 'package:streak/features/focus/state/focus_controller.dart';
 
 class FocusDashboardHeader extends StatelessWidget {
@@ -11,15 +12,26 @@ class FocusDashboardHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final focus = context.watch<FocusController>();
+    final stats = context.select<
+        FocusController,
+        ({
+          int totalSeconds,
+          int activeDays,
+          int elapsedDays,
+          int streak,
+        })>((focus) => (
+          totalSeconds: focus.totalSeconds,
+          activeDays: focus.totalActiveDaysCount,
+          elapsedDays: focus.totalElapsedDaysSinceStart,
+          streak: focus.currentStreak,
+        ));
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final scheme = context.colors;
 
-    final totalHours = focus.totalSeconds ~/ 3600;
-    final activeDays = focus.totalActiveDaysCount;
-    final elapsedDays = focus.totalElapsedDaysSinceStart;
-    final activeDaysLabel = elapsedDays <= 0 ? '$activeDays' : '$activeDays/$elapsedDays';
-    final streak = focus.currentStreak;
+    final totalHours = stats.totalSeconds ~/ 3600;
+    final activeDaysLabel = stats.elapsedDays <= 0
+        ? '${stats.activeDays}'
+        : '${stats.activeDays}/${stats.elapsedDays}';
 
     return Container(
       margin: margin ?? const EdgeInsets.symmetric(vertical: 8),
@@ -36,7 +48,7 @@ class FocusDashboardHeader extends StatelessWidget {
               value: '${totalHours}h',
               icon: LucideIcons.zap,
               iconColor: const Color(0xFFFBBF24), // Electric Amber
-              label: 'locked-in',
+              label: context.l10n.focus_locked_in,
             ),
           ),
           const SizedBox(width: 20),
@@ -44,17 +56,17 @@ class FocusDashboardHeader extends StatelessWidget {
           Expanded(
             child: _StatItem(
               value: activeDaysLabel,
-              label: 'active days',
+              label: context.l10n.focus_active_days,
             ),
           ),
           const SizedBox(width: 20),
           // 3. Day Streak (xx 🔥)
           Expanded(
             child: _StatItem(
-              value: '$streak',
+              value: '${stats.streak}',
               icon: LucideIcons.flame,
               iconColor: const Color(0xFFFF4D4F), // Vibrant Coral Red
-              label: 'day streak',
+              label: context.l10n.focus_day_streak,
             ),
           ),
         ],

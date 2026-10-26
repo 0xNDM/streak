@@ -55,7 +55,7 @@ class WeeklyFocusComparisonCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Weekly Focus Target',
+                    context.l10n.focus_weekly_focus_target,
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
@@ -115,7 +115,9 @@ class WeeklyFocusComparisonCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 5),
                     Text(
-                      '${isUp ? '+' : ''}${change.toStringAsFixed(0)}% vs last week',
+                      context.l10n.focus_vs_last_week(
+                        '${isUp ? '+' : ''}${change.toStringAsFixed(0)}',
+                      ),
                       style: TextStyle(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w700,
@@ -144,7 +146,9 @@ class WeeklyFocusComparisonCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '${(progress * 100).toInt()}% of weekly target',
+                context.l10n.focus_percent_of_weekly_target(
+                  (progress * 100).toInt(),
+                ),
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -153,8 +157,9 @@ class WeeklyFocusComparisonCard extends StatelessWidget {
               ),
               Text(
                 isReached
-                    ? 'Target reached! 🎉'
-                    : '${remainingHours.toStringAsFixed(1)}h to go',
+                    ? context.l10n.focus_target_reached
+                    : context.l10n
+                        .focus_hours_to_go(remainingHours.toStringAsFixed(1)),
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -186,7 +191,8 @@ class FocusKpiGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dateFormat = DateFormat('MMM d');
+    final dateFormat =
+        DateFormat.MMMd(Localizations.localeOf(context).toString());
     final bestDayLabel = stats.longestDayDate == null
         ? ''
         : ' (${dateFormat.format(stats.longestDayDate!)})';
@@ -197,7 +203,7 @@ class FocusKpiGrid extends StatelessWidget {
           children: [
             Expanded(
               child: FocusMetricCard(
-                title: 'Longest Session',
+                title: context.l10n.focus_longest_session,
                 value: formatHoursShort(stats.longestSessionSeconds),
                 icon: LucideIcons.timer,
                 accent: context.tokens.warning,
@@ -206,7 +212,7 @@ class FocusKpiGrid extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: FocusMetricCard(
-                title: 'Best Focus Day',
+                title: context.l10n.focus_best_focus_day,
                 value:
                     '${formatHoursShort(stats.longestDaySeconds)}$bestDayLabel',
                 icon: LucideIcons.trophy,
@@ -220,7 +226,7 @@ class FocusKpiGrid extends StatelessWidget {
           children: [
             Expanded(
               child: FocusMetricCard(
-                title: 'This Month',
+                title: context.l10n.focus_this_month,
                 value: formatHoursShort(stats.monthSeconds),
                 icon: LucideIcons.calendarRange,
                 accent: const Color(0xFFF97316),
@@ -229,7 +235,7 @@ class FocusKpiGrid extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: FocusMetricCard(
-                title: 'Longest Streak',
+                title: context.l10n.focus_longest_streak,
                 value: '${stats.longestStreak} ${context.l10n.days}',
                 icon: LucideIcons.sparkles,
                 accent: const Color(0xFF8B5CF6),
@@ -274,14 +280,15 @@ class _WeeklyContinuousTimelineState extends State<WeeklyContinuousTimeline> {
   @override
   Widget build(BuildContext context) {
     final scheme = context.colors;
-    final focus = context.watch<FocusController>();
+    final focus = context.read<FocusController>();
     final habits = context.watch<HabitsController>();
     final settings = context.watch<SettingsController>();
     final activeWeekStart =
         widget.weekStart == 1 ? settings.weekStart : widget.weekStart;
     final start = _computeWeekStart(activeWeekStart);
     final end = start.add(const Duration(days: 6));
-    final formatRange = DateFormat('MMM d');
+    final formatRange =
+        DateFormat.MMMd(Localizations.localeOf(context).toString());
     final rangeText =
         '${formatRange.format(start)} – ${formatRange.format(end)}, ${start.year}';
 
@@ -317,9 +324,10 @@ class _WeeklyContinuousTimelineState extends State<WeeklyContinuousTimeline> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Weekly Timeline',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                  Text(
+                    context.l10n.focus_weekly_timeline,
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w800),
                   ),
                   const SizedBox(height: 2),
                   Text(
@@ -342,7 +350,8 @@ class _WeeklyContinuousTimelineState extends State<WeeklyContinuousTimeline> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
-                      'Total: ${formatHoursShort(weekTotalSeconds)}',
+                      context.l10n
+                          .focus_total_time(formatHoursShort(weekTotalSeconds)),
                       style: TextStyle(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w700,
@@ -361,8 +370,8 @@ class _WeeklyContinuousTimelineState extends State<WeeklyContinuousTimeline> {
                       style: TextButton.styleFrom(
                           visualDensity: VisualDensity.compact),
                       onPressed: () => setState(() => _weekOffset = 0),
-                      child: const Text('Today',
-                          style: TextStyle(fontSize: 12)),
+                      child: Text(context.l10n.today,
+                          style: const TextStyle(fontSize: 12)),
                     ),
                   IconButton(
                     icon: const Icon(LucideIcons.chevronRight, size: 18),
@@ -439,7 +448,8 @@ class _DailyTrackRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.colors;
-    final dayLabelFormat = DateFormat('E d');
+    final dayLabelFormat =
+        DateFormat('E d', Localizations.localeOf(context).toString());
     final label = dayLabelFormat.format(date);
     final isToday = date.dayKey == AppClock.now().dayKey;
 
@@ -507,7 +517,7 @@ class _DailyTrackRow extends StatelessWidget {
     final endTime = session.endedAt;
     final timeStr =
         '${timeFormat.format(start)} - ${timeFormat.format(endTime)}';
-    final habitTitle = habit?.name ?? 'Focus Session';
+    final habitTitle = habit?.name ?? context.l10n.focus;
     final labelNames = focus.labelNames(session.labelIds);
     final tagsStr = labelNames.isEmpty ? '' : ' [${labelNames.join(', ')}]';
     final tooltipText =
@@ -548,85 +558,6 @@ class _DailyTrackRow extends StatelessWidget {
   }
 }
 
-class ProductiveTimeCard extends StatelessWidget {
-  const ProductiveTimeCard({
-    super.key,
-    required this.stats,
-    required this.accent,
-  });
-
-  final FocusStats stats;
-  final Color accent;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colors;
-    final window = stats.productiveWindow;
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.45),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.12),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(window.icon, color: accent, size: 24),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Most Productive Time',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                    color: context.tokens.muted,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  window.title,
-                  style: const TextStyle(
-                    fontSize: 16.5,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (window.percentage > 0)
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: scheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                '${(window.percentage * 100).toInt()}% of focus',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-
 /// Renders a proportional bubble cloud for focus labels based on their total duration.
 class FocusTagCloud extends StatelessWidget {
   const FocusTagCloud({
@@ -645,7 +576,7 @@ class FocusTagCloud extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 24),
         child: Center(
           child: Text(
-            'No tag data for this period',
+            context.l10n.focus_no_tag_data,
             style: TextStyle(
               fontSize: 13,
               color: context.tokens.muted,
@@ -657,77 +588,87 @@ class FocusTagCloud extends StatelessWidget {
 
     final maxCount = entries.fold<int>(0, (max, e) => e.value > max ? e.value : max);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 24),
-      child: Center(
-        child: Wrap(
-          spacing: 16,
-          runSpacing: 16,
-          alignment: WrapAlignment.center,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            for (final entry in entries)
-              Builder(
-                builder: (context) {
-                  final share = maxCount == 0 ? 0.0 : (entry.value / maxCount).clamp(0.0, 1.0);
-                  // Map area linearly -> scale radius by square root
-                  final scale = math.sqrt(share);
-                  // Min bubble size 54, let it grow up to ~190px (no strict small max)
-                  final bubbleSize = 54.0 + (136.0 * scale);
-                  
-                  final tagColor = focus.colorForLabel(entry.key);
-                  final durationStr = formatHoursShort(entry.value);
-                  final innerSize = bubbleSize * 0.75;
-                  final displayName = focus.labelDisplayName(entry.key);
-                  
-                  // If exactly 2 words, explicitly put them on 2 lines so they fit nicely.
-                  // Otherwise, let it be 1 line. We do NOT constrain the width of the Text,
-                  // so a single word is never cut/broken. The FittedBox handles scaling it down.
-                  final words = displayName.trim().split(RegExp(r'\s+'));
-                  final formattedText = words.length == 2
-                      ? '${words[0]}\n${words[1]}'
-                      : displayName;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxBubble = math.min(
+          190.0,
+          math.max(54.0, constraints.maxWidth - 8),
+        );
 
-                  return Tooltip(
-                    message: '$durationStr - $displayName',
-                    waitDuration: const Duration(milliseconds: 300),
-                    child: Container(
-                      width: bubbleSize,
-                      height: bubbleSize,
-                      decoration: BoxDecoration(
-                        color: tagColor.withValues(alpha: 0.12),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: tagColor.withValues(alpha: 0.3),
-                        ),
-                      ),
-                      alignment: Alignment.center,
-                      child: SizedBox(
-                        width: innerSize,
-                        height: innerSize,
-                        child: Center(
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              formattedText,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 16 + (14 * scale),
-                                fontWeight: FontWeight.w800,
-                                color: tagColor,
-                                height: 1.15,
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: Center(
+            child: Wrap(
+              spacing: 16,
+              runSpacing: 16,
+              alignment: WrapAlignment.center,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                for (final entry in entries)
+                  Builder(
+                    builder: (context) {
+                      final share = maxCount == 0
+                          ? 0.0
+                          : (entry.value / maxCount).clamp(0.0, 1.0);
+                      // Map area linearly -> scale radius by square root
+                      final scale = math.sqrt(share);
+                      final bubbleSize = 54.0 + ((maxBubble - 54.0) * scale);
+
+                      final tagColor = focus.colorForLabel(entry.key);
+                      final durationStr = formatHoursShort(entry.value);
+                      final innerSize = bubbleSize * 0.75;
+                      final displayName = focus.labelDisplayName(entry.key);
+
+                      // If exactly 2 words, explicitly put them on 2 lines so they fit nicely.
+                      // Otherwise, let it be 1 line. We do NOT constrain the width of the Text,
+                      // so a single word is never cut/broken. The FittedBox handles scaling it down.
+                      final words = displayName.trim().split(RegExp(r'\s+'));
+                      final formattedText = words.length == 2
+                          ? '${words[0]}\n${words[1]}'
+                          : displayName;
+
+                      return Tooltip(
+                        message: '$durationStr - $displayName',
+                        waitDuration: const Duration(milliseconds: 300),
+                        child: Container(
+                          width: bubbleSize,
+                          height: bubbleSize,
+                          decoration: BoxDecoration(
+                            color: tagColor.withValues(alpha: 0.12),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: tagColor.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          alignment: Alignment.center,
+                          child: SizedBox(
+                            width: innerSize,
+                            height: innerSize,
+                            child: Center(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  formattedText,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 16 + (14 * scale),
+                                    fontWeight: FontWeight.w800,
+                                    color: tagColor,
+                                    height: 1.15,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-          ],
-        ),
-      ),
+                      );
+                    },
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

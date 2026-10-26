@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:streak/app/theme/app_tokens.dart';
 import 'package:streak/core/extensions/date_extensions.dart';
+import 'package:streak/core/i18n/l10n.dart';
 import 'package:streak/features/focus/data/focus_session.dart';
 import 'package:streak/features/focus/state/focus_controller.dart';
 import 'package:streak/features/settings/widgets/settings_rows.dart';
@@ -45,32 +46,32 @@ class _FocusTimeOfDayCardState extends State<FocusTimeOfDayCard> {
 
     final periods = [
       (
-        title: 'Morning',
-        timeWindow: '4:00 AM – 11:00 AM',
+        title: context.l10n.focus_morning,
+        timeWindow: '04:00 – 11:00',
         icon: LucideIcons.sunrise,
         seconds: breakdown.morningSec,
         pct: morningPct,
         color: const Color(0xFF10B981), // Emerald
       ),
       (
-        title: 'Afternoon',
-        timeWindow: '11:00 AM – 5:00 PM',
+        title: context.l10n.focus_afternoon,
+        timeWindow: '11:00 – 17:00',
         icon: LucideIcons.sun,
         seconds: breakdown.afternoonSec,
         pct: afternoonPct,
         color: const Color(0xFF34D399), // Mint
       ),
       (
-        title: 'Evening',
-        timeWindow: '5:00 PM – 10:00 PM',
+        title: context.l10n.focus_evening,
+        timeWindow: '17:00 – 22:00',
         icon: LucideIcons.sunset,
         seconds: breakdown.eveningSec,
         pct: eveningPct,
         color: const Color(0xFF059669), // Forest
       ),
       (
-        title: 'Night',
-        timeWindow: '10:00 PM – 4:00 AM',
+        title: context.l10n.focus_night,
+        timeWindow: '22:00 – 04:00',
         icon: LucideIcons.moon,
         seconds: breakdown.nightSec,
         pct: nightPct,
@@ -97,10 +98,9 @@ class _FocusTimeOfDayCardState extends State<FocusTimeOfDayCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final title = Row(
                 children: [
                   Container(
                     width: 36,
@@ -116,34 +116,60 @@ class _FocusTimeOfDayCardState extends State<FocusTimeOfDayCard> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Time of Day Breakdown',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          context.l10n.focus_time_of_day_breakdown,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
-                      ),
-                      Text(
-                        _isWeekly ? 'This Week (Local Time)' : 'This Month (Local Time)',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: context.tokens.muted,
-                          fontWeight: FontWeight.w500,
+                        Text(
+                          _isWeekly
+                              ? context.l10n.focus_this_week_local
+                              : context.l10n.focus_this_month_local,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: context.tokens.muted,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
-              ),
-              Segmented(
-                options: const ['Week', 'Month'],
+              );
+              final segmented = Segmented(
+                options: [context.l10n.week, context.l10n.month],
                 index: _isWeekly ? 0 : 1,
                 onChanged: (i) => setState(() => _isWeekly = i == 0),
-              ),
-            ],
+              );
+
+              if (constraints.maxWidth < 360) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    title,
+                    const SizedBox(height: 10),
+                    segmented,
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  Expanded(child: title),
+                  const SizedBox(width: 12),
+                  segmented,
+                ],
+              );
+            },
           ),
           const SizedBox(height: 20),
           if (total == 0)
@@ -152,8 +178,8 @@ class _FocusTimeOfDayCardState extends State<FocusTimeOfDayCard> {
               child: Center(
                 child: Text(
                   _isWeekly
-                      ? 'No focus recorded this week yet'
-                      : 'No focus recorded this month yet',
+                      ? context.l10n.focus_no_focus_week
+                      : context.l10n.focus_no_focus_month,
                   style: TextStyle(
                     fontSize: 13,
                     color: context.tokens.muted,
@@ -172,47 +198,65 @@ class _FocusTimeOfDayCardState extends State<FocusTimeOfDayCard> {
                       children: [
                         Icon(p.icon, size: 16, color: p.color),
                         const SizedBox(width: 8),
-                        Text(
-                          p.title,
-                          style: const TextStyle(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          '(${p.timeWindow})',
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            color: context.tokens.muted,
-                          ),
-                        ),
-                        if (maxSeconds > 0 && idx == peakIndex) ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF10B981).withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(LucideIcons.sparkles, size: 10, color: Color(0xFF10B981)),
-                                SizedBox(width: 3),
-                                Text(
-                                  'Peak',
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  p.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  '(${p.timeWindow})',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w800,
-                                    color: Color(0xFF10B981),
+                                    fontSize: 11.5,
+                                    color: context.tokens.muted,
+                                  ),
+                                ),
+                              ),
+                              if (maxSeconds > 0 && idx == peakIndex) ...[
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF10B981)
+                                        .withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(LucideIcons.sparkles,
+                                          size: 10,
+                                          color: Color(0xFF10B981)),
+                                      const SizedBox(width: 3),
+                                      Text(
+                                        context.l10n.focus_peak,
+                                        style: const TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w800,
+                                          color: Color(0xFF10B981),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
-                            ),
+                            ],
                           ),
-                        ],
-                        const Spacer(),
+                        ),
+                        const SizedBox(width: 8),
                         Text(
                           formatHoursShort(p.seconds),
                           style: const TextStyle(

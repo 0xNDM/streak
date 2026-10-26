@@ -22,7 +22,7 @@ String focusPeriodLabel(
     case FocusRange.month:
       if (offset == 0) return context.l10n.period_this_month;
       if (offset == -1) return context.l10n.period_last_month;
-      return DateFormat.yMMMM(locale).format(start);
+      return DateFormat.yMMMM(locale).format(start.addDays(6));
     case FocusRange.year:
       if (offset == 0) return context.l10n.period_this_year;
       if (offset == -1) return context.l10n.period_last_year;

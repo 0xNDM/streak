@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:streak/app/theme/app_tokens.dart';
+import 'package:streak/core/i18n/l10n.dart';
 import 'package:streak/core/widgets/app_empty_state.dart';
 import 'package:streak/features/focus/data/focus_session.dart';
 import 'package:streak/features/focus/state/focus_controller.dart';
@@ -48,7 +49,8 @@ class _PeriodSessionsDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.colors;
-    final focus = context.watch<FocusController>();
+    context.select<FocusController, int>((f) => f.revision);
+    final focus = context.read<FocusController>();
     final habits = context.watch<HabitsController>();
 
     final periodSessions = focus.sessions.where((s) {
@@ -123,12 +125,11 @@ class _PeriodSessionsDialog extends StatelessWidget {
             centerTitle: false,
           ),
           body: periodSessions.isEmpty
-              ? const Center(
+              ? Center(
                   child: AppEmptyState(
                     icon: LucideIcons.timer,
-                    title: 'No Focus Sessions',
-                    message:
-                        'No focus sessions were recorded during this period.',
+                    title: context.l10n.focus_no_sessions_title,
+                    message: context.l10n.focus_no_sessions_body,
                   ),
                 )
               : ListView.builder(

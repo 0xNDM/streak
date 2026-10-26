@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:streak/app/theme/app_tokens.dart';
 import 'package:streak/core/i18n/date_labels.dart';
+import 'package:streak/core/i18n/l10n.dart';
 import 'package:streak/features/focus/data/focus_session.dart';
 import 'package:streak/features/focus/state/focus_controller.dart';
 import 'package:streak/features/settings/widgets/settings_rows.dart';
@@ -57,16 +59,7 @@ class _FocusWeekdayAveragesCardState extends State<FocusWeekdayAveragesCard> {
       }
     }
 
-    final weekdayNames = [
-      '',
-      'Monday',
-      'Tuesday',
-      'Wednesday',
-      'Thursday',
-      'Friday',
-      'Saturday',
-      'Sunday'
-    ];
+    final weekdayNameFormat = DateFormat.EEEE(locale.toString());
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -77,10 +70,9 @@ class _FocusWeekdayAveragesCardState extends State<FocusWeekdayAveragesCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final title = Row(
                 children: [
                   Container(
                     width: 36,
@@ -96,38 +88,69 @@ class _FocusWeekdayAveragesCardState extends State<FocusWeekdayAveragesCard> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Day of Week',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          context.l10n.focus_day_of_week,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
-                      ),
-                      Text(
-                        maxWeekdayAvg > 0
-                            ? 'Peak: ${weekdayNames[bestWeekday]}'
-                            : (_subTab == 0
-                                ? 'All-time average since start'
-                                : 'Average for this month'),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: context.tokens.muted,
-                          fontWeight: FontWeight.w500,
+                        Text(
+                          maxWeekdayAvg > 0
+                              ? context.l10n.focus_peak_weekday(
+                                  weekdayNameFormat.format(
+                                    DateTime(2024, 1, bestWeekday),
+                                  ),
+                                )
+                              : (_subTab == 0
+                                  ? context.l10n.focus_all_time_average
+                                  : context.l10n.focus_month_average),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: context.tokens.muted,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
-              ),
-              Segmented(
-                options: const ['All Time', 'This Month'],
+              );
+              final segmented = Segmented(
+                options: [
+                  context.l10n.period_all_time,
+                  context.l10n.focus_this_month,
+                ],
                 index: _subTab,
                 onChanged: (i) => setState(() => _subTab = i),
-              ),
-            ],
+              );
+
+              if (constraints.maxWidth < 360) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    title,
+                    const SizedBox(height: 10),
+                    segmented,
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  Expanded(child: title),
+                  const SizedBox(width: 12),
+                  segmented,
+                ],
+              );
+            },
           ),
           const SizedBox(height: 20),
           // Weekday bars

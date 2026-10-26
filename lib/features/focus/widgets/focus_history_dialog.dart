@@ -65,16 +65,23 @@ class _FocusHistoryViewState extends State<FocusHistoryView> {
     AppSnackbar.success(context, context.l10n.focus_sessions_deleted(1));
   }
 
-  String _dateHeader(DateTime date, DateTime today, DateTime yesterday) {
-    if (date.dayKey == today.dayKey) return 'Today';
-    if (date.dayKey == yesterday.dayKey) return 'Yesterday';
-    return DateFormat('EEEE, MMM d, y').format(date);
+  String _dateHeader(
+    BuildContext context,
+    DateTime date,
+    DateTime today,
+    DateTime yesterday,
+  ) {
+    if (date.dayKey == today.dayKey) return context.l10n.today;
+    if (date.dayKey == yesterday.dayKey) return context.l10n.yesterday;
+    final locale = Localizations.localeOf(context).toString();
+    return DateFormat.yMMMMEEEEd(locale).format(date);
   }
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.colors;
-    final focus = context.watch<FocusController>();
+    context.select<FocusController, int>((f) => f.revision);
+    final focus = context.read<FocusController>();
     final habits = context.watch<HabitsController>();
     final sessions = focus.sessions.toList()
       ..sort((a, b) => b.startedAt.compareTo(a.startedAt));
@@ -151,7 +158,8 @@ class _FocusHistoryViewState extends State<FocusHistoryView> {
                 final date = groupDate[key]!;
                 final groupSessions = grouped[key]!;
                 final totalDaySeconds = groupSessions.fold(0, (sum, s) => sum + s.seconds);
-                final headerText = _dateHeader(date, today, yesterday);
+                final headerText =
+                    _dateHeader(context, date, today, yesterday);
 
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 20),
@@ -163,14 +171,19 @@ class _FocusHistoryViewState extends State<FocusHistoryView> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              headerText,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -0.2,
+                            Expanded(
+                              child: Text(
+                                headerText,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -0.2,
+                                ),
                               ),
                             ),
+                            const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(

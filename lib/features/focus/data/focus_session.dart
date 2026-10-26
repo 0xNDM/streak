@@ -183,6 +183,42 @@ String formatDuration(int seconds) {
   return h > 0 ? '${h.toString().padLeft(2, '0')}:$m:$s' : '$m:$s';
 }
 
+({int current, int longest}) focusStreaks(
+  Iterable<FocusSession> slices, {
+  required DateTime now,
+}) {
+  final activeDays = <int>{};
+  for (final slice in slices) {
+    if (slice.seconds >= 30) activeDays.add(slice.countedOn.epochDay);
+  }
+  if (activeDays.isEmpty) return (current: 0, longest: 0);
+
+  final days = activeDays.toList()..sort();
+  var longest = 1;
+  var running = 1;
+  for (var i = 1; i < days.length; i++) {
+    if (days[i] == days[i - 1] + 1) {
+      running++;
+    } else {
+      running = 1;
+    }
+    if (running > longest) longest = running;
+  }
+
+  final today = now.epochDay;
+  final last = days.last;
+  var current = 0;
+  if (last == today || last == today - 1) {
+    current = 1;
+    for (var i = days.length - 1; i > 0; i--) {
+      if (days[i - 1] != days[i] - 1) break;
+      current++;
+    }
+  }
+
+  return (current: current, longest: longest);
+}
+
 String formatHoursShort(int seconds) {
   final h = seconds ~/ 3600;
   final m = (seconds % 3600) ~/ 60;

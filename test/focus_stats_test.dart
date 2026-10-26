@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:streak/core/extensions/date_extensions.dart';
 import 'package:streak/features/focus/data/focus_session.dart';
 import 'package:streak/features/focus/data/focus_stats.dart';
 
@@ -100,6 +101,21 @@ void main() {
     expect(stats.totalSeconds, 150 * 60);
   });
 
+  test('the month range buckets by calendar week', () {
+    final stats = _stats(
+      [
+        _session(habitId: 'a', startedAt: DateTime(2026, 8, 1, 9), minutes: 10),
+        _session(habitId: 'a', startedAt: DateTime(2026, 8, 3, 9), minutes: 20),
+      ],
+      range: FocusRange.month,
+    );
+
+    expect(stats.buckets.first, DateTime(2026, 7, 27));
+    expect(stats.buckets.length, 6);
+    expect(stats.series[0], 10 * 60);
+    expect(stats.series[1], 20 * 60);
+  });
+
   test('time per habit only counts the selected range', () {
     final stats = _stats([
       _session(habitId: 'a', startedAt: _now, minutes: 30),
@@ -152,7 +168,7 @@ void main() {
     expect(_stats(sessions, offset: -1).rangeCount, 1);
 
     final lastMonth = _stats(sessions, range: FocusRange.month, offset: -1);
-    expect(lastMonth.buckets.first, DateTime(2026, 7, 1));
+    expect(lastMonth.buckets.first, DateTime(2026, 6, 29));
     expect(lastMonth.rangeSeconds, 50 * 60);
 
     final lastYear = _stats(sessions, range: FocusRange.year, offset: -1);
@@ -170,5 +186,31 @@ void main() {
     expect(stats.rangeSeconds, 0);
     expect(stats.rangeCount, 0);
     expect(stats.totalSeconds, 30 * 60);
+  });
+
+  test('streaks use the logical focus day at the configured cutoff', () {
+    addTearDown(() => AppClock.cutoffHour = 0);
+    AppClock.cutoffHour = 4;
+
+    final stats = FocusStats.compute(
+      sessions: [
+        _session(
+          habitId: 'a',
+          startedAt: DateTime(2026, 8, 12, 1, 30),
+          minutes: 30,
+        ),
+        _session(
+          habitId: 'a',
+          startedAt: DateTime(2026, 8, 11, 4, 30),
+          minutes: 30,
+        ),
+      ],
+      range: FocusRange.week,
+      now: DateTime(2026, 8, 12, 2),
+      weekStart: DateTime.monday,
+    );
+
+    expect(stats.currentStreak, 1);
+    expect(stats.longestStreak, 1);
   });
 }
